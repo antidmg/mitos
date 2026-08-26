@@ -1,24 +1,24 @@
 [workspace]
 resolver = "2"
 members = [
-  "helix-core",
-  "helix-view",
-  "helix-term",
-  "helix-tui",
-  "helix-lsp-types",
-  "helix-lsp",
-  "helix-event",
-  "helix-dap-types",
-  "helix-dap",
-  "helix-loader",
-  "helix-vcs",
-  "helix-parsec",
-  "helix-stdx",
+  "mitos-core",
+  "mitos-view",
+  "mitos-term",
+  "mitos-tui",
+  "mitos-lsp-types",
+  "mitos-lsp",
+  "mitos-event",
+  "mitos-dap-types",
+  "mitos-dap",
+  "mitos-loader",
+  "mitos-vcs",
+  "mitos-parsec",
+  "mitos-stdx",
   "xtask",
 ]
 
 default-members = [
-  "helix-term"
+  "mitos-term"
 ]
 
 [profile.release]
@@ -33,9 +33,9 @@ opt-level = 3
 
 [profile.integration]
 inherits = "test"
-package.helix-core.opt-level = 2
-package.helix-tui.opt-level = 2
-package.helix-term.opt-level = 2
+package.mitos-core.opt-level = 2
+package.mitos-tui.opt-level = 2
+package.mitos-term.opt-level = 2
 
 [workspace.dependencies]
 tree-house = { version = "0.4", default-features = false }
@@ -65,11 +65,11 @@ criterion = { version = "0.8", default-features = false, features = ["cargo_benc
 quickcheck = { version = "1", default-features = false }
 
 [workspace.package]
-version = "25.7.1"
+version = "0.1.0"
 edition = "2021"
 authors = ["Blaž Hrastnik <blaz@mxxn.io>"]
 categories = ["editor"]
-repository = "https://github.com/helix-editor/helix"
-homepage = "https://helix-editor.com"
+repository = "https://github.com/matoous/mitos"
+homepage = "https://github.com/matoous/mitos"
 license = "MPL-2.0"
 rust-version = "1.90"

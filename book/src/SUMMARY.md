@@ -1,6 +1,6 @@
 # Summary
 
-[Helix](./title-page.md)
+[Mitos](./title-page.md)
 
 - [Installation](./install.md)
   - [Package Managers](./package-managers.md)
@@ -20,7 +20,7 @@
   - [Workspace trust](./workspace-trust.md)
 - [Ecosystem](./ecosystem.md)
   - [Migrating from Vim](./from-vim.md)
-  - [Helix mode in other software](./other-software.md)
+  - [Mitos mode in other software](./other-software.md)
 - [Configuration](./configuration.md)
   - [Editor](./editor.md)
   - [Themes](./themes.md)

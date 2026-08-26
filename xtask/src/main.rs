@@ -19,10 +19,10 @@ pub mod tasks {
     }
 
     pub fn querycheck(languages: impl Iterator<Item = String>) -> Result<(), DynError> {
-        use helix_core::syntax::LanguageData;
+        use mitos_core::syntax::LanguageData;
 
         let languages_to_check: HashSet<_> = languages.collect();
-        let loader = helix_core::config::default_lang_loader();
+        let loader = mitos_core::config::default_lang_loader();
         for (_language, lang_data) in loader.languages() {
             if !languages_to_check.is_empty()
                 && !languages_to_check.contains(&lang_data.config().language_id)
@@ -46,17 +46,17 @@ pub mod tasks {
     }
 
     pub fn indentcheck(languages: impl Iterator<Item = String>) -> Result<(), DynError> {
-        use helix_core::{
+        use mitos_core::{
             indent::{
                 is_opaque_interior, is_outdent_token_at, treesitter_indent_for_pos, IndentStyle,
             },
             Syntax,
         };
-        use helix_stdx::rope::RopeSliceExt;
+        use mitos_stdx::rope::RopeSliceExt;
         use ropey::Rope;
 
         let filter: HashSet<String> = languages.collect();
-        let loader = helix_core::config::default_lang_loader();
+        let loader = mitos_core::config::default_lang_loader();
         let corpus = crate::path::tests_indent();
         let tab_width = 4;
         let mut errors = 0usize;
@@ -243,7 +243,7 @@ pub mod tasks {
     }
 
     pub fn themecheck(themes: impl Iterator<Item = String>) -> Result<(), DynError> {
-        use helix_view::theme::Loader;
+        use mitos_view::theme::Loader;
 
         let themes_to_check: HashSet<_> = themes.collect();
 
@@ -281,8 +281,8 @@ pub mod tasks {
     }
 
     pub fn highlightcheck(args: impl Iterator<Item = String>) -> Result<(), DynError> {
-        use helix_core::syntax::{HighlightEvent, Loader, Syntax};
-        use helix_core::Language;
+        use mitos_core::syntax::{HighlightEvent, Loader, Syntax};
+        use mitos_core::Language;
         use ropey::Rope;
 
         // The highlighter yields a `Highlight` index into the loader's scope
@@ -373,7 +373,7 @@ pub mod tasks {
         }
 
         let scopes = capture_scopes();
-        let loader = helix_core::config::default_lang_loader();
+        let loader = mitos_core::config::default_lang_loader();
         loader.set_scopes(scopes.clone());
 
         let args: Vec<String> = args.collect();

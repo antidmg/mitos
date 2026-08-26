@@ -1,6 +1,6 @@
 target
 .direnv
-helix-term/rustfmt.toml
+mitos-term/rustfmt.toml
 result
 runtime/grammars
 .DS_Store

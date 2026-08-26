@@ -1764,280 +1764,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
-name = "helix-core"
-version = "25.7.1"
-dependencies = [
- "anyhow",
- "arc-swap",
- "bitflags 2.13.0",
- "chrono",
- "encoding_rs",
- "foldhash 0.2.0",
- "globset",
- "helix-loader",
- "helix-parsec",
- "helix-stdx",
- "imara-diff",
- "indoc",
- "log",
- "nucleo",
- "once_cell",
- "parking_lot",
- "quickcheck",
- "regex",
- "regex-cursor",
- "ropey",
- "serde",
- "serde_json",
- "slotmap",
- "smallvec",
- "smartstring",
- "textwrap",
- "toml",
- "tree-house",
- "unicode-general-category",
- "unicode-segmentation",
- "unicode-width 0.1.12",
-]
-
-[[package]]
-name = "helix-dap"
-version = "25.7.1"
-dependencies = [
- "anyhow",
- "futures-executor",
- "futures-util",
- "helix-core",
- "helix-dap-types",
- "helix-stdx",
- "log",
- "serde",
- "serde_json",
- "slotmap",
- "sonic-rs",
- "thiserror 2.0.18",
- "tokio",
- "tokio-stream",
-]
-
-[[package]]
-name = "helix-dap-types"
-version = "25.7.1"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "helix-event"
-version = "25.7.1"
-dependencies = [
- "anyhow",
- "foldhash 0.2.0",
- "futures-executor",
- "hashbrown 0.17.1",
- "log",
- "once_cell",
- "parking_lot",
- "tokio",
-]
-
-[[package]]
-name = "helix-loader"
-version = "25.7.1"
-dependencies = [
- "anyhow",
- "cc",
- "etcetera",
- "globset",
- "helix-stdx",
- "log",
- "once_cell",
- "parking_lot",
- "serde",
- "sha2 0.11.0",
- "tempfile",
- "threadpool",
- "toml",
- "tree-house",
-]
-
-[[package]]
-name = "helix-lsp"
-version = "25.7.1"
-dependencies = [
- "anyhow",
- "arc-swap",
- "futures-executor",
- "futures-util",
- "globset",
- "helix-core",
- "helix-loader",
- "helix-lsp-types",
- "helix-stdx",
- "log",
- "parking_lot",
- "serde",
- "serde_json",
- "slotmap",
- "sonic-rs",
- "thiserror 2.0.18",
- "tokio",
- "tokio-stream",
-]
-
-[[package]]
-name = "helix-lsp-types"
-version = "0.95.1"
-dependencies = [
- "bitflags 2.13.0",
- "helix-stdx",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "helix-parsec"
-version = "25.7.1"
-
-[[package]]
-name = "helix-stdx"
-version = "25.7.1"
-dependencies = [
- "bitflags 2.13.0",
- "dunce",
- "etcetera",
- "once_cell",
- "percent-encoding",
- "regex-automata",
- "regex-cursor",
- "ropey",
- "rustix 1.1.4",
- "serde",
- "serde_json",
- "tempfile",
- "unicode-segmentation",
- "which",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "helix-term"
-version = "25.7.1"
-dependencies = [
- "anyhow",
- "arc-swap",
- "crossterm 0.28.1",
- "dashmap",
- "futures-util",
- "grep-matcher",
- "grep-regex",
- "grep-searcher",
- "helix-core",
- "helix-dap",
- "helix-event",
- "helix-loader",
- "helix-lsp",
- "helix-stdx",
- "helix-tui",
- "helix-vcs",
- "helix-view",
- "ignore",
- "indexmap",
- "indoc",
- "libc",
- "log",
- "nucleo",
- "once_cell",
- "open",
- "parking_lot",
- "pulldown-cmark",
- "same-file",
- "serde",
- "serde_json",
- "signal-hook 0.4.4",
- "signal-hook-tokio",
- "smallvec",
- "tempfile",
- "termina",
- "termini",
- "thiserror 2.0.18",
- "tokio",
- "tokio-stream",
- "toml",
-]
-
-[[package]]
-name = "helix-tui"
-version = "25.7.1"
-dependencies = [
- "crossterm 0.28.1",
- "helix-core",
- "helix-view",
- "log",
- "ratatui",
- "termina",
- "termini",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "helix-vcs"
-version = "25.7.1"
-dependencies = [
- "anyhow",
- "arc-swap",
- "gix",
- "helix-core",
- "helix-event",
- "imara-diff",
- "log",
- "parking_lot",
- "tempfile",
- "tokio",
-]
-
-[[package]]
-name = "helix-view"
-version = "25.7.1"
-dependencies = [
- "anyhow",
- "arc-swap",
- "bitflags 2.13.0",
- "chardetng",
- "clipboard-win",
- "criterion",
- "crossterm 0.28.1",
- "foldhash 0.2.0",
- "futures-util",
- "helix-core",
- "helix-dap",
- "helix-event",
- "helix-loader",
- "helix-lsp",
- "helix-stdx",
- "helix-tui",
- "helix-vcs",
- "kstring",
- "libc",
- "log",
- "once_cell",
- "parking_lot",
- "quickcheck",
- "ratatui",
- "rustix 1.1.4",
- "serde",
- "serde_json",
- "slotmap",
- "tempfile",
- "termina",
- "thiserror 2.0.18",
- "tokio",
- "tokio-stream",
- "toml",
-]
-
-[[package]]
 name = "hermit-abi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2412,6 +2138,280 @@ dependencies = [
  "log",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "mitos-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "bitflags 2.13.0",
+ "chrono",
+ "encoding_rs",
+ "foldhash 0.2.0",
+ "globset",
+ "imara-diff",
+ "indoc",
+ "log",
+ "mitos-loader",
+ "mitos-parsec",
+ "mitos-stdx",
+ "nucleo",
+ "once_cell",
+ "parking_lot",
+ "quickcheck",
+ "regex",
+ "regex-cursor",
+ "ropey",
+ "serde",
+ "serde_json",
+ "slotmap",
+ "smallvec",
+ "smartstring",
+ "textwrap",
+ "toml",
+ "tree-house",
+ "unicode-general-category",
+ "unicode-segmentation",
+ "unicode-width 0.1.12",
+]
+
+[[package]]
+name = "mitos-dap"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "futures-executor",
+ "futures-util",
+ "log",
+ "mitos-core",
+ "mitos-dap-types",
+ "mitos-stdx",
+ "serde",
+ "serde_json",
+ "slotmap",
+ "sonic-rs",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
+name = "mitos-dap-types"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "mitos-event"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "foldhash 0.2.0",
+ "futures-executor",
+ "hashbrown 0.17.1",
+ "log",
+ "once_cell",
+ "parking_lot",
+ "tokio",
+]
+
+[[package]]
+name = "mitos-loader"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cc",
+ "etcetera",
+ "globset",
+ "log",
+ "mitos-stdx",
+ "once_cell",
+ "parking_lot",
+ "serde",
+ "sha2 0.11.0",
+ "tempfile",
+ "threadpool",
+ "toml",
+ "tree-house",
+]
+
+[[package]]
+name = "mitos-lsp"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "futures-executor",
+ "futures-util",
+ "globset",
+ "log",
+ "mitos-core",
+ "mitos-loader",
+ "mitos-lsp-types",
+ "mitos-stdx",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "slotmap",
+ "sonic-rs",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
+name = "mitos-lsp-types"
+version = "0.95.1"
+dependencies = [
+ "bitflags 2.13.0",
+ "mitos-stdx",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "mitos-parsec"
+version = "0.1.0"
+
+[[package]]
+name = "mitos-stdx"
+version = "0.1.0"
+dependencies = [
+ "bitflags 2.13.0",
+ "dunce",
+ "etcetera",
+ "once_cell",
+ "percent-encoding",
+ "regex-automata",
+ "regex-cursor",
+ "ropey",
+ "rustix 1.1.4",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "unicode-segmentation",
+ "which",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "mitos-term"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "crossterm 0.28.1",
+ "dashmap",
+ "futures-util",
+ "grep-matcher",
+ "grep-regex",
+ "grep-searcher",
+ "ignore",
+ "indexmap",
+ "indoc",
+ "libc",
+ "log",
+ "mitos-core",
+ "mitos-dap",
+ "mitos-event",
+ "mitos-loader",
+ "mitos-lsp",
+ "mitos-stdx",
+ "mitos-tui",
+ "mitos-vcs",
+ "mitos-view",
+ "nucleo",
+ "once_cell",
+ "open",
+ "parking_lot",
+ "pulldown-cmark",
+ "same-file",
+ "serde",
+ "serde_json",
+ "signal-hook 0.4.4",
+ "signal-hook-tokio",
+ "smallvec",
+ "tempfile",
+ "termina",
+ "termini",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-stream",
+ "toml",
+]
+
+[[package]]
+name = "mitos-tui"
+version = "0.1.0"
+dependencies = [
+ "crossterm 0.28.1",
+ "log",
+ "mitos-core",
+ "mitos-view",
+ "ratatui",
+ "termina",
+ "termini",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "mitos-vcs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "gix",
+ "imara-diff",
+ "log",
+ "mitos-core",
+ "mitos-event",
+ "parking_lot",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
+name = "mitos-view"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "bitflags 2.13.0",
+ "chardetng",
+ "clipboard-win",
+ "criterion",
+ "crossterm 0.28.1",
+ "foldhash 0.2.0",
+ "futures-util",
+ "kstring",
+ "libc",
+ "log",
+ "mitos-core",
+ "mitos-dap",
+ "mitos-event",
+ "mitos-loader",
+ "mitos-lsp",
+ "mitos-stdx",
+ "mitos-tui",
+ "mitos-vcs",
+ "once_cell",
+ "parking_lot",
+ "quickcheck",
+ "ratatui",
+ "rustix 1.1.4",
+ "serde",
+ "serde_json",
+ "slotmap",
+ "tempfile",
+ "termina",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-stream",
+ "toml",
 ]
 
 [[package]]
@@ -4467,13 +4467,13 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "25.7.1"
+version = "0.1.0"
 dependencies = [
- "helix-core",
- "helix-loader",
- "helix-stdx",
- "helix-term",
- "helix-view",
+ "mitos-core",
+ "mitos-loader",
+ "mitos-stdx",
+ "mitos-term",
+ "mitos-view",
  "ropey",
  "toml",
 ]

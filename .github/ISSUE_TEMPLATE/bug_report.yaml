@@ -23,21 +23,21 @@ body:
 
         I tried this:
 
-        1. `hx`
+        1. `mitos`
 
         I expected this to happen:
 
         Instead, this happened:
   - type: textarea
-    id: helix-log
+    id: mitos-log
     attributes:
-      label: Helix log
-      description: See `hx -h` for log file path. If you can reproduce the issue run `RUST_BACKTRACE=1 hx -vv` to generate a more detailed log file.
+      label: Mitos log
+      description: See `mitos -h` for log file path. If you can reproduce the issue run `RUST_BACKTRACE=1 mitos -vv` to generate a more detailed log file.
       value: |
-        <details><summary>~/.cache/helix/helix.log</summary>
+        <details><summary>~/.cache/mitos/mitos.log</summary>
 
         ```
-        please provide a copy of `~/.cache/helix/helix.log` here if possible, you may need to redact some of the lines
+        please provide a copy of `~/.cache/mitos/mitos.log` here if possible, you may need to redact some of the lines
         ```
 
         </details>
@@ -60,19 +60,19 @@ body:
     attributes:
       label: Installation Method
       description: >
-        How you installed Helix - from a package manager like Homebrew or the
+        How you installed Mitos - from a package manager like Homebrew or the
         AUR, built from source, downloaded a binary from the releases page, etc.
       placeholder: "source / brew / nixpkgs / flake / releases page"
     validations:
       required: true
   - type: input
-    id: helix-version
+    id: mitos-version
     attributes:
-      label: Helix Version
+      label: Mitos Version
       description: >
-        Helix version (`hx -V` if using a release, `git describe` if building
+        Mitos version (`mitos -V` if using a release, `git describe` if building
         from master).
-        **Make sure that you are using the [latest helix release](https://github.com/helix-editor/helix/releases) or a newer master build**
-      placeholder: "helix 22.12 (5eaa6d97)"
+        **Make sure that you are using the [latest mitos release](https://github.com/matoous/mitos/releases) or a newer master build**
+      placeholder: "mitos 0.1.0 (f9928f57)"
     validations:
       required: true

@@ -1,19 +1,19 @@
 
 | Crate           | Description                                                      |
 | -----------     | -----------                                                      |
-| helix-stdx      | Extensions to the standard library (similar to [`rust-analyzer`'s](https://github.com/rust-lang/rust-analyzer/blob/ea413f67a8f730b4211c09e103f8207c62e7dbc3/crates/stdx/Cargo.toml#L5)) |
-| helix-core      | Core editing primitives, functional.                             |
-| helix-lsp       | Language server client                                           |
-| helix-lsp-types | Language Server Protocol type definitions                        |
-| helix-dap       | Debug Adapter Protocol (DAP) client                              |
-| helix-event     | Primitives for defining and handling events within the editor    |
-| helix-loader    | Functions for building, fetching, and loading external resources |
-| helix-view      | UI abstractions for use in backends, imperative shell.           |
-| helix-term      | Terminal UI                                                      |
-| helix-tui       | Ratatui integration and Helix-specific terminal rendering         |
+| mitos-stdx      | Extensions to the standard library (similar to [`rust-analyzer`'s](https://github.com/rust-lang/rust-analyzer/blob/ea413f67a8f730b4211c09e103f8207c62e7dbc3/crates/stdx/Cargo.toml#L5)) |
+| mitos-core      | Core editing primitives, functional.                             |
+| mitos-lsp       | Language server client                                           |
+| mitos-lsp-types | Language Server Protocol type definitions                        |
+| mitos-dap       | Debug Adapter Protocol (DAP) client                              |
+| mitos-event     | Primitives for defining and handling events within the editor    |
+| mitos-loader    | Functions for building, fetching, and loading external resources |
+| mitos-view      | UI abstractions for use in backends, imperative shell.           |
+| mitos-term      | Terminal UI                                                      |
+| mitos-tui       | Ratatui integration and Mitos-specific terminal rendering         |
 
 
-This document contains a high-level overview of Helix internals.
+This document contains a high-level overview of Mitos internals.
 
 > NOTE: Use `cargo doc --open` for API documentation as well as dependency
 > documentation.
@@ -79,7 +79,7 @@ render. For example if we wrap a `Markdown` component in a `Popup`
 will get a Rect that is the exact size of the popup.
 
 Widgets are called `Component`s internally, and you can see most of them
-in `helix-term/src/ui`. Some components like `Popup` and `Overlay` can take
+in `mitos-term/src/ui`. Some components like `Popup` and `Overlay` can take
 other components as children.
 
 `Layer`s are how multiple components are displayed, and is simply a
@@ -115,14 +115,14 @@ TODO: document Component and rendering related stuff
 
 ## Event
 
-The `helix-event` crate defines primitives for defining and acting on events
+The `mitos-event` crate defines primitives for defining and acting on events
 within the editor. "Events" cover things like opening, changing and closing of
 documents, starting and stopping of language servers and more.
 
-`helix-event` has tools for defining events and registering _hooks_ which run
-any time an event is emitted. `helix-event` also provides `AsyncHook` - a tool
+`mitos-event` has tools for defining events and registering _hooks_ which run
+any time an event is emitted. `mitos-event` also provides `AsyncHook` - a tool
 for running cancellable tasks which run after events with _debouncing_.
 
 See the `AsyncHook` type for more information. Events can be created within the
 `events!` macro. Synchronous hooks can be created with `register_hook!`. And
-editor-wide events can be sent to hooks with `helix_event::dispatch`.
+editor-wide events can be sent to hooks with `mitos_event::dispatch`.
