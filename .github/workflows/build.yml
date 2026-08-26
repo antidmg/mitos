@@ -27,7 +27,7 @@ jobs:
     if: github.repository == 'matoous/mitos' || github.event_name != 'schedule'
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: ./.github/actions/rust-setup
         with:
@@ -35,7 +35,7 @@ jobs:
           cache-key: build
 
       - name: Run cargo check
-        run: cargo check
+        run: cargo check --workspace --all-targets --locked
 
   test:
     name: Test Suite
@@ -47,7 +47,7 @@ jobs:
       MITOS_LOG_LEVEL: info
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: ./.github/actions/rust-setup
         with:
@@ -57,10 +57,10 @@ jobs:
           grammar-cache-version: ${{ env.GRAMMAR_CACHE_VERSION }}
 
       - name: Run cargo test
-        run: cargo test --workspace
+        run: cargo test --workspace --locked
 
       - name: Run cargo integration-test
-        run: cargo integration-test
+        run: cargo integration-test --locked
 
     strategy:
       matrix:
@@ -72,7 +72,7 @@ jobs:
     if: github.repository == 'matoous/mitos' || github.event_name != 'schedule'
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: ./.github/actions/rust-setup
         with:
@@ -84,10 +84,10 @@ jobs:
         run: cargo fmt --all --check
 
       - name: Run cargo clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Run cargo doc
-        run: cargo doc --no-deps --workspace --document-private-items
+        run: cargo doc --no-deps --workspace --document-private-items --locked
         env:
           RUSTDOCFLAGS: -D warnings
 
@@ -97,7 +97,7 @@ jobs:
     if: github.repository == 'matoous/mitos' || github.event_name != 'schedule'
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: ./.github/actions/rust-setup
         with:
