@@ -2,7 +2,7 @@
 
 For a full interactive introduction to Mitos, refer to the
 [tutor](https://github.com/matoous/mitos/blob/master/runtime/tutor) which
-can be accessed via the command `mitos --tutor` or `:tutor`.
+can be accessed via the command `ms --tutor` or `:tutor`.
 
 > 💡 Currently, not all functionality is fully documented, please refer to the
 > [key mappings](./keymap.md) list.
@@ -30,4 +30,3 @@ Also inspired by Kakoune, multiple selections are a core mode of interaction in 
 ## Motions
 
 Motions are commands that move the cursor or modify selections. They're used for navigation and text manipulation. Examples include `w` to move to the next word, or `f` to find a character. See the [Movement](./keymap.md#movement) section of the keymap for more motions.
-

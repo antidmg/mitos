@@ -8,15 +8,15 @@ Some suggestions to get started:
 - Help with packaging on various distributions needed!
 - To use print debugging to the [Mitos log file][log-file], you must:
   * Print using `log::info!`, `warn!`, or `error!`. (`log::info!("mitos!")`)
-  * Pass the appropriate verbosity level option for the desired log level. (`mitos -v <file>` for info, more `v`s for higher verbosity)
+  * Pass the appropriate verbosity level option for the desired log level. (`ms -v <file>` for info, more `v`s for higher verbosity)
   * Want to display the logs in a separate file instead of using the `:log-open` command in your compiled Mitos editor? Start your debug version with `cargo run -- --log foo.log` and in a new terminal use `tail -f foo.log`
 - Instead of running a release version of Mitos, while developing you may want to run in debug mode with `cargo run` which is way faster to compile
 - Looking for even faster compile times? Give [mold](https://github.com/rui314/mold) a try
 - If your preferred language is missing, integrating a tree-sitter grammar for
     it and defining syntax highlight queries for it is straightforward and
     doesn't require much knowledge of the internals.
-- If you don't use the Nix development shell and are getting your rust-analyzer binary from rustup, you may need to run `rustup component add rust-analyzer`.
-  This is because `rust-toolchain.toml` selects our MSRV for the development toolchain but doesn't download the matching rust-analyzer automatically.
+- The pinned toolchain includes rust-analyzer for contributors who do not use
+  the Nix development shell.
 
 We provide an [architecture.md][architecture.md] that should give you
 a good overview of the internals.
@@ -49,7 +49,7 @@ Run `cargo test --workspace` to run unit tests and documentation tests in all pa
 
 ## Integration tests
 
-Integration tests for mitos-term can be run with `cargo integration-test`. Code
+Integration tests for term can be run with `cargo integration-test`. Code
 contributors are strongly encouraged to write integration tests for their code.
 Existing tests can be used as examples. Helpers can be found in
 [helpers.rs][helpers.rs]. The log level can be set with the `MITOS_LOG_LEVEL`
@@ -77,4 +77,4 @@ package the new MSRV version. When increasing the MSRV, update these three place
 [docs]: https://docs.helix-editor.com/
 [xtask]: https://github.com/matklad/cargo-xtask
 [mdbook]: https://rust-lang.github.io/mdBook/guide/installation.html
-[helpers.rs]: ../mitos-term/tests/test/helpers.rs
+[helpers.rs]: ../crates/term/tests/test/helpers.rs

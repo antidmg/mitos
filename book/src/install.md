@@ -13,10 +13,10 @@ Note that:
 ## Pre-built binaries
 
 Download pre-built binaries from the [GitHub Releases page](https://github.com/matoous/mitos/releases).
-The tarball contents include an `mitos` binary and a `runtime` directory.
+The tarball contents include an `ms` binary and a `runtime` directory.
 To set up Mitos:
 
-1. Add the `mitos` binary to your system's `$PATH` to allow it to be used from the command line.
-2. Copy the `runtime` directory to a location that `mitos` searches for runtime files. A typical location on Linux/macOS is `~/.config/mitos/runtime`.
+1. Add the `ms` binary to your system's `$PATH` to allow it to be used from the command line.
+2. Copy the `runtime` directory to a location that `ms` searches for runtime files. A typical location on Linux/macOS is `~/.config/mitos/runtime`.
 
-To see the runtime directories that `mitos` searches, run `mitos --health`. If necessary, you can override the default runtime location by setting the `MITOS_RUNTIME` environment variable.
+To see the runtime directories that `ms` searches, run `ms --health`. If necessary, you can override the default runtime location by setting the `MITOS_RUNTIME` environment variable.

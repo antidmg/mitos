@@ -12,10 +12,10 @@ homepage.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-mitos-term = { path = "../mitos-term" }
-mitos-core = { path = "../mitos-core" }
-mitos-view = { path = "../mitos-view" }
-mitos-loader = { path = "../mitos-loader" }
-mitos-stdx = { path = "../mitos-stdx" }
+term = { path = "../crates/term" }
+core = { path = "../crates/core" }
+view = { path = "../crates/view" }
+loader = { path = "../crates/loader" }
+stdx = { path = "../crates/stdx" }
 ropey.workspace = true
 toml.workspace = true

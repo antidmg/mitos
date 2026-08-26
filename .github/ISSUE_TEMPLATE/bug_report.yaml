@@ -23,7 +23,7 @@ body:
 
         I tried this:
 
-        1. `mitos`
+        1. `ms`
 
         I expected this to happen:
 
@@ -32,7 +32,7 @@ body:
     id: mitos-log
     attributes:
       label: Mitos log
-      description: See `mitos -h` for log file path. If you can reproduce the issue run `RUST_BACKTRACE=1 mitos -vv` to generate a more detailed log file.
+      description: See `ms -h` for log file path. If you can reproduce the issue run `RUST_BACKTRACE=1 ms -vv` to generate a more detailed log file.
       value: |
         <details><summary>~/.cache/mitos/mitos.log</summary>
 
@@ -70,7 +70,7 @@ body:
     attributes:
       label: Mitos Version
       description: >
-        Mitos version (`mitos -V` if using a release, `git describe` if building
+        Mitos version (`ms -V` if using a release, `git describe` if building
         from master).
         **Make sure that you are using the [latest mitos release](https://github.com/matoous/mitos/releases) or a newer master build**
       placeholder: "mitos 0.1.0 (f9928f57)"

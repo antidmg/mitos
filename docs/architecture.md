@@ -1,16 +1,16 @@
 
 | Crate           | Description                                                      |
 | -----------     | -----------                                                      |
-| mitos-stdx      | Extensions to the standard library (similar to [`rust-analyzer`'s](https://github.com/rust-lang/rust-analyzer/blob/ea413f67a8f730b4211c09e103f8207c62e7dbc3/crates/stdx/Cargo.toml#L5)) |
-| mitos-core      | Core editing primitives, functional.                             |
-| mitos-lsp       | Language server client                                           |
-| mitos-lsp-types | Language Server Protocol type definitions                        |
-| mitos-dap       | Debug Adapter Protocol (DAP) client                              |
-| mitos-event     | Primitives for defining and handling events within the editor    |
-| mitos-loader    | Functions for building, fetching, and loading external resources |
-| mitos-view      | UI abstractions for use in backends, imperative shell.           |
-| mitos-term      | Terminal UI                                                      |
-| mitos-tui       | Ratatui integration and Mitos-specific terminal rendering         |
+| stdx      | Extensions to the standard library (similar to [`rust-analyzer`'s](https://github.com/rust-lang/rust-analyzer/blob/ea413f67a8f730b4211c09e103f8207c62e7dbc3/crates/stdx/Cargo.toml#L5)) |
+| core      | Core editing primitives, functional.                             |
+| lsp       | Language server client                                           |
+| lsp-types | Language Server Protocol type definitions                        |
+| dap       | Debug Adapter Protocol (DAP) client                              |
+| event     | Primitives for defining and handling events within the editor    |
+| loader    | Functions for building, fetching, and loading external resources |
+| view      | UI abstractions for use in backends, imperative shell.           |
+| term      | Terminal UI                                                      |
+| tui       | Ratatui integration and Mitos-specific terminal rendering         |
 
 
 This document contains a high-level overview of Mitos internals.
@@ -79,7 +79,7 @@ render. For example if we wrap a `Markdown` component in a `Popup`
 will get a Rect that is the exact size of the popup.
 
 Widgets are called `Component`s internally, and you can see most of them
-in `mitos-term/src/ui`. Some components like `Popup` and `Overlay` can take
+in `crates/term/src/ui`. Some components like `Popup` and `Overlay` can take
 other components as children.
 
 `Layer`s are how multiple components are displayed, and is simply a
@@ -115,14 +115,14 @@ TODO: document Component and rendering related stuff
 
 ## Event
 
-The `mitos-event` crate defines primitives for defining and acting on events
+The `event` crate defines primitives for defining and acting on events
 within the editor. "Events" cover things like opening, changing and closing of
 documents, starting and stopping of language servers and more.
 
-`mitos-event` has tools for defining events and registering _hooks_ which run
-any time an event is emitted. `mitos-event` also provides `AsyncHook` - a tool
+`event` has tools for defining events and registering _hooks_ which run
+any time an event is emitted. `event` also provides `AsyncHook` - a tool
 for running cancellable tasks which run after events with _debouncing_.
 
 See the `AsyncHook` type for more information. Events can be created within the
 `events!` macro. Synchronous hooks can be created with `register_hook!`. And
-editor-wide events can be sent to hooks with `mitos_event::dispatch`.
+editor-wide events can be sent to hooks with `event::dispatch`.

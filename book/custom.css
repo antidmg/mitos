@@ -189,7 +189,7 @@ code.hljs {
 
 /* highlight.js theme, :where() is used to avoid increasing specificity */
 
-/* Mapped to the mitos theme.toml palette */
+/* Mitos book syntax palette */
 :where(.colibri) .hljs {
   background: #1f1029;          /* slightly deeper than --bg revolver */
   color: #a4a0e8;                /* lavender — ui.text */

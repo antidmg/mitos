@@ -35,26 +35,27 @@ RUSTFLAGS="-C target-feature=-crt-static"
 2. Compile from source:
 
    ```sh
-   # Reproducible
-   cargo install --path mitos-term --locked
+   # Optimized release build
+   cargo build --release --locked
    ```
    ```sh
-   # Optimized
+   # Optimized for the current CPU
    cargo install \
       --profile opt \
       --config 'build.rustflags=["-C", "target-cpu=native"]' \
-      --path mitos-term \
+      --path crates/term \
       --locked
    ```
 
-   Either command will create the `mitos` executable and construct the tree-sitter
-   grammars in the local `runtime` folder.
+   The release build creates `target/release/ms`; the install command places
+   `ms` in Cargo's binary directory. Both commands construct the tree-sitter
+   grammars in the local `runtime` folder. `ms` is short for Mitos.
 
 > 💡 If you do not want to fetch or build grammars, set an environment variable `MITOS_DISABLE_AUTO_GRAMMAR_BUILD`
 
 > 💡 Tree-sitter grammars can be fetched and compiled if not pre-packaged. Fetch
-> grammars with `mitos --grammar fetch` and compile them with
-> `mitos --grammar build`. This will install them in
+> grammars with `ms --grammar fetch` and compile them with
+> `ms --grammar build`. This will install them in
 > the `runtime` directory within the user's mitos config directory (more
 > [details below](#multiple-runtime-directories)).
 
@@ -106,7 +107,7 @@ Or, create a symlink in `%appdata%\mitos\` that links to the source code directo
 When Mitos finds multiple runtime directories it will search through them for files in the
 following order:
 
-1. `runtime/` sibling directory to `$CARGO_MANIFEST_DIR` directory (this is intended for
+1. The workspace's `runtime/` directory relative to `$CARGO_MANIFEST_DIR` (this is intended for
   developing and testing mitos only).
 2. `runtime/` subdirectory of OS-dependent mitos user config directory.
 3. `$MITOS_RUNTIME`
@@ -129,9 +130,9 @@ script could follow are:
 1. `export MITOS_DEFAULT_RUNTIME=/usr/lib/mitos/runtime`
 1. `cargo build --profile opt --locked`
 1. `cp -r runtime $BUILD_DIR/usr/lib/mitos/`
-1. `cp target/opt/mitos $BUILD_DIR/usr/bin/mitos`
+1. `cp target/opt/ms $BUILD_DIR/usr/bin/ms`
 
-This way the resulting `mitos` binary will always look for its runtime directory in
+This way the resulting `ms` binary will always look for its runtime directory in
 `/usr/lib/mitos/runtime` if the user has no custom runtime in `~/.config/mitos`
 or `MITOS_RUNTIME`.
 
@@ -141,7 +142,7 @@ To make sure everything is set up as expected you should run the Mitos health
 check:
 
 ```sh
-mitos --health
+ms --health
 ```
 
 The command reports runtime, clipboard, language-server, and grammar status.
@@ -159,7 +160,7 @@ cp contrib/Mitos.desktop ~/.local/share/applications
 It is recommended to convert the links in the `.desktop` file to absolute paths to avoid potential problems:
 
 ```sh
-sed -i -e "s|Exec=mitos %F|Exec=$(readlink -f ~/.cargo/bin/mitos) %F|g" \
+sed -i -e "s|Exec=ms %F|Exec=$(readlink -f ~/.cargo/bin/ms) %F|g" \
   ~/.local/share/applications/Mitos.desktop
 ```
 
@@ -167,7 +168,7 @@ To use another terminal than the system default, you can modify the `.desktop`
 file. For example, to use `kitty`:
 
 ```sh
-sed -i "s|Exec=mitos %F|Exec=kitty mitos %F|g" ~/.local/share/applications/Mitos.desktop
+sed -i "s|Exec=ms %F|Exec=kitty ms %F|g" ~/.local/share/applications/Mitos.desktop
 sed -i "s|Terminal=true|Terminal=false|g" ~/.local/share/applications/Mitos.desktop
 ```
 
@@ -191,7 +192,7 @@ cargo deb -- --locked
 ```
 
 > 💡 This locks you into the `--release` profile. But you can also build mitos in any way you like.
-> As long as you leave a `target/release/mitos` file, it will get packaged with `cargo deb --no-build`
+> As long as you leave a `target/release/ms` file, it will get packaged with `cargo deb --no-build`
 
 > 💡 Don't worry about the following:
 > ```

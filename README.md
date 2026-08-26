@@ -14,14 +14,17 @@ Mitos is a post-modern, modal text editor written in Rust. It is a fork of [Heli
 
 ## Building
 
-Mitos requires Rust 1.90 or newer.
+Mitos requires Rust 1.97.1 or newer.
 
 ```sh
 git clone https://github.com/matoous/mitos
 cd mitos
 cargo build --release
-./target/release/mitos --health
+./target/release/ms --health
 ```
+
+The optimized executable is written to `target/release/ms` (`ms` is short for
+Mitos). Install it on your `PATH` with `cargo install --path crates/term --locked`.
 
 The source documentation lives in [`book/`](./book). Contributor guidance is
 available in [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md).

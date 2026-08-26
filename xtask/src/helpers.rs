@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::path;
-use mitos_term::health::TsFeature;
+use term::health::TsFeature;
 
 /// Get the list of languages that support a particular tree-sitter
 /// based feature.

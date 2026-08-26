@@ -2,15 +2,19 @@
 
 To use a theme add `theme = "<name>"` to the top of your [`config.toml`](./configuration.md) file, or select it during runtime using `:theme <name>`.
 
-Separate themes can be configured for light and dark modes. On terminals supporting [mode 2031 dark/light detection](https://github.com/contour-terminal/contour/blob/master/docs/vt-extensions/color-palette-update-notifications.md), the theme mode is detected from the terminal.
+Without a configured theme, Mitos uses the built-in `default` theme. It uses
+the terminal's ANSI color palette, so its colors follow the terminal's own
+theme and light or dark appearance.
+
+Separate themes can be configured for light and dark modes. On terminals supporting [mode 2031 dark/light detection](https://github.com/contour-terminal/contour/blob/master/docs/vt-extensions/color-palette-update-notifications.md), the theme mode is detected from the terminal and updates when the terminal follows a system appearance change. On other terminals that report their background color, Mitos infers the initial mode from that color.
 
 ```toml
 [theme]
-dark = "catppuccin_frappe"
-light = "catppuccin_latte"
+dark = "warm-burnout-dark"
+light = "warm-burnout-light"
 ## Optional. Used if the terminal doesn't declare a preference.
 ## Defaults to the theme set for `dark` if not specified.
-# fallback = "catppuccin_frappe"
+# fallback = "warm-burnout-dark"
 ```
 
 ## Creating a theme
@@ -48,8 +52,8 @@ Color values must be either a [CSS hex RGB string](https://developer.mozilla.org
 
 > 💡 Note that Mitos doesn't support transparency (alpha channel).
 
-For inspiration, you can find the default `theme.toml`
-[here](https://github.com/matoous/mitos/blob/master/theme.toml) and
+For inspiration, you can find the default `base16_terminal.toml`
+[here](https://github.com/matoous/mitos/blob/master/runtime/themes/base16_terminal.toml) and
 user-submitted themes
 [here](https://github.com/matoous/mitos/blob/master/runtime/themes).
 

@@ -1,24 +1,24 @@
 [workspace]
 resolver = "2"
 members = [
-  "mitos-core",
-  "mitos-view",
-  "mitos-term",
-  "mitos-tui",
-  "mitos-lsp-types",
-  "mitos-lsp",
-  "mitos-event",
-  "mitos-dap-types",
-  "mitos-dap",
-  "mitos-loader",
-  "mitos-vcs",
-  "mitos-parsec",
-  "mitos-stdx",
+  "crates/core",
+  "crates/view",
+  "crates/term",
+  "crates/tui",
+  "crates/lsp-types",
+  "crates/lsp",
+  "crates/event",
+  "crates/dap-types",
+  "crates/dap",
+  "crates/loader",
+  "crates/vcs",
+  "crates/parsec",
+  "crates/stdx",
   "xtask",
 ]
 
 default-members = [
-  "mitos-term"
+  "crates/term"
 ]
 
 [profile.release]
@@ -33,9 +33,9 @@ opt-level = 3
 
 [profile.integration]
 inherits = "test"
-package.mitos-core.opt-level = 2
-package.mitos-tui.opt-level = 2
-package.mitos-term.opt-level = 2
+package.core.opt-level = 2
+package.tui.opt-level = 2
+package.term.opt-level = 2
 
 [workspace.dependencies]
 tree-house = { version = "0.4", default-features = false }
@@ -72,4 +72,4 @@ categories = ["editor"]
 repository = "https://github.com/matoous/mitos"
 homepage = "https://github.com/matoous/mitos"
 license = "MPL-2.0"
-rust-version = "1.90"
+rust-version = "1.97.1"

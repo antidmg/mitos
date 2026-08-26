@@ -4,7 +4,7 @@ The following languages and Language Servers are supported. To use
 Language Server features, you must first [configure][lsp-config-wiki] the
 appropriate Language Server.
 
-You can check the language support in your installed mitos version with `mitos --health`.
+You can check the language support in your installed Mitos version with `ms --health`.
 
 Also see the [Language Configuration][lang-config] docs and the [Adding
 Languages][adding-languages] guide for more language configuration information.

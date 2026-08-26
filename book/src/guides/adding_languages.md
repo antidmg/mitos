@@ -60,8 +60,8 @@ below.
 ## Common issues
 
 - If you encounter errors when running Mitos after switching branches, you may
-  need to update the tree-sitter grammars. Run the command `mitos --grammar fetch`
-  to fetch the grammars and `mitos --grammar build` to build any out-of-date
+  need to update the tree-sitter grammars. Run the command `ms --grammar fetch`
+  to fetch the grammars and `ms --grammar build` to build any out-of-date
   grammars.
 - If a parser is causing a segfault, or you want to remove it, make sure to
   remove the compiled parser located at `runtime/grammars/<name>.so`.

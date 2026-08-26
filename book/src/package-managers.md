@@ -9,13 +9,13 @@ managers. Build it from source until official release artifacts are available.
 git clone https://github.com/matoous/mitos
 cd mitos
 cargo build --release
-install -Dm755 target/release/mitos "$HOME/.local/bin/mitos"
+install -Dm755 target/release/ms "$HOME/.local/bin/ms"
 ```
 
 Ensure `$HOME/.local/bin` is in your `PATH`, then verify the installation:
 
 ```sh
-mitos --health
+ms --health
 ```
 
 Runtime files can be selected explicitly with `MITOS_RUNTIME`. See

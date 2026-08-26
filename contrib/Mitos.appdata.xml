@@ -54,7 +54,7 @@
   </keywords>
 
   <provides>
-    <binary>mitos</binary>
+    <binary>ms</binary>
     <mediatype>text/english</mediatype>
     <mediatype>text/plain</mediatype>
     <mediatype>text/x-makefile</mediatype>

@@ -55,7 +55,7 @@ in
 
     buildType = "release";
 
-    name = with builtins; (fromTOML (readFile ./mitos-term/Cargo.toml)).package.name;
+    name = with builtins; (fromTOML (readFile ./crates/term/Cargo.toml)).package.name;
     src = fs.toSource {
       root = ./.;
       fileset = src;
@@ -76,10 +76,10 @@ in
     # Get all the application stuff in the output directory.
     postInstall = ''
       mkdir -p $out/lib
-      installShellCompletion ${./contrib/completion}/mitos.{bash,fish,zsh}
+      installShellCompletion ${./contrib/completion}/ms.{bash,fish,zsh}
       mkdir -p $out/share/applications
       cp ${./contrib/Mitos.desktop} $out/share/applications/Mitos.desktop
     '';
 
-    meta.mainProgram = "mitos";
+    meta.mainProgram = "ms";
   })

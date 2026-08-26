@@ -40,7 +40,7 @@ jobs:
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
 
       - name: Fetch tree-sitter grammars
-        run: cargo run --package=mitos-loader --bin=mitos-loader
+        run: cargo run --package=loader --bin=loader
 
       - name: Bundle grammars
         run: tar cJf grammars.tar.xz -C runtime/grammars/sources .
@@ -133,7 +133,7 @@ jobs:
         if: matrix.build == 'x86_64-linux'
         run: |
           mkdir -p target/release
-          cp target/${{ matrix.target }}/opt/mitos target/release/
+          cp target/${{ matrix.target }}/opt/ms target/release/
           cargo deb --no-build
           mkdir -p dist
           mv target/debian/*.deb dist/
@@ -143,9 +143,9 @@ jobs:
         run: |
           mkdir -p dist
           if [ "${{ runner.os }}" = "Windows" ]; then
-            cp "target/${{ matrix.target }}/opt/mitos.exe" "dist/"
+            cp "target/${{ matrix.target }}/opt/ms.exe" "dist/"
           else
-            cp "target/${{ matrix.target }}/opt/mitos" "dist/"
+            cp "target/${{ matrix.target }}/opt/ms" "dist/"
           fi
           if [ -d runtime/grammars/sources ]; then
             rm -rf runtime/grammars/sources
@@ -198,8 +198,8 @@ jobs:
               mkdir "$pkgname/contrib"
               cp -r "$source/contrib/completion" "$pkgname/contrib"
               mv "bins-$platform/runtime" "$pkgname/"
-              mv "bins-$platform/mitos$exe" "$pkgname"
-              chmod +x "$pkgname/mitos$exe"
+              mv "bins-$platform/ms$exe" "$pkgname"
+              chmod +x "$pkgname/ms$exe"
 
               if [[ "$platform" = "x86_64-linux" ]]; then
                   mv "bins-$platform"/*.deb dist/

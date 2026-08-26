@@ -1,6 +1,6 @@
 target
 .direnv
-mitos-term/rustfmt.toml
+crates/term/rustfmt.toml
 result
 runtime/grammars
 .DS_Store

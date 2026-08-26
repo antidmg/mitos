@@ -1,4 +1,4 @@
-# Ported from mitos-term/tests/test/languages/yaml.rs (the auto-indent o/O/<ret>
+# Ported from crates/term/tests/test/languages/yaml.rs (the auto-indent o/O/<ret>
 # tests). The corpus checks both directions — reindent (every line re-indents to
 # its own column) and typing (pressing Enter at a line's end indents the next
 # line) — which together cover the open-below (o), open-above (O) and split

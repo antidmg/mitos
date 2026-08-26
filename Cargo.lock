@@ -342,6 +342,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "bitflags 2.13.0",
+ "chrono",
+ "encoding_rs",
+ "foldhash 0.2.0",
+ "globset",
+ "imara-diff",
+ "indoc",
+ "loader",
+ "log",
+ "nucleo",
+ "once_cell",
+ "parking_lot",
+ "parsec",
+ "quickcheck",
+ "regex",
+ "regex-cursor",
+ "ropey",
+ "serde",
+ "serde_json",
+ "slotmap",
+ "smallvec",
+ "smartstring",
+ "stdx",
+ "textwrap",
+ "toml",
+ "tree-house",
+ "unicode-general-category",
+ "unicode-segmentation",
+ "unicode-width 0.1.12",
+]
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -518,6 +555,34 @@ checksum = "eb2a7d3066da2de787b7f032c736763eb7ae5d355f81a68bab2675a96008b0bf"
 dependencies = [
  "lab",
  "phf",
+]
+
+[[package]]
+name = "dap"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "core",
+ "dap-types",
+ "futures-executor",
+ "futures-util",
+ "log",
+ "serde",
+ "serde_json",
+ "slotmap",
+ "sonic-rs",
+ "stdx",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
+name = "dap-types"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -701,6 +766,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1a05365e3b1c6d1650318537c7460c6923f1abdd272ad6842baa2b509957a06"
 dependencies = [
  "num-traits",
+]
+
+[[package]]
+name = "event"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "foldhash 0.2.0",
+ "futures-executor",
+ "hashbrown 0.17.1",
+ "log",
+ "once_cell",
+ "parking_lot",
+ "tokio",
 ]
 
 [[package]]
@@ -2047,6 +2126,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
 
 [[package]]
+name = "loader"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cc",
+ "etcetera",
+ "globset",
+ "log",
+ "once_cell",
+ "parking_lot",
+ "serde",
+ "sha2 0.11.0",
+ "stdx",
+ "tempfile",
+ "threadpool",
+ "toml",
+ "tree-house",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2068,6 +2167,40 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d2f2f9b4ba7e6b24d95e7e899329d35be83bcded72c8540cdd5368932d1d90a"
 dependencies = [
  "hashbrown 0.17.1",
+]
+
+[[package]]
+name = "lsp"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "core",
+ "futures-executor",
+ "futures-util",
+ "globset",
+ "loader",
+ "log",
+ "lsp-types",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "slotmap",
+ "sonic-rs",
+ "stdx",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
+name = "lsp-types"
+version = "0.95.1"
+dependencies = [
+ "bitflags 2.13.0",
+ "serde",
+ "serde_json",
+ "stdx",
 ]
 
 [[package]]
@@ -2138,280 +2271,6 @@ dependencies = [
  "log",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "mitos-core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "arc-swap",
- "bitflags 2.13.0",
- "chrono",
- "encoding_rs",
- "foldhash 0.2.0",
- "globset",
- "imara-diff",
- "indoc",
- "log",
- "mitos-loader",
- "mitos-parsec",
- "mitos-stdx",
- "nucleo",
- "once_cell",
- "parking_lot",
- "quickcheck",
- "regex",
- "regex-cursor",
- "ropey",
- "serde",
- "serde_json",
- "slotmap",
- "smallvec",
- "smartstring",
- "textwrap",
- "toml",
- "tree-house",
- "unicode-general-category",
- "unicode-segmentation",
- "unicode-width 0.1.12",
-]
-
-[[package]]
-name = "mitos-dap"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "futures-executor",
- "futures-util",
- "log",
- "mitos-core",
- "mitos-dap-types",
- "mitos-stdx",
- "serde",
- "serde_json",
- "slotmap",
- "sonic-rs",
- "thiserror 2.0.18",
- "tokio",
- "tokio-stream",
-]
-
-[[package]]
-name = "mitos-dap-types"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "mitos-event"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "foldhash 0.2.0",
- "futures-executor",
- "hashbrown 0.17.1",
- "log",
- "once_cell",
- "parking_lot",
- "tokio",
-]
-
-[[package]]
-name = "mitos-loader"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "cc",
- "etcetera",
- "globset",
- "log",
- "mitos-stdx",
- "once_cell",
- "parking_lot",
- "serde",
- "sha2 0.11.0",
- "tempfile",
- "threadpool",
- "toml",
- "tree-house",
-]
-
-[[package]]
-name = "mitos-lsp"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "arc-swap",
- "futures-executor",
- "futures-util",
- "globset",
- "log",
- "mitos-core",
- "mitos-loader",
- "mitos-lsp-types",
- "mitos-stdx",
- "parking_lot",
- "serde",
- "serde_json",
- "slotmap",
- "sonic-rs",
- "thiserror 2.0.18",
- "tokio",
- "tokio-stream",
-]
-
-[[package]]
-name = "mitos-lsp-types"
-version = "0.95.1"
-dependencies = [
- "bitflags 2.13.0",
- "mitos-stdx",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "mitos-parsec"
-version = "0.1.0"
-
-[[package]]
-name = "mitos-stdx"
-version = "0.1.0"
-dependencies = [
- "bitflags 2.13.0",
- "dunce",
- "etcetera",
- "once_cell",
- "percent-encoding",
- "regex-automata",
- "regex-cursor",
- "ropey",
- "rustix 1.1.4",
- "serde",
- "serde_json",
- "tempfile",
- "unicode-segmentation",
- "which",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "mitos-term"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "arc-swap",
- "crossterm 0.28.1",
- "dashmap",
- "futures-util",
- "grep-matcher",
- "grep-regex",
- "grep-searcher",
- "ignore",
- "indexmap",
- "indoc",
- "libc",
- "log",
- "mitos-core",
- "mitos-dap",
- "mitos-event",
- "mitos-loader",
- "mitos-lsp",
- "mitos-stdx",
- "mitos-tui",
- "mitos-vcs",
- "mitos-view",
- "nucleo",
- "once_cell",
- "open",
- "parking_lot",
- "pulldown-cmark",
- "same-file",
- "serde",
- "serde_json",
- "signal-hook 0.4.4",
- "signal-hook-tokio",
- "smallvec",
- "tempfile",
- "termina",
- "termini",
- "thiserror 2.0.18",
- "tokio",
- "tokio-stream",
- "toml",
-]
-
-[[package]]
-name = "mitos-tui"
-version = "0.1.0"
-dependencies = [
- "crossterm 0.28.1",
- "log",
- "mitos-core",
- "mitos-view",
- "ratatui",
- "termina",
- "termini",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "mitos-vcs"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "arc-swap",
- "gix",
- "imara-diff",
- "log",
- "mitos-core",
- "mitos-event",
- "parking_lot",
- "tempfile",
- "tokio",
-]
-
-[[package]]
-name = "mitos-view"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "arc-swap",
- "bitflags 2.13.0",
- "chardetng",
- "clipboard-win",
- "criterion",
- "crossterm 0.28.1",
- "foldhash 0.2.0",
- "futures-util",
- "kstring",
- "libc",
- "log",
- "mitos-core",
- "mitos-dap",
- "mitos-event",
- "mitos-loader",
- "mitos-lsp",
- "mitos-stdx",
- "mitos-tui",
- "mitos-vcs",
- "once_cell",
- "parking_lot",
- "quickcheck",
- "ratatui",
- "rustix 1.1.4",
- "serde",
- "serde_json",
- "slotmap",
- "tempfile",
- "termina",
- "thiserror 2.0.18",
- "tokio",
- "tokio-stream",
- "toml",
 ]
 
 [[package]]
@@ -2625,6 +2484,10 @@ dependencies = [
  "smallvec",
  "windows-link",
 ]
+
+[[package]]
+name = "parsec"
+version = "0.1.0"
 
 [[package]]
 name = "percent-encoding"
@@ -3444,6 +3307,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "stdx"
+version = "0.1.0"
+dependencies = [
+ "bitflags 2.13.0",
+ "dunce",
+ "etcetera",
+ "once_cell",
+ "percent-encoding",
+ "regex-automata",
+ "regex-cursor",
+ "ropey",
+ "rustix 1.1.4",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "unicode-segmentation",
+ "which",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "str_indices"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3520,6 +3404,52 @@ dependencies = [
  "once_cell",
  "rustix 1.1.4",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "term"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "core",
+ "crossterm 0.28.1",
+ "dap",
+ "dashmap",
+ "event",
+ "futures-util",
+ "grep-matcher",
+ "grep-regex",
+ "grep-searcher",
+ "ignore",
+ "indexmap",
+ "indoc",
+ "libc",
+ "loader",
+ "log",
+ "lsp",
+ "nucleo",
+ "once_cell",
+ "open",
+ "parking_lot",
+ "pulldown-cmark",
+ "same-file",
+ "serde",
+ "serde_json",
+ "signal-hook 0.4.4",
+ "signal-hook-tokio",
+ "smallvec",
+ "stdx",
+ "tempfile",
+ "termina",
+ "termini",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-stream",
+ "toml",
+ "tui",
+ "vcs",
+ "view",
 ]
 
 [[package]]
@@ -3823,6 +3753,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "tui"
+version = "0.1.0"
+dependencies = [
+ "core",
+ "crossterm 0.28.1",
+ "log",
+ "ratatui",
+ "termina",
+ "termini",
+ "unicode-segmentation",
+ "view",
+]
+
+[[package]]
 name = "typenum"
 version = "1.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3939,10 +3883,66 @@ dependencies = [
 ]
 
 [[package]]
+name = "vcs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "core",
+ "event",
+ "gix",
+ "imara-diff",
+ "log",
+ "parking_lot",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "view"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "bitflags 2.13.0",
+ "chardetng",
+ "clipboard-win",
+ "core",
+ "criterion",
+ "crossterm 0.28.1",
+ "dap",
+ "event",
+ "foldhash 0.2.0",
+ "futures-util",
+ "kstring",
+ "libc",
+ "loader",
+ "log",
+ "lsp",
+ "once_cell",
+ "parking_lot",
+ "quickcheck",
+ "ratatui",
+ "rustix 1.1.4",
+ "serde",
+ "serde_json",
+ "slotmap",
+ "stdx",
+ "tempfile",
+ "termina",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-stream",
+ "toml",
+ "tui",
+ "vcs",
+]
 
 [[package]]
 name = "vtparse"
@@ -4469,13 +4469,13 @@ dependencies = [
 name = "xtask"
 version = "0.1.0"
 dependencies = [
- "mitos-core",
- "mitos-loader",
- "mitos-stdx",
- "mitos-term",
- "mitos-view",
+ "core",
+ "loader",
  "ropey",
+ "stdx",
+ "term",
  "toml",
+ "view",
 ]
 
 [[package]]
