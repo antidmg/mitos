@@ -91,6 +91,7 @@ use once_cell::sync::Lazy;
 use serde::de::{self, Deserialize, Deserializer};
 use stdx::Url;
 
+use grep_matcher::Matcher;
 use grep_regex::RegexMatcherBuilder;
 use grep_searcher::{sinks, BinaryDetection, SearcherBuilder};
 use ignore::{DirEntry, WalkBuilder, WalkState};
@@ -2570,14 +2571,26 @@ fn global_search(cx: &mut Context) {
         line_start: usize,
         /// 0 indexed line end
         line_end: usize,
+        /// Match start byte offset relative to `line_start`
+        match_start_byte: usize,
+        /// Match end byte offset relative to `line_start`
+        match_end_byte: usize,
     }
 
     impl FileResult<'_> {
-        fn new(path: &Path, line_start: usize, line_end: usize) -> Self {
+        fn new(
+            path: &Path,
+            line_start: usize,
+            line_end: usize,
+            match_start_byte: usize,
+            match_end_byte: usize,
+        ) -> Self {
             Self {
                 path: stdx::path::get_relative_path(path.to_path_buf()),
                 line_start,
                 line_end,
+                match_start_byte,
+                match_end_byte,
             }
         }
     }
@@ -2684,8 +2697,23 @@ fn global_search(cx: &mut Context) {
                         let sink = sinks::UTF8(|line_start, line_content| {
                             let line_start = line_start as usize - 1;
                             let line_end = line_start + line_content.lines().count() - 1;
+                            // PERF: UTF8 sink callbacks do not expose the match range, so the
+                            // matched line must be scanned once more. A custom sink could avoid
+                            // this second scan if global search becomes measurable.
+                            let Some(match_range) = matcher
+                                .find(line_content.as_bytes())
+                                .map_err(|err| std::io::Error::other(err.to_string()))?
+                            else {
+                                return Ok(true);
+                            };
                             stop = injector
-                                .push(FileResult::new(entry.path(), line_start, line_end))
+                                .push(FileResult::new(
+                                    entry.path(),
+                                    line_start,
+                                    line_end,
+                                    match_range.start(),
+                                    match_range.end(),
+                                ))
                                 .is_err();
 
                             Ok(!stop)
@@ -2743,7 +2771,8 @@ fn global_search(cx: &mut Context) {
               FileResult {
                   path,
                   line_start,
-                  line_end,
+                  match_start_byte,
+                  match_end_byte,
                   ..
               },
               action| {
@@ -2757,7 +2786,6 @@ fn global_search(cx: &mut Context) {
             };
 
             let line_start = *line_start;
-            let line_end = *line_end;
             let view = view_mut!(cx.editor);
             let text = doc.text();
             if line_start >= text.len_lines() {
@@ -2766,10 +2794,18 @@ fn global_search(cx: &mut Context) {
                 );
                 return;
             }
-            let start = text.line_to_char(line_start);
-            let end = text.line_to_char((line_end + 1).min(text.len_lines()));
+            let Some(selection) = selection_for_global_search_match(
+                text.slice(..),
+                line_start,
+                *match_start_byte,
+                *match_end_byte,
+            ) else {
+                cx.editor
+                    .set_error("The match you jumped to does not exist anymore.");
+                return;
+            };
 
-            doc.set_selection(view.id, Selection::single(start, end));
+            doc.set_selection(view.id, selection);
             if action.align_view(view, doc.id()) {
                 align_view(doc, view, Align::Center);
             }
@@ -2788,6 +2824,29 @@ fn global_search(cx: &mut Context) {
     .with_dynamic_query(get_files, Some(275));
 
     cx.push_layer(Box::new(overlaid(picker)));
+}
+
+fn selection_for_global_search_match(
+    text: RopeSlice,
+    line_start: usize,
+    match_start_byte: usize,
+    match_end_byte: usize,
+) -> Option<Selection> {
+    if line_start >= text.len_lines() || match_start_byte > match_end_byte {
+        return None;
+    }
+
+    let line_start_byte = text.line_to_byte(line_start);
+    let start_byte = line_start_byte.checked_add(match_start_byte)?;
+    let end_byte = line_start_byte.checked_add(match_end_byte)?;
+    if end_byte > text.len_bytes() {
+        return None;
+    }
+
+    Some(Selection::single(
+        text.byte_to_char(start_byte),
+        text.byte_to_char(end_byte),
+    ))
 }
 
 enum Extend {
@@ -7261,5 +7320,24 @@ fn lsp_or_syntax_workspace_symbol_picker(cx: &mut Context) {
         lsp::workspace_symbol_picker(cx);
     } else {
         syntax_workspace_symbol_picker(cx);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn global_search_match_selection_uses_match_range() {
+        let text = Rope::from("héllo search term world\n");
+        let line = text.line(0).to_string();
+        let match_start_byte = line.find("search").unwrap();
+        let match_end_byte = line.find(" term").unwrap();
+
+        let selection =
+            selection_for_global_search_match(text.slice(..), 0, match_start_byte, match_end_byte)
+                .unwrap();
+
+        assert_eq!(selection.primary().fragment(text.slice(..)), "search");
     }
 }
