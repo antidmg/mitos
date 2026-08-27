@@ -5,8 +5,11 @@ use tui::{
 use view::{graphics::Style, Theme};
 
 pub const PADDING: u16 = 1;
+pub const BORDER_INSET: u16 = 2;
 pub const HORIZONTAL_INSET: u16 = PADDING * 2;
 pub const VERTICAL_INSET: u16 = PADDING * 2;
+pub const PADDED_HORIZONTAL_INSET: u16 = BORDER_INSET + HORIZONTAL_INSET;
+pub const PADDED_VERTICAL_INSET: u16 = BORDER_INSET + VERTICAL_INSET;
 
 pub fn bordered(theme: &Theme) -> Block<'static> {
     Block::bordered().border_style(theme.get("ui.window"))
@@ -14,6 +17,10 @@ pub fn bordered(theme: &Theme) -> Block<'static> {
 
 pub fn horizontally_padded(theme: &Theme) -> Block<'static> {
     bordered(theme).padding(Padding::horizontal(PADDING))
+}
+
+pub fn uniformly_padded(theme: &Theme) -> Block<'static> {
+    bordered(theme).padding(Padding::uniform(PADDING))
 }
 
 pub fn top_border(style: Style) -> Block<'static> {

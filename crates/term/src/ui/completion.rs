@@ -554,52 +554,66 @@ impl Component for Completion {
         };
 
         let popup_area = self.popup.area(area, cx.editor);
-        let doc_width_available = area.width.saturating_sub(popup_area.right());
+        let render_border = cx.editor.popup_border();
+        let border_inset = if render_border {
+            panel::BORDER_INSET
+        } else {
+            0
+        };
+        let doc_width_available = area.right().saturating_sub(popup_area.right());
         let doc_area = if doc_width_available > 30 {
             let mut doc_width = doc_width_available;
-            let mut doc_height = area.height.saturating_sub(popup_area.top());
+            let mut doc_height = area.bottom().saturating_sub(popup_area.top());
             let x = popup_area.right();
             let y = popup_area.top();
 
             if let Some((rel_width, rel_height)) =
                 markdown_doc.required_size((doc_width, doc_height))
             {
-                doc_width = rel_width.min(doc_width);
-                doc_height = rel_height.min(doc_height);
+                doc_width = rel_width.saturating_add(border_inset).min(doc_width);
+                doc_height = rel_height.saturating_add(border_inset).min(doc_height);
             }
             Rect::new(x, y, doc_width, doc_height)
         } else {
             // Documentation should not cover the cursor or the completion popup
             // Completion popup could be above or below the current line
-            let avail_height_above = cursor_pos.min(popup_area.top()).saturating_sub(1);
+            let avail_height_above = cursor_pos
+                .min(popup_area.top())
+                .saturating_sub(area.top())
+                .saturating_sub(1);
             let avail_height_below = area
-                .height
-                .saturating_sub(cursor_pos.max(popup_area.bottom()) + 1 /* padding */);
+                .bottom()
+                .saturating_sub(cursor_pos.max(popup_area.bottom()).saturating_add(1));
             let (y, avail_height) = if avail_height_below >= avail_height_above {
                 (
-                    area.height.saturating_sub(avail_height_below),
+                    area.bottom().saturating_sub(avail_height_below),
                     avail_height_below,
                 )
             } else {
-                (0, avail_height_above)
+                (area.top(), avail_height_above)
             };
             if avail_height <= 1 {
                 return;
             }
 
-            Rect::new(0, y, area.width, avail_height.min(15))
+            Rect::new(area.x, y, area.width, avail_height.min(15))
         };
 
         // clear area
         let background = cx.editor.theme.get("ui.popup");
         surface.clear_with(doc_area, background);
 
-        if cx.editor.popup_border() {
+        let markdown_area = if render_border {
             use tui::widgets::Widget;
-            Widget::render(panel::bordered(&cx.editor.theme), doc_area, surface);
-        }
+            let block = panel::bordered(&cx.editor.theme);
+            let inner = block.inner(doc_area);
+            Widget::render(block, doc_area, surface);
+            inner
+        } else {
+            doc_area
+        };
 
-        markdown_doc.render(doc_area, surface, cx);
+        markdown_doc.render(markdown_area, surface, cx);
     }
 }
 fn lsp_item_to_transaction(

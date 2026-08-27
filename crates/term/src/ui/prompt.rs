@@ -429,7 +429,7 @@ impl Prompt {
 
         let completion_area = Rect::new(
             area.x,
-            (area.height - height).saturating_sub(1),
+            area.bottom().saturating_sub(height.saturating_add(1)),
             area.width,
             height,
         );
@@ -477,9 +477,7 @@ impl Prompt {
             let paragraph = ui::text::paragraph(text);
 
             let max_width = BASE_WIDTH * 3;
-            let horizontal_padding = 2; // border + margin
-            let vertical_padding = 1; // border only
-            let text_width = max_width - horizontal_padding * 2;
+            let text_width = max_width - ui::panel::PADDED_HORIZONTAL_INSET;
 
             let viewport = area;
 
@@ -489,15 +487,15 @@ impl Prompt {
                 completion_area.x,
                 completion_area
                     .y
-                    .saturating_sub(height + vertical_padding * 2),
+                    .saturating_sub(height.saturating_add(ui::panel::PADDED_VERTICAL_INSET)),
                 max_width,
-                height + vertical_padding * 2,
+                height.saturating_add(ui::panel::PADDED_VERTICAL_INSET),
             ));
 
             let background = theme.get("ui.help");
             surface.clear_with(area, background);
 
-            let block = ui::panel::horizontally_padded(theme);
+            let block = ui::panel::uniformly_padded(theme);
             let inner = block.inner(area);
 
             block.render(area, surface);
