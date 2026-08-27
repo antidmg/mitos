@@ -303,6 +303,7 @@ pub fn test_editor_config() -> view::editor::Config {
     view::editor::Config {
         lsp: LspConfig {
             enable: false,
+            auto_document_highlight: false,
             ..Default::default()
         },
         // The word-index hook accumulates per-document pending changes across
