@@ -2,18 +2,14 @@ use crate::{
     commands::Open,
     compositor::{Callback, Component, Context, Event, EventResult},
     ctrl, key,
-    ui::panel,
+    ui::{panel, scrollbar},
 };
 use tui::buffer::BufferExt as _;
-use tui::{
-    buffer::Buffer as Surface,
-    style::Style as TuiStyle,
-    widgets::{Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget},
-};
+use tui::{buffer::Buffer as Surface, widgets::Widget};
 
 use editor_core::Position;
 use view::{
-    graphics::{Rect, Style},
+    graphics::Rect,
     input::{MouseEvent, MouseEventKind},
     Editor,
 };
@@ -33,31 +29,6 @@ enum PopupKind {
     #[default]
     Popup,
     Menu,
-}
-
-fn render_scrollbar(
-    surface: &mut Surface,
-    area: Rect,
-    viewport_height: u16,
-    content_height: u16,
-    scroll: usize,
-    bordered: bool,
-    style: Style,
-) {
-    let thumb = style.fg.unwrap_or(view::theme::Color::Reset);
-    let track = style.bg.unwrap_or(view::theme::Color::Reset);
-    let symbol = if bordered { "▌" } else { "▐" };
-    let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
-        .begin_symbol(None)
-        .end_symbol(None)
-        .thumb_symbol(symbol)
-        .thumb_style(TuiStyle::default().fg(thumb.into()))
-        .track_symbol((!bordered).then_some(symbol))
-        .track_style(TuiStyle::default().fg(track.into()));
-    let mut state = ScrollbarState::new(content_height as usize)
-        .position(scroll)
-        .viewport_content_length(viewport_height as usize);
-    scrollbar.render(area, surface, &mut state);
 }
 
 // TODO: share logic with Menu, it's essentially Popup(render_fn), but render fn needs to return
@@ -386,11 +357,11 @@ impl<T: Component> Component for Popup<T> {
 
         if self.has_scrollbar && child_height > inner.height {
             let scroll_style = cx.editor.theme.get("ui.menu.scroll");
-            render_scrollbar(
+            scrollbar::render(
                 surface,
                 area,
                 inner.height,
-                child_height,
+                child_height as usize,
                 scroll,
                 render_borders,
                 scroll_style,
@@ -400,50 +371,5 @@ impl<T: Component> Component for Popup<T> {
 
     fn id(&self) -> Option<&'static str> {
         Some(self.id)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn scrollbar_preserves_a_border_track() {
-        let area = Rect::new(0, 0, 5, 4);
-        let mut surface = Surface::with_lines(["....|", "....|", "....|", "....|"]);
-
-        render_scrollbar(
-            &mut surface,
-            area,
-            area.height,
-            8,
-            0,
-            true,
-            Style::default(),
-        );
-
-        let edge: Vec<_> = (0..area.height)
-            .map(|y| surface[(area.right() - 1, y)].symbol())
-            .collect();
-        assert!(edge.contains(&"▌"));
-        assert!(edge.contains(&"|"));
-    }
-
-    #[test]
-    fn borderless_scrollbar_draws_its_track() {
-        let area = Rect::new(0, 0, 5, 4);
-        let mut surface = Surface::empty(area);
-
-        render_scrollbar(
-            &mut surface,
-            area,
-            area.height,
-            8,
-            0,
-            false,
-            Style::default(),
-        );
-
-        assert!((0..area.height).all(|y| surface[(area.right() - 1, y)].symbol() == "▐"));
     }
 }

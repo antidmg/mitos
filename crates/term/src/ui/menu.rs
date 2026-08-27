@@ -1,6 +1,7 @@
 use crate::{
     compositor::{Callback, Component, Compositor, Context, Event, EventResult},
     ctrl, key, shift,
+    ui::scrollbar,
 };
 use tui::{buffer::Buffer as Surface, widgets::Table};
 
@@ -393,30 +394,16 @@ impl<T: Item + 'static> Component for Menu<T> {
             }
         }
 
-        let fits = len <= win_height;
-
-        let scroll_style = theme.get("ui.menu.scroll");
-        if !fits {
-            let scroll_height = win_height.pow(2).div_ceil(len).min(win_height);
-            let scroll_line = (win_height - scroll_height) * scroll
-                / std::cmp::max(1, len.saturating_sub(win_height));
-
-            let mut cell;
-            for i in 0..win_height {
-                cell = &mut surface[(area.right() - 1, area.top() + i as u16)];
-
-                let half_block = if render_borders { "▌" } else { "▐" };
-
-                if scroll_line <= i && i < scroll_line + scroll_height {
-                    // Draw scroll thumb
-                    cell.set_symbol(half_block);
-                    cell.set_fg(scroll_style.fg.unwrap_or(view::theme::Color::Reset).into());
-                } else if !render_borders {
-                    // Draw scroll track
-                    cell.set_symbol(half_block);
-                    cell.set_fg(scroll_style.bg.unwrap_or(view::theme::Color::Reset).into());
-                }
-            }
+        if len > win_height {
+            scrollbar::render(
+                surface,
+                area,
+                area.height,
+                len,
+                scroll,
+                render_borders,
+                theme.get("ui.menu.scroll"),
+            );
         }
     }
 }

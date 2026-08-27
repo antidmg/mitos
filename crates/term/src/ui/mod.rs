@@ -11,6 +11,7 @@ mod panel;
 pub mod picker;
 pub mod popup;
 pub mod prompt;
+mod scrollbar;
 mod select;
 mod spinner;
 mod statusline;
