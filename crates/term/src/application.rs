@@ -409,7 +409,7 @@ impl Application {
                     .backend_mut()
                     .reconfigure((&app_config.editor).into())
                 {
-                    self.editor.set_error(err.to_string());
+                    self.editor.set_error(|| err.to_string());
                 };
                 self.config.store(Arc::new(app_config));
             }
@@ -485,7 +485,7 @@ impl Application {
                 self.editor.set_status("Config refreshed");
             }
             Err(err) => {
-                self.editor.set_error(err.to_string());
+                self.editor.set_error(|| err.to_string());
             }
         }
     }
@@ -616,7 +616,7 @@ impl Application {
         let doc_save_event = match doc_save_event {
             Ok(event) => event,
             Err(err) => {
-                self.editor.set_error(err.to_string());
+                self.editor.set_error(|| err.to_string());
                 return;
             }
         };
@@ -1220,8 +1220,8 @@ impl Application {
     fn handle_show_message(&mut self, message_type: lsp::MessageType, message: String) {
         if self.config.load().editor.lsp.display_messages {
             match message_type {
-                lsp::MessageType::ERROR => self.editor.set_error(message),
-                lsp::MessageType::WARNING => self.editor.set_warning(message),
+                lsp::MessageType::ERROR => self.editor.set_error(|| message),
+                lsp::MessageType::WARNING => self.editor.set_warning(|| message),
                 _ => self.editor.set_status(message),
             }
         }

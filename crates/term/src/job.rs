@@ -121,7 +121,7 @@ impl Jobs {
                 Callback::Followup(call) => call(editor),
             },
             Err(e) => {
-                editor.set_error(format!("Async job failed: {}", e));
+                editor.set_error(|| format!("Async job failed: {}", e));
                 None
             }
         }

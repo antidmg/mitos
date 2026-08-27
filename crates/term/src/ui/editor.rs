@@ -1793,7 +1793,7 @@ impl Component for EditorView {
                         code_actions: false,
                     };
                     if let Err(e) = commands::typed::write_all_impl(context, options) {
-                        context.editor.set_error(format!("{}", e));
+                        context.editor.set_error(|| format!("{}", e));
                     }
                 }
                 self.terminal_focused = false;

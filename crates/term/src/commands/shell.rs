@@ -64,7 +64,7 @@ pub(super) fn shell_keep_pipe(cx: &mut Context) {
         }
 
         if ranges.is_empty() {
-            cx.editor.set_error("No selections remaining");
+            cx.editor.set_error(|| "No selections remaining");
             return;
         }
 
@@ -178,7 +178,7 @@ pub(super) fn shell(cx: &mut compositor::Context, cmd: &str, behavior: &ShellBeh
                     output
                 }
                 Err(err) => {
-                    cx.editor.set_error(err.to_string());
+                    cx.editor.set_error(|| err.to_string());
                     return;
                 }
             }
@@ -239,7 +239,7 @@ where
                 super::expansion::expand(cx.editor, token).map_err(|err| err.into())
             }) {
                 Ok(args) => callback_fn(cx, args),
-                Err(err) => cx.editor.set_error(err.to_string()),
+                Err(err) => cx.editor.set_error(|| err.to_string()),
             }
         },
     );
