@@ -3,13 +3,13 @@ use std::borrow::Cow;
 use tui::{
     buffer::Buffer as Surface,
     layout::{Constraint, Layout},
-    widgets::{Block, Padding, Widget as _},
+    widgets::Widget as _,
 };
 use view::{graphics::Rect, Editor};
 
 use crate::compositor::{Component, Context, Event, EventResult};
 
-use super::{menu::Item, Menu, PromptEvent, Text};
+use super::{menu::Item, panel, Menu, PromptEvent, Text};
 
 pub struct Select<T: Item> {
     message: Text,
@@ -90,7 +90,7 @@ impl<T: Item> Component for Select<T> {
         let background = cx.editor.theme.get("ui.background");
         let text = cx.editor.theme.get("ui.text");
         surface.clear_with(message_box, background.patch(text));
-        let block = Block::bordered().padding(Padding::horizontal(1));
+        let block = panel::horizontally_padded(&cx.editor.theme);
         let message_area = block.inner(message_box);
         block.render(message_box, surface);
         self.message.render(message_area, surface, cx);

@@ -2,17 +2,18 @@ use crate::{
     commands::Open,
     compositor::{Callback, Component, Context, Event, EventResult},
     ctrl, key,
+    ui::panel,
 };
 use tui::buffer::BufferExt as _;
 use tui::{
     buffer::Buffer as Surface,
     style::Style as TuiStyle,
-    widgets::{Block, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget},
+    widgets::{Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget},
 };
 
 use editor_core::Position;
 use view::{
-    graphics::{Margin, Rect, Style},
+    graphics::{Rect, Style},
     input::{MouseEvent, MouseEventKind},
     Editor,
 };
@@ -370,8 +371,9 @@ impl<T: Component> Component for Popup<T> {
 
         let mut inner = area;
         if render_borders {
-            inner = area.inner(Margin::new(1, 1));
-            Widget::render(Block::bordered(), area, surface);
+            let block = panel::bordered(&cx.editor.theme);
+            inner = block.inner(area);
+            Widget::render(block, area, surface);
         }
         let max_offset = child_height.saturating_sub(inner.height) as usize;
         let half_page_size = (inner.height / 2) as usize;

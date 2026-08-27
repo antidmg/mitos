@@ -8,6 +8,7 @@ use crate::{
     ui::{
         self,
         document::{render_document, LinePos, TextRenderer},
+        panel,
         picker::query::PickerQuery,
         text_decorations::DecorationManager,
         EditorView,
@@ -23,7 +24,7 @@ use tui::{
     buffer::Buffer as Surface,
     layout::{Constraint, Layout},
     text::{Line, Span},
-    widgets::{Block, Borders, Cell, Padding, Paragraph, Row, Table},
+    widgets::{Cell, Paragraph, Row, Table},
 };
 
 use tui::buffer::BufferExt as _;
@@ -693,7 +694,7 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
         let background = cx.editor.theme.get("ui.background");
         surface.clear_with(area, background);
 
-        let block = Block::bordered();
+        let block = panel::bordered(&cx.editor.theme);
         let inner = block.inner(area);
         block.render(area, surface);
 
@@ -733,10 +734,7 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
             .render(count_area, surface);
 
         let sep_style = cx.editor.theme.get("ui.background.separator");
-        Block::new()
-            .borders(Borders::TOP)
-            .border_style(sep_style)
-            .render(separator_area, surface);
+        panel::top_border(sep_style).render(separator_area, surface);
 
         let rows = inner.height.saturating_sub(self.header_height()) as u32;
         let offset = self.cursor - (self.cursor % std::cmp::max(1, rows));
@@ -878,7 +876,7 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
         let directory = cx.editor.theme.get("ui.text.directory");
         surface.clear_with(area, background);
 
-        let block = Block::bordered().padding(Padding::horizontal(1));
+        let block = panel::horizontally_padded(&cx.editor.theme);
         let inner = block.inner(area);
         block.render(area, surface);
 
@@ -1193,7 +1191,7 @@ impl<I: 'static + Send + Sync, D: 'static + Send + Sync> Component for Picker<I,
         let render_preview =
             self.show_preview && self.file_fn.is_some() && area.width > MIN_AREA_WIDTH_FOR_PREVIEW;
         let (picker_area, _) = split_picker_area(area, render_preview);
-        let area = Block::bordered()
+        let area = panel::bordered(&editor.theme)
             .inner(picker_area)
             .with_height(1)
             .clip_left(1);

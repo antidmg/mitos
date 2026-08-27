@@ -1,5 +1,5 @@
 use crate::handlers::completion::LspCompletionItem;
-use crate::ui::{menu, Markdown, Menu, Popup, PromptEvent};
+use crate::ui::{menu, panel, Markdown, Menu, Popup, PromptEvent};
 use crate::{
     compositor::{Component, Context, Event, EventResult},
     handlers::completion::{
@@ -595,8 +595,8 @@ impl Component for Completion {
         surface.clear_with(doc_area, background);
 
         if cx.editor.popup_border() {
-            use tui::widgets::{Block, Widget};
-            Widget::render(Block::bordered(), doc_area, surface);
+            use tui::widgets::Widget;
+            Widget::render(panel::bordered(&cx.editor.theme), doc_area, surface);
         }
 
         markdown_doc.render(doc_area, surface, cx);

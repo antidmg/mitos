@@ -5,14 +5,14 @@ use editor_core::syntax;
 use lsp_client::lsp;
 use tui::buffer::Buffer;
 use tui::layout::{Constraint, Layout};
-use tui::widgets::{Block, Borders, Paragraph, Widget, Wrap};
-use view::graphics::{Margin, Rect};
+use tui::widgets::{Paragraph, Widget, Wrap};
+use view::graphics::Rect;
 use view::input::Event;
 
 use crate::compositor::{Component, Context, EventResult};
 
 use crate::alt;
-use crate::ui::Markdown;
+use crate::ui::{panel, Markdown};
 
 pub struct Hover {
     active_index: usize,
@@ -73,8 +73,7 @@ const SEPARATOR_HEIGHT: u16 = 1;
 
 impl Component for Hover {
     fn render(&mut self, area: Rect, surface: &mut Buffer, cx: &mut Context) {
-        let margin = Margin::new(1, 1);
-        let area = area.inner(margin);
+        let area = panel::content_area(area);
 
         let (header, contents) = self.content();
 
@@ -91,9 +90,7 @@ impl Component for Hover {
             let header = Paragraph::new(header);
             header.render(header_area, surface);
 
-            Block::new()
-                .borders(Borders::TOP)
-                .render(separator_area, surface);
+            panel::top_border(cx.editor.theme.get("ui.window")).render(separator_area, surface);
             contents_area
         } else {
             area

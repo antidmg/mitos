@@ -2,9 +2,11 @@ use crate::compositor::{Component, Context};
 use tui::buffer::Buffer as Surface;
 use tui::layout::{Constraint, Layout};
 use tui::text::Text;
-use tui::widgets::{Block, Padding, Paragraph, Widget};
+use tui::widgets::{Paragraph, Widget};
 use view::graphics::Rect;
 use view::info::Info;
+
+use super::panel;
 
 impl Component for Info {
     fn render(&mut self, viewport: Rect, surface: &mut Surface, cx: &mut Context) {
@@ -19,10 +21,7 @@ impl Component for Info {
             Layout::vertical([Constraint::Min(0), Constraint::Length(height)]).areas(area);
         surface.clear_with(area, popup_style);
 
-        let block = Block::bordered()
-            .title(self.title.as_ref())
-            .padding(Padding::horizontal(1))
-            .border_style(popup_style);
+        let block = panel::horizontally_padded(&cx.editor.theme).title(self.title.as_ref());
 
         let inner = block.inner(area);
         block.render(area, surface);

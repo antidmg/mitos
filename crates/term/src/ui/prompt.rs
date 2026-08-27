@@ -7,7 +7,7 @@ use std::{borrow::Cow, ops::RangeFrom};
 use tui::buffer::Buffer as Surface;
 use tui::layout::Constraint;
 use tui::text::Span;
-use tui::widgets::{Block, Row, Table, TableState, Widget};
+use tui::widgets::{Row, Table, TableState, Widget};
 use view::document::Mode;
 use view::input::KeyEvent;
 use view::keyboard::KeyCode;
@@ -18,7 +18,7 @@ use editor_core::{
     Position,
 };
 use view::{
-    graphics::{CursorKind, Margin, Rect},
+    graphics::{CursorKind, Rect},
     Editor,
 };
 
@@ -497,11 +497,8 @@ impl Prompt {
             let background = theme.get("ui.help");
             surface.clear_with(area, background);
 
-            let block = Block::bordered()
-                // .title(self.title.as_str())
-                .border_style(background);
-
-            let inner = block.inner(area).inner(Margin::new(1, 0));
+            let block = ui::panel::horizontally_padded(theme);
+            let inner = block.inner(area);
 
             block.render(area, surface);
             paragraph.render(inner, surface);

@@ -5,14 +5,14 @@ use editor_core::syntax::{self, OverlayHighlights};
 use tui::buffer::Buffer;
 use tui::layout::{Alignment, Constraint, Layout};
 use tui::text::Text;
-use tui::widgets::{Block, Borders, Paragraph, Widget, Wrap};
-use view::graphics::{Margin, Rect};
+use tui::widgets::{Paragraph, Widget, Wrap};
+use view::graphics::Rect;
 use view::input::Event;
 
 use crate::compositor::{Component, Compositor, Context, EventResult};
 
 use crate::alt;
-use crate::ui::Markdown;
+use crate::ui::{panel, Markdown};
 
 use crate::ui::Popup;
 
@@ -94,8 +94,7 @@ impl Component for SignatureHelp {
     }
 
     fn render(&mut self, area: Rect, surface: &mut Buffer, cx: &mut Context) {
-        let margin = Margin::new(1, 1);
-        let area = area.inner(margin);
+        let area = panel::content_area(area);
 
         let signature = self
             .signatures
@@ -146,9 +145,7 @@ impl Component for SignatureHelp {
                 Constraint::Length(u16::from(cx.editor.popup_border())),
             ])
             .areas(area);
-        Block::new()
-            .borders(Borders::TOP)
-            .render(separator_area, surface);
+        panel::top_border(cx.editor.theme.get("ui.window")).render(separator_area, surface);
 
         let sig_doc = match &signature.signature_doc {
             None => return,

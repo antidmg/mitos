@@ -1,4 +1,7 @@
-use crate::compositor::{Component, Context};
+use crate::{
+    compositor::{Component, Context},
+    ui::panel,
+};
 use arc_swap::ArcSwap;
 use tui::{
     buffer::Buffer as Surface,
@@ -14,7 +17,7 @@ use editor_core::{
     RopeSlice, Syntax,
 };
 use view::{
-    graphics::{Margin, Rect, Style},
+    graphics::{Rect, Style},
     theme::Modifier,
     Theme,
 };
@@ -374,18 +377,19 @@ impl Component for Markdown {
         let par =
             crate::ui::text::paragraph(text).scroll((cx.scroll.unwrap_or_default() as u16, 0));
 
-        let margin = Margin::new(1, 1);
-        par.render(area.inner(margin), surface);
+        par.render(panel::content_area(area), surface);
     }
 
     fn required_size(&mut self, viewport: (u16, u16)) -> Option<(u16, u16)> {
-        let padding = 2;
         let contents = crate::ui::text::paragraph(self.parse(None));
 
         // TODO: account for tab width
-        let max_text_width = (viewport.0.saturating_sub(padding)).min(120);
+        let max_text_width = viewport.0.saturating_sub(panel::HORIZONTAL_INSET).min(120);
         let (width, height) = crate::ui::text::required_size(&contents, max_text_width);
 
-        Some((width + padding, height + padding))
+        Some((
+            width + panel::HORIZONTAL_INSET,
+            height + panel::VERTICAL_INSET,
+        ))
     }
 }
