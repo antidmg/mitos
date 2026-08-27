@@ -461,7 +461,7 @@ impl FromStr for Modifier {
 /// just S3.
 ///
 /// ```rust
-/// # use view::graphics::{Rect, Color, UnderlineStyle, Modifier, Style};
+/// # use view::graphics::{Rect, Color, Modifier, Style};
 /// # use tui::buffer::Buffer;
 /// let styles = [
 ///     Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD | Modifier::ITALIC),
@@ -473,14 +473,11 @@ impl FromStr for Modifier {
 ///   buffer[(0, 0)].set_style(*style);
 /// }
 /// assert_eq!(
-///     Style {
-///         fg: Some(Color::Yellow),
-///         bg: Some(Color::Red),
-///         add_modifier: Modifier::BOLD,
-///         underline_color: Some(Color::Reset),
-///         underline_style: Some(UnderlineStyle::Reset),
-///         sub_modifier: Modifier::empty(),
-///     },
+///     tui::style::Style::default()
+///         .fg(Color::Yellow.into())
+///         .bg(Color::Red.into())
+///         .underline_color(Color::Reset.into())
+///         .add_modifier(tui::style::Modifier::BOLD),
 ///     buffer[(0, 0)].style(),
 /// );
 /// ```
@@ -489,7 +486,7 @@ impl FromStr for Modifier {
 /// reset all properties until that point use [`Style::reset`].
 ///
 /// ```
-/// # use view::graphics::{Rect, Color, UnderlineStyle, Modifier, Style};
+/// # use view::graphics::{Rect, Color, Modifier, Style};
 /// # use tui::buffer::Buffer;
 /// let styles = [
 ///     Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD | Modifier::ITALIC),
@@ -500,14 +497,10 @@ impl FromStr for Modifier {
 ///   buffer[(0, 0)].set_style(*style);
 /// }
 /// assert_eq!(
-///     Style {
-///         fg: Some(Color::Yellow),
-///         bg: Some(Color::Reset),
-///         underline_color: Some(Color::Reset),
-///         underline_style: Some(UnderlineStyle::Reset),
-///         add_modifier: Modifier::empty(),
-///         sub_modifier: Modifier::empty(),
-///     },
+///     tui::style::Style::default()
+///         .fg(Color::Yellow.into())
+///         .bg(Color::Reset.into())
+///         .underline_color(Color::Reset.into()),
 ///     buffer[(0, 0)].style(),
 /// );
 /// ```

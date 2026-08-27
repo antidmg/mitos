@@ -57,10 +57,9 @@ impl BufferExt for Buffer {
 
     #[inline]
     fn set_tab(&mut self, x: u16, y: u16, tab: &str, style: Style) {
-        let mut index = self.index_of(x, y);
-        for ch in tab.chars() {
-            self.content[index].set_char(ch).set_style(style);
-            index += 1;
+        let index = self.index_of(x, y);
+        for (offset, ch) in tab.chars().enumerate() {
+            self.content[index + offset].set_char(ch).set_style(style);
         }
     }
 
