@@ -5,8 +5,9 @@ use editor_core::syntax;
 use std::sync::Arc;
 use std::{borrow::Cow, ops::RangeFrom};
 use tui::buffer::Buffer as Surface;
+use tui::layout::Constraint;
 use tui::text::Span;
-use tui::widgets::{Block, Widget};
+use tui::widgets::{Block, Row, Table, TableState, Widget};
 use view::document::Mode;
 use view::input::KeyEvent;
 use view::keyboard::KeyCode;
@@ -445,35 +446,30 @@ impl Prompt {
                 .unwrap_or_default();
 
             surface.clear_with(area, background);
-
-            let mut row = 0;
-            let mut col = 0;
-
-            for (i, (_range, completion)) in
-                self.completion.iter().enumerate().skip(offset).take(items)
-            {
-                let is_selected = Some(i) == self.selection;
-
-                let completion_item_style: tui::style::Style = if is_selected {
-                    selected_color.into()
-                } else {
-                    tui::style::Style::from(completion_color).patch(completion.style)
-                };
-
-                surface.set_stringn(
-                    area.x + col * (1 + col_width),
-                    area.y + row,
-                    &completion.content,
-                    col_width.saturating_sub(1) as usize,
-                    completion_item_style,
-                );
-
-                row += 1;
-                if row > area.height - 1 {
-                    row = 0;
-                    col += 1;
-                }
-            }
+            // PERF: Ratatui tables require temporary row/cell vectors instead of writing the
+            // completion grid directly. Cache this page if prompt rendering becomes measurable.
+            let rows = (0..height).map(|row| {
+                let cells = (0..cols).map(|col| {
+                    let index = offset + (col * height + row) as usize;
+                    let Some((_range, completion)) = self.completion.get(index) else {
+                        return Span::raw("");
+                    };
+                    let style = if Some(index) == self.selection {
+                        selected_color.into()
+                    } else {
+                        tui::style::Style::from(completion_color).patch(completion.style)
+                    };
+                    Span::styled(completion.content.as_ref(), style)
+                });
+                Row::new(cells)
+            });
+            let widths = vec![Constraint::Length(col_width.saturating_sub(1)); cols as usize];
+            let mut state = TableState::default();
+            Table::new(rows)
+                .widths(&widths)
+                .style(background)
+                .column_spacing(2)
+                .render_table(area, surface, &mut state, false);
         }
 
         if let Some(doc) = (self.doc_fn)(&self.line) {
