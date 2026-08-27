@@ -3,10 +3,10 @@ use std::sync::Arc;
 use arc_swap::ArcSwap;
 use editor_core::syntax::{self, OverlayHighlights};
 use tui::buffer::Buffer;
-use tui::layout::Alignment;
+use tui::layout::{Alignment, Constraint, Layout};
 use tui::text::Text;
-use tui::widgets::{BorderType, Paragraph, Widget, Wrap};
-use view::graphics::{Margin, Rect, Style};
+use tui::widgets::{Block, Borders, Paragraph, Widget, Wrap};
+use view::graphics::{Margin, Rect};
 use view::input::Event;
 
 use crate::compositor::{Component, Compositor, Context, EventResult};
@@ -111,11 +111,6 @@ impl Component for SignatureHelp {
             OverlayHighlights::single(highlight, start..end)
         });
 
-        let signature = self
-            .signatures
-            .get(self.active_signature)
-            .unwrap_or_else(|| &self.signatures[0]);
-
         let sig_text = crate::ui::markdown::highlighted_code_block(
             signature.signature.as_str(),
             &self.language,
@@ -142,22 +137,24 @@ impl Component for SignatureHelp {
             return;
         }
 
-        let sep_style = Style::default();
-        let borders = BorderType::border_symbols(BorderType::Plain);
-        for x in sig_text_area.left()..sig_text_area.right() {
-            if let Some(cell) = surface.cell_mut((x, sig_text_area.bottom())) {
-                cell.set_symbol(borders.horizontal_top).set_style(sep_style);
-            }
-        }
+        let [_sig_text_area, separator_area, _spacing, sig_doc_area, _bottom_border] =
+            Layout::vertical([
+                Constraint::Length(sig_text_area.height),
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Min(0),
+                Constraint::Length(u16::from(cx.editor.popup_border())),
+            ])
+            .areas(area);
+        Block::new()
+            .borders(Borders::TOP)
+            .render(separator_area, surface);
 
         let sig_doc = match &signature.signature_doc {
             None => return,
             Some(doc) => Markdown::new(doc.clone(), Arc::clone(&self.config_loader)),
         };
         let sig_doc = sig_doc.parse(Some(&cx.editor.theme));
-        let sig_doc_area = area
-            .clip_top(sig_text_area.height + 2)
-            .clip_bottom(u16::from(cx.editor.popup_border()));
         let sig_doc_para = Paragraph::new(sig_doc)
             .wrap(Wrap { trim: false })
             .scroll((cx.scroll.unwrap_or_default() as u16, 0));

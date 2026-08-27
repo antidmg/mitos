@@ -1,8 +1,9 @@
 use crate::compositor::{Component, Context};
 use tui::buffer::Buffer as Surface;
+use tui::layout::{Constraint, Layout};
 use tui::text::Text;
-use tui::widgets::{Block, Paragraph, Widget};
-use view::graphics::{Margin, Rect};
+use tui::widgets::{Block, Padding, Paragraph, Widget};
+use view::graphics::Rect;
 use view::info::Info;
 
 impl Component for Info {
@@ -12,20 +13,18 @@ impl Component for Info {
 
         let width = self.width + 2 + 2; // +2 for border, +2 for margin
         let height = self.height + 2; // +2 for border
-        let area = viewport.intersection(Rect::new(
-            viewport.right().saturating_sub(width),
-            viewport.bottom().saturating_sub(height),
-            width,
-            height,
-        ));
+        let [_left, area] =
+            Layout::horizontal([Constraint::Min(0), Constraint::Length(width)]).areas(viewport);
+        let [_top, area] =
+            Layout::vertical([Constraint::Min(0), Constraint::Length(height)]).areas(area);
         surface.clear_with(area, popup_style);
 
         let block = Block::bordered()
             .title(self.title.as_ref())
+            .padding(Padding::horizontal(1))
             .border_style(popup_style);
 
-        let margin = Margin::new(1, 0);
-        let inner = block.inner(area).inner(margin);
+        let inner = block.inner(area);
         block.render(area, surface);
 
         Paragraph::new(Text::from(self.text.as_str()))

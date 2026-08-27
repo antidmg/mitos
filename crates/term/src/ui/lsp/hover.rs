@@ -4,8 +4,9 @@ use arc_swap::ArcSwap;
 use editor_core::syntax;
 use lsp_client::lsp;
 use tui::buffer::Buffer;
-use tui::widgets::{BorderType, Paragraph, Widget, Wrap};
-use view::graphics::{Margin, Rect, Style};
+use tui::layout::{Constraint, Layout};
+use tui::widgets::{Block, Borders, Paragraph, Widget, Wrap};
+use view::graphics::{Margin, Rect};
 use view::input::Event;
 
 use crate::compositor::{Component, Context, EventResult};
@@ -78,29 +79,28 @@ impl Component for Hover {
         let (header, contents) = self.content();
 
         // show header and border only when more than one results
-        if let Some(header) = header {
+        let contents_area = if let Some(header) = header {
+            let [header_area, separator_area, contents_area] = Layout::vertical([
+                Constraint::Length(HEADER_HEIGHT),
+                Constraint::Length(SEPARATOR_HEIGHT),
+                Constraint::Min(0),
+            ])
+            .areas(area);
             // header LSP Name
             let header = header.parse(Some(&cx.editor.theme));
             let header = Paragraph::new(header);
-            header.render(area.with_height(HEADER_HEIGHT), surface);
+            header.render(header_area, surface);
 
-            // border
-            let sep_style = Style::default();
-            let borders = BorderType::border_symbols(BorderType::Plain);
-            for x in area.left()..area.right() {
-                if let Some(cell) = surface.cell_mut((x, area.top() + HEADER_HEIGHT)) {
-                    cell.set_symbol(borders.horizontal_top).set_style(sep_style);
-                }
-            }
-        }
+            Block::new()
+                .borders(Borders::TOP)
+                .render(separator_area, surface);
+            contents_area
+        } else {
+            area
+        };
 
         // hover content
         let contents = contents.parse(Some(&cx.editor.theme));
-        let contents_area = area.clip_top(if self.has_header() {
-            HEADER_HEIGHT + SEPARATOR_HEIGHT
-        } else {
-            0
-        });
         let contents_para = Paragraph::new(contents)
             .wrap(Wrap { trim: false })
             .scroll((cx.scroll.unwrap_or_default() as u16, 0));
@@ -181,4 +181,3 @@ fn hover_contents_to_string(contents: lsp::HoverContents) -> String {
         lsp::HoverContents::Markup(contents) => contents.value,
     }
 }
-use view::graphics::RectExt as _;

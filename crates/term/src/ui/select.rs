@@ -2,7 +2,8 @@ use std::borrow::Cow;
 
 use tui::{
     buffer::Buffer as Surface,
-    widgets::{Block, Widget as _},
+    layout::{Constraint, Layout},
+    widgets::{Block, Padding, Widget as _},
 };
 use view::{graphics::Rect, Editor};
 
@@ -57,8 +58,6 @@ impl<T: Item> Component for Select<T> {
     }
 
     fn render(&mut self, area: Rect, surface: &mut Surface, cx: &mut Context) {
-        const BLOCK: Block<'_> = Block::bordered();
-
         // +---------------------+
         // | message             |
         // +---------------------+
@@ -80,27 +79,24 @@ impl<T: Item> Component for Select<T> {
         // + 2 for borders and another + 2 for horizontal padding
         let width = message_width + 4;
         let height = message_height + 2 + menu_height;
-        let area = Rect {
-            x: (area.width / 2) - width / 2,
-            y: (area.height / 2) - height / 2,
-            width,
-            height,
-        };
+        let area = area.centered(Constraint::Length(width), Constraint::Length(height));
+        let [message_box, menu_area] = Layout::vertical([
+            Constraint::Length(message_height + 2),
+            Constraint::Length(menu_height),
+        ])
+        .areas(area);
 
         // Message
         let background = cx.editor.theme.get("ui.background");
         let text = cx.editor.theme.get("ui.text");
-        let message_box = area.with_height(message_height + 2);
         surface.clear_with(message_box, background.patch(text));
-        BLOCK.render(message_box, surface);
-        // Add horizontal padding so the message isn't too close to the border.
-        let message_area = BLOCK.inner(message_box).clip_left(1).clip_right(1);
+        let block = Block::bordered().padding(Padding::horizontal(1));
+        let message_area = block.inner(message_box);
+        block.render(message_box, surface);
         self.message.render(message_area, surface, cx);
 
         // Options menu
-        let menu_area = area.clip_top(message_height + 2);
         self.options.render(menu_area, surface, cx);
     }
 }
 use tui::buffer::BufferExt as _;
-use view::graphics::RectExt as _;
