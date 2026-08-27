@@ -6,7 +6,10 @@ use crate::{
 };
 use dap::{self as dap, requests::TerminateArguments};
 use dap::{StackFrame, Thread, ThreadStates};
-use editor_core::syntax::config::{DebugConfigCompletion, DebugTemplate};
+use editor_core::{
+    syntax::config::{DebugConfigCompletion, DebugTemplate},
+    SmallVec,
+};
 use lsp_client::block_on;
 use view::editor::Breakpoint;
 
@@ -398,7 +401,7 @@ fn debug_parameter_prompt(
     )
 }
 
-pub fn dap_toggle_breakpoint(cx: &mut Context) {
+pub fn dap_toggle_breakpoints(cx: &mut Context) {
     let (view, doc) = current!(cx.editor);
 
     let Some(path) = doc.path().map(ToOwned::to_owned) else {
@@ -408,33 +411,47 @@ pub fn dap_toggle_breakpoint(cx: &mut Context) {
     };
 
     let text = doc.text().slice(..);
-    let line = doc.selection(view.id).primary().cursor_line(text);
-    dap_toggle_breakpoint_impl(cx, path, line);
+    let mut lines: SmallVec<[usize; 1]> = doc
+        .selection(view.id)
+        .ranges()
+        .iter()
+        .map(|range| range.cursor_line(text))
+        .collect();
+    lines.sort_unstable();
+    lines.dedup();
+
+    dap_toggle_breakpoints_impl(cx, path, &lines);
 }
 
-pub fn dap_toggle_breakpoint_impl(cx: &mut Context, path: PathBuf, line: usize) {
+pub fn dap_toggle_breakpoints_impl(cx: &mut Context, path: PathBuf, lines: &[usize]) {
     // TODO: need to map breakpoints over edits and update them?
     // we shouldn't really allow editing while debug is running though
 
     let breakpoints = cx.editor.breakpoints.entry(path.clone()).or_default();
     // TODO: always keep breakpoints sorted and use binary search to determine insertion point
-    if let Some(pos) = breakpoints
-        .iter()
-        .position(|breakpoint| breakpoint.line == line)
-    {
-        breakpoints.remove(pos);
-    } else {
-        breakpoints.push(Breakpoint {
-            line,
-            ..Default::default()
-        });
-    }
+    toggle_breakpoint_lines(breakpoints, lines);
 
     let debugger = debugger!(cx.editor);
 
     if let Err(e) = breakpoints_changed(debugger, path, breakpoints) {
         cx.editor
             .set_error(|| format!("Failed to set breakpoints: {}", e));
+    }
+}
+
+fn toggle_breakpoint_lines(breakpoints: &mut Vec<Breakpoint>, lines: &[usize]) {
+    for &line in lines {
+        if let Some(pos) = breakpoints
+            .iter()
+            .position(|breakpoint| breakpoint.line == line)
+        {
+            breakpoints.remove(pos);
+        } else {
+            breakpoints.push(Breakpoint {
+                line,
+                ..Default::default()
+            });
+        }
     }
 }
 
@@ -792,4 +809,27 @@ pub fn dap_switch_stack_frame(cx: &mut Context) {
         })
     });
     cx.push_layer(Box::new(picker))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn toggles_breakpoints_for_every_line() {
+        let mut breakpoints = vec![Breakpoint {
+            line: 2,
+            ..Default::default()
+        }];
+
+        toggle_breakpoint_lines(&mut breakpoints, &[2, 4]);
+
+        assert_eq!(
+            breakpoints
+                .iter()
+                .map(|breakpoint| breakpoint.line)
+                .collect::<Vec<_>>(),
+            vec![4]
+        );
+    }
 }
