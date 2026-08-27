@@ -364,6 +364,8 @@ pub struct Config {
     pub continue_comments: bool,
     /// Whether to display infoboxes. Defaults to true.
     pub auto_info: bool,
+    /// Whether to show icons in the user interface. Defaults to false.
+    pub icons: bool,
     pub file_picker: FilePickerConfig,
     pub file_explorer: FileExplorerConfig,
     /// Configuration of the statusline elements
@@ -1201,6 +1203,7 @@ impl Default for Config {
             preview_completion_insert: true,
             completion_trigger_len: 2,
             auto_info: true,
+            icons: false,
             file_picker: FilePickerConfig::default(),
             file_explorer: FileExplorerConfig::default(),
             statusline: StatusLineConfig::default(),

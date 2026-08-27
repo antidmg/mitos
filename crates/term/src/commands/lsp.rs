@@ -9,7 +9,10 @@ use lsp_client::{
     Client, LanguageServerId, OffsetEncoding,
 };
 use tokio_stream::StreamExt;
-use tui::{text::Span, widgets::Row};
+use tui::{
+    text::{Line, Span},
+    widgets::Row,
+};
 
 use super::{align_view, push_jump, Align, Context, Editor};
 
@@ -23,6 +26,7 @@ use view::{
     document::{DocumentInlayHints, DocumentInlayHintsId},
     editor::Action,
     handlers::lsp::SignatureHelpInvoked,
+    icons::ICONS,
     theme::Style,
     Document, DocumentId, View,
 };
@@ -95,6 +99,7 @@ struct SymbolInformationItem {
 }
 
 struct DiagnosticStyles {
+    icons: bool,
     hint: Style,
     info: Style,
     warning: Style,
@@ -245,6 +250,7 @@ fn diag_picker(
     });
 
     let styles = DiagnosticStyles {
+        icons: cx.editor.config().icons,
         hint: cx.editor.theme.get("hint"),
         info: cx.editor.theme.get("info"),
         warning: cx.editor.theme.get("warning"),
@@ -255,11 +261,40 @@ fn diag_picker(
         ui::PickerColumn::new(
             "severity",
             |item: &PickerDiagnostic, styles: &DiagnosticStyles| {
+                let icons = ICONS.load();
                 match item.diag.severity {
-                    Some(DiagnosticSeverity::HINT) => Span::styled("HINT", styles.hint),
-                    Some(DiagnosticSeverity::INFORMATION) => Span::styled("INFO", styles.info),
-                    Some(DiagnosticSeverity::WARNING) => Span::styled("WARN", styles.warning),
-                    Some(DiagnosticSeverity::ERROR) => Span::styled("ERROR", styles.error),
+                    Some(DiagnosticSeverity::HINT) => Span::styled(
+                        if styles.icons {
+                            format!("{}HINT", icons.diagnostic().hint())
+                        } else {
+                            "HINT".to_string()
+                        },
+                        styles.hint,
+                    ),
+                    Some(DiagnosticSeverity::INFORMATION) => Span::styled(
+                        if styles.icons {
+                            format!("{}INFO", icons.diagnostic().info())
+                        } else {
+                            "INFO".to_string()
+                        },
+                        styles.info,
+                    ),
+                    Some(DiagnosticSeverity::WARNING) => Span::styled(
+                        if styles.icons {
+                            format!("{}WARN", icons.diagnostic().warning())
+                        } else {
+                            "WARN".to_string()
+                        },
+                        styles.warning,
+                    ),
+                    Some(DiagnosticSeverity::ERROR) => Span::styled(
+                        if styles.icons {
+                            format!("{}ERROR", icons.diagnostic().error())
+                        } else {
+                            "ERROR".to_string()
+                        },
+                        styles.error,
+                    ),
                     _ => Span::raw(""),
                 }
                 .into()
@@ -316,6 +351,7 @@ fn diag_picker(
 }
 
 pub fn symbol_picker(cx: &mut Context) {
+    let show_icons = cx.editor.config().icons;
     fn nested_to_flat(
         list: &mut Vec<SymbolInformationItem>,
         file: &lsp::TextDocumentIdentifier,
@@ -412,8 +448,15 @@ pub fn symbol_picker(cx: &mut Context) {
         }
         let call = move |_editor: &mut Editor, compositor: &mut Compositor| {
             let columns = [
-                ui::PickerColumn::new("kind", |item: &SymbolInformationItem, _| {
-                    display_symbol_kind(item.symbol.kind).into()
+                ui::PickerColumn::new("kind", |item: &SymbolInformationItem, show_icons: &bool| {
+                    let label = display_symbol_kind(item.symbol.kind);
+                    if *show_icons {
+                        let icons = ICONS.load();
+                        if let Some(icon) = icons.kind().get(item.symbol.kind.as_str()) {
+                            return Line::from(vec![Span::from(icon), Span::raw(label)]).into();
+                        }
+                    }
+                    label.into()
                 }),
                 // Some symbols in the document symbol picker may have a URI that isn't
                 // the current file. It should be rare though, so we concatenate that
@@ -434,7 +477,7 @@ pub fn symbol_picker(cx: &mut Context) {
                 columns,
                 1, // name column
                 symbols,
-                (),
+                show_icons,
                 move |cx, item, action| {
                     jump_to_location(cx.editor, &item.location, action);
                 },
@@ -530,8 +573,15 @@ pub fn workspace_symbol_picker(cx: &mut Context) {
         .boxed()
     };
     let columns = [
-        ui::PickerColumn::new("kind", |item: &SymbolInformationItem, _| {
-            display_symbol_kind(item.symbol.kind).into()
+        ui::PickerColumn::new("kind", |item: &SymbolInformationItem, show_icons: &bool| {
+            let label = display_symbol_kind(item.symbol.kind);
+            if *show_icons {
+                let icons = ICONS.load();
+                if let Some(icon) = icons.kind().get(item.symbol.kind.as_str()) {
+                    return Line::from(vec![Span::from(icon), Span::raw(label)]).into();
+                }
+            }
+            label.into()
         }),
         ui::PickerColumn::new("name", |item: &SymbolInformationItem, _| {
             item.symbol.name.as_str().into()
@@ -560,7 +610,7 @@ pub fn workspace_symbol_picker(cx: &mut Context) {
         columns,
         1, // name column
         [],
-        (),
+        cx.editor.config().icons,
         move |cx, item, action| {
             jump_to_location(cx.editor, &item.location, action);
         },

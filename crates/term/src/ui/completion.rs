@@ -18,6 +18,7 @@ use tui::{buffer::Buffer as Surface, text::Span};
 use view::{
     editor::CompleteAction,
     handlers::lsp::SignatureHelpInvoked,
+    icons::ICONS,
     theme::{Color, Modifier, Style},
     ViewId,
 };
@@ -25,10 +26,16 @@ use view::{graphics::Rect, Document, Editor};
 
 use std::cmp::Reverse;
 
-impl menu::Item for CompletionItem {
-    type Data = Style;
+#[derive(Clone, Copy)]
+pub struct CompletionData {
+    directory_style: Style,
+    icons: bool,
+}
 
-    fn format(&self, dir_style: &Self::Data) -> menu::Row<'_> {
+impl menu::Item for CompletionItem {
+    type Data = CompletionData;
+
+    fn format(&self, data: &Self::Data) -> menu::Row<'_> {
         let deprecated = match self {
             CompletionItem::Lsp(LspCompletionItem { item, .. }) => {
                 item.deprecated.unwrap_or_default()
@@ -101,16 +108,28 @@ impl menu::Item for CompletionItem {
             CompletionItem::Other(core::CompletionItem { kind, .. }) => kind.as_ref().into(),
         };
 
+        let kind_name = kind.spans.first().map_or("", |span| span.content.as_ref());
         let label = Span::styled(
             label,
             if deprecated {
                 Style::default().add_modifier(Modifier::CROSSED_OUT)
-            } else if kind.spans[0].content == "folder" {
-                *dir_style
+            } else if kind_name == "folder" {
+                data.directory_style
             } else {
                 Style::default()
             },
         );
+
+        if data.icons && kind_name != "color" {
+            let icons = ICONS.load();
+            if let Some(icon) = icons.kind().get(kind_name) {
+                return menu::Row::new([
+                    menu::Cell::from(Span::from(icon.with_padding(0, 1))),
+                    menu::Cell::from(label),
+                    menu::Cell::from(kind),
+                ]);
+            }
+        }
 
         menu::Row::new([menu::Cell::from(label), menu::Cell::from(kind)])
     }
@@ -133,10 +152,13 @@ impl Completion {
         let preview_completion_insert = editor.config().preview_completion_insert;
         let replace_mode = editor.config().completion_replace;
 
-        let dir_style = editor.theme.get("ui.text.directory");
+        let data = CompletionData {
+            directory_style: editor.theme.get("ui.text.directory"),
+            icons: editor.config().icons,
+        };
 
         // Then create the menu
-        let menu = Menu::new(items, dir_style, move |editor: &mut Editor, item, event| {
+        let menu = Menu::new(items, data, move |editor: &mut Editor, item, event| {
             let (view, doc) = current!(editor);
 
             macro_rules! language_server {

@@ -32,7 +32,7 @@ use std::{
     borrow::Cow,
     collections::HashMap,
     io::Read,
-    path::Path,
+    path::{Path, PathBuf},
     sync::{
         atomic::{self, AtomicUsize},
         Arc,
@@ -47,6 +47,7 @@ use editor_core::{
 use view::{
     editor::Action,
     graphics::{CursorKind, Margin, Modifier, Rect},
+    icons::ICONS,
     view::ViewPosition,
     Document, DocumentId, Editor,
 };
@@ -84,7 +85,7 @@ pub type FileLocation<'a> = (PathOrId<'a>, Option<(usize, usize)>);
 
 pub enum CachedPreview {
     Document(Box<Document>),
-    Directory(Vec<(String, bool)>),
+    Directory(Vec<(PathBuf, bool)>),
     Binary,
     LargeFile,
     NotFound,
@@ -106,7 +107,7 @@ impl Preview<'_, '_> {
         }
     }
 
-    fn dir_content(&self) -> Option<&Vec<(String, bool)>> {
+    fn dir_content(&self) -> Option<&Vec<(PathBuf, bool)>> {
         match self {
             Preview::Cached(CachedPreview::Directory(dir_content)) => Some(dir_content),
             _ => None,
@@ -610,22 +611,7 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
                     .and_then(|metadata| {
                         if metadata.is_dir() {
                             let files = super::directory_content(&path, editor)?;
-                            let file_names: Vec<_> = files
-                                .iter()
-                                .filter_map(|(file_path, is_dir)| {
-                                    let name = file_path
-                                        .strip_prefix(&path)
-                                        .map(|p| Some(p.as_os_str()))
-                                        .unwrap_or_else(|_| file_path.file_name())?
-                                        .to_string_lossy();
-                                    if *is_dir {
-                                        Some((format!("{}/", name), true))
-                                    } else {
-                                        Some((name.into_owned(), false))
-                                    }
-                                })
-                                .collect();
-                            Ok(CachedPreview::Directory(file_names))
+                            Ok(CachedPreview::Directory(files))
                         } else if metadata.is_file() {
                             if metadata.len() > MAX_FILE_SIZE_FOR_PREVIEW {
                                 return Ok(CachedPreview::LargeFile);
@@ -903,13 +889,54 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
                         for (i, (path, is_dir)) in
                             dir_content.iter().take(inner.height as usize).enumerate()
                         {
-                            let style = if *is_dir { directory } else { text };
+                            let name = path
+                                .file_name()
+                                .map_or_else(|| Cow::Borrowed(".."), |name| name.to_string_lossy());
+
+                            if cx.editor.config().icons {
+                                let icons = ICONS.load();
+                                let icon = if *is_dir {
+                                    icons.fs().directory().map(|directory_icons| {
+                                        directory_icons.get_with_style_or_default(
+                                            &name,
+                                            path.file_name().is_none(),
+                                            &cx.editor.theme,
+                                            directory,
+                                        )
+                                    })
+                                } else {
+                                    icons.fs().file().map(|file_icons| {
+                                        file_icons.get_with_style_or_default(path, &cx.editor.theme)
+                                    })
+                                };
+
+                                if let Some(icon) = icon {
+                                    surface.set_stringn(
+                                        inner.x,
+                                        inner.y + i as u16,
+                                        icon.glyph(),
+                                        inner.width as usize,
+                                        icon.style(),
+                                    );
+                                    let suffix = if *is_dir { "/" } else { "" };
+                                    surface.set_stringn(
+                                        inner.x + icon.width(),
+                                        inner.y + i as u16,
+                                        format!("{name}{suffix}"),
+                                        inner.width.saturating_sub(icon.width()) as usize,
+                                        if *is_dir { directory } else { text },
+                                    );
+                                    continue;
+                                }
+                            }
+
+                            let suffix = if *is_dir { "/" } else { "" };
                             surface.set_stringn(
                                 inner.x,
                                 inner.y + i as u16,
-                                path,
+                                format!("{name}{suffix}"),
                                 inner.width as usize,
-                                style,
+                                if *is_dir { directory } else { text },
                             );
                         }
                         return;

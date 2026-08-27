@@ -10,7 +10,7 @@ use view::annotations::diagnostics::{
 };
 
 use view::theme::Style;
-use view::{Document, Theme};
+use view::{icons::ICONS, Document, Theme};
 
 use crate::ui::document::{LinePos, TextRenderer};
 use crate::ui::text_decorations::Decoration;
@@ -47,6 +47,7 @@ pub struct InlineDiagnostics<'a> {
     state: InlineDiagnosticAccumulator<'a>,
     eol_diagnostics: DiagnosticFilter,
     styles: Styles,
+    icons: bool,
 }
 
 impl<'a> InlineDiagnostics<'a> {
@@ -56,11 +57,13 @@ impl<'a> InlineDiagnostics<'a> {
         cursor: usize,
         config: InlineDiagnosticsConfig,
         eol_diagnostics: DiagnosticFilter,
+        icons: bool,
     ) -> Self {
         InlineDiagnostics {
             state: InlineDiagnosticAccumulator::new(cursor, doc, config),
             styles: Styles::new(theme),
             eol_diagnostics,
+            icons,
         }
     }
 }
@@ -79,6 +82,7 @@ struct Renderer<'a, 'b> {
     row: u16,
     config: &'a InlineDiagnosticsConfig,
     styles: &'a Styles,
+    icons: bool,
 }
 
 impl Renderer<'_, '_> {
@@ -101,6 +105,29 @@ impl Renderer<'_, '_> {
         let start_col = (col - self.renderer.offset.col) as u16;
         let mut end_col = start_col;
         let mut draw_col = (col + 1) as u16;
+
+        if self.icons {
+            let icons = ICONS.load();
+            let icon = match diag.severity() {
+                Severity::Hint => icons.diagnostic().hint(),
+                Severity::Info => icons.diagnostic().info(),
+                Severity::Warning => icons.diagnostic().warning(),
+                Severity::Error => icons.diagnostic().error(),
+            };
+            if !self
+                .renderer
+                .column_in_bounds(draw_col as usize, icon.width() as usize)
+            {
+                return 0;
+            }
+            self.renderer.set_string(
+                self.renderer.viewport.x + draw_col,
+                row,
+                icon.glyph().as_str(),
+                style,
+            );
+            draw_col += icon.width();
+        }
 
         for line in diag.message.lines() {
             if !self.renderer.column_in_bounds(draw_col as usize, 1) {
@@ -277,6 +304,7 @@ impl Decoration for InlineDiagnostics<'_> {
                 row: pos.visual_line,
                 config: &self.state.config,
                 styles: &self.styles,
+                icons: self.icons,
             };
             col_off = renderer.draw_eol_diagnostic(eol_diagnostic, pos.visual_line, virt_off.col);
         }
@@ -288,6 +316,7 @@ impl Decoration for InlineDiagnostics<'_> {
             row: pos.visual_line + virt_off.row as u16,
             config: &self.state.config,
             styles: &self.styles,
+            icons: self.icons,
         };
         renderer.draw_multi_diagnostics(&mut self.state.stack);
         renderer.draw_diagnostics(&mut self.state.stack);

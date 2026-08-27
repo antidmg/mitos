@@ -5,6 +5,7 @@ use view::document::DEFAULT_LANGUAGE_NAME;
 use view::{
     document::{Mode, SCRATCH_BUFFER_NAME},
     graphics::Rect,
+    icons::ICONS,
     theme::Style,
     Document, Editor, View,
 };
@@ -233,24 +234,62 @@ where
     for sev in &context.editor.config().statusline.diagnostics {
         match sev {
             Severity::Hint if hints > 0 => {
-                write(context, Span::styled("●", context.editor.theme.get("hint")));
+                let glyph = context
+                    .editor
+                    .config()
+                    .icons
+                    .then(|| ICONS.load().diagnostic().hint().to_string());
+                write(
+                    context,
+                    Span::styled(
+                        glyph.unwrap_or_else(|| "●".to_string()),
+                        context.editor.theme.get("hint"),
+                    ),
+                );
                 write(context, format!(" {} ", hints).into());
             }
             Severity::Info if info > 0 => {
-                write(context, Span::styled("●", context.editor.theme.get("info")));
+                let glyph = context
+                    .editor
+                    .config()
+                    .icons
+                    .then(|| ICONS.load().diagnostic().info().to_string());
+                write(
+                    context,
+                    Span::styled(
+                        glyph.unwrap_or_else(|| "●".to_string()),
+                        context.editor.theme.get("info"),
+                    ),
+                );
                 write(context, format!(" {} ", info).into());
             }
             Severity::Warning if warnings > 0 => {
+                let glyph = context
+                    .editor
+                    .config()
+                    .icons
+                    .then(|| ICONS.load().diagnostic().warning().to_string());
                 write(
                     context,
-                    Span::styled("●", context.editor.theme.get("warning")),
+                    Span::styled(
+                        glyph.unwrap_or_else(|| "●".to_string()),
+                        context.editor.theme.get("warning"),
+                    ),
                 );
                 write(context, format!(" {} ", warnings).into());
             }
             Severity::Error if errors > 0 => {
+                let glyph = context
+                    .editor
+                    .config()
+                    .icons
+                    .then(|| ICONS.load().diagnostic().error().to_string());
                 write(
                     context,
-                    Span::styled("●", context.editor.theme.get("error")),
+                    Span::styled(
+                        glyph.unwrap_or_else(|| "●".to_string()),
+                        context.editor.theme.get("error"),
+                    ),
                 );
                 write(context, format!(" {} ", errors).into());
             }
@@ -300,24 +339,62 @@ where
     for sev in sevs_to_show {
         match sev {
             Severity::Hint if hints > 0 => {
-                write(context, Span::styled("●", context.editor.theme.get("hint")));
+                let glyph = context
+                    .editor
+                    .config()
+                    .icons
+                    .then(|| ICONS.load().diagnostic().hint().to_string());
+                write(
+                    context,
+                    Span::styled(
+                        glyph.unwrap_or_else(|| "●".to_string()),
+                        context.editor.theme.get("hint"),
+                    ),
+                );
                 write(context, format!(" {} ", hints).into());
             }
             Severity::Info if info > 0 => {
-                write(context, Span::styled("●", context.editor.theme.get("info")));
+                let glyph = context
+                    .editor
+                    .config()
+                    .icons
+                    .then(|| ICONS.load().diagnostic().info().to_string());
+                write(
+                    context,
+                    Span::styled(
+                        glyph.unwrap_or_else(|| "●".to_string()),
+                        context.editor.theme.get("info"),
+                    ),
+                );
                 write(context, format!(" {} ", info).into());
             }
             Severity::Warning if warnings > 0 => {
+                let glyph = context
+                    .editor
+                    .config()
+                    .icons
+                    .then(|| ICONS.load().diagnostic().warning().to_string());
                 write(
                     context,
-                    Span::styled("●", context.editor.theme.get("warning")),
+                    Span::styled(
+                        glyph.unwrap_or_else(|| "●".to_string()),
+                        context.editor.theme.get("warning"),
+                    ),
                 );
                 write(context, format!(" {} ", warnings).into());
             }
             Severity::Error if errors > 0 => {
+                let glyph = context
+                    .editor
+                    .config()
+                    .icons
+                    .then(|| ICONS.load().diagnostic().error().to_string());
                 write(
                     context,
-                    Span::styled("●", context.editor.theme.get("error")),
+                    Span::styled(
+                        glyph.unwrap_or_else(|| "●".to_string()),
+                        context.editor.theme.get("error"),
+                    ),
                 );
                 write(context, format!(" {} ", errors).into());
             }
@@ -438,6 +515,17 @@ where
 {
     let file_type = context.doc.language_name().unwrap_or(DEFAULT_LANGUAGE_NAME);
 
+    if context.editor.config().icons {
+        if let (Some(file), Some(path)) = (ICONS.load().fs().file(), context.doc.path()) {
+            write(
+                context,
+                Span::from(file.get_with_style_or_default(path, &context.editor.theme)),
+            );
+            write(context, format!("{file_type} ").into());
+            return;
+        }
+    }
+
     write(context, format!(" {} ", file_type).into());
 }
 
@@ -540,6 +628,14 @@ where
         .version_control_head()
         .unwrap_or_default()
         .to_string();
+
+    if context.editor.config().icons && !head.is_empty() {
+        if let Some(icon) = ICONS.load().vcs().branch() {
+            write(context, Span::from(icon));
+            write(context, format!("{head} ").into());
+            return;
+        }
+    }
 
     write(context, head.into());
 }

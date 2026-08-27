@@ -29,12 +29,12 @@ pub use select::Select;
 pub use spinner::{ProgressSpinners, Spinner};
 use stdx::rope;
 pub use text::Text;
-use view::theme::Style;
+use view::{icons::ICONS, Theme};
 
 use tui::text::{Line, Span};
 use view::Editor;
 
-use std::path::Path;
+use std::{borrow::Cow, path::Path, sync::Arc};
 use std::{error::Error, path::PathBuf};
 
 struct Utf8PathBuf {
@@ -213,7 +213,8 @@ fn get_excluded_types() -> ignore::types::Types {
 #[derive(Debug)]
 pub struct FilePickerData {
     root: PathBuf,
-    directory_style: Style,
+    theme: Arc<Theme>,
+    icons: bool,
 }
 type FilePicker = Picker<PathBuf, FilePickerData>;
 
@@ -224,7 +225,8 @@ pub fn file_picker(editor: &Editor, root: PathBuf) -> FilePicker {
     let config = editor.config();
     let data = FilePickerData {
         root: root.clone(),
-        directory_style: editor.theme.get("ui.text.directory"),
+        theme: Arc::new(editor.theme.clone()),
+        icons: config.icons,
     };
 
     let now = Instant::now();
@@ -261,12 +263,22 @@ pub fn file_picker(editor: &Editor, root: PathBuf) -> FilePicker {
     let columns = [PickerColumn::new(
         "path",
         |item: &PathBuf, data: &FilePickerData| {
+            let theme = data.theme.as_ref();
             let path = item.strip_prefix(&data.root).unwrap_or(item);
-            let mut spans = Vec::with_capacity(3);
+            let mut spans = Vec::with_capacity(4);
+
+            if data.icons {
+                let icons = ICONS.load();
+                if let Some(file) = icons.fs().file() {
+                    spans.push(Span::from(file.get_with_style_or_default(item, theme)));
+                }
+            }
+
             if let Some(dirs) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
+                let directory_style = theme.get("ui.text.directory");
                 spans.extend([
-                    Span::styled(dirs.to_string_lossy(), data.directory_style),
-                    Span::styled(std::path::MAIN_SEPARATOR_STR, data.directory_style),
+                    Span::styled(dirs.to_string_lossy(), directory_style),
+                    Span::styled(std::path::MAIN_SEPARATOR_STR, directory_style),
                 ]);
             }
             let filename = path
@@ -313,20 +325,45 @@ pub fn file_picker(editor: &Editor, root: PathBuf) -> FilePicker {
     picker
 }
 
-type FileExplorer = Picker<(PathBuf, bool), (PathBuf, Style)>;
+type FileExplorer = Picker<(PathBuf, bool), (PathBuf, Arc<Theme>, bool)>;
 
 pub fn file_explorer(root: PathBuf, editor: &Editor) -> Result<FileExplorer, std::io::Error> {
-    let directory_style = editor.theme.get("ui.text.directory");
     let directory_content = directory_content(&root, editor)?;
 
     let columns = [PickerColumn::new(
         "path",
-        |(path, is_dir): &(PathBuf, bool), (root, directory_style): &(PathBuf, Style)| {
-            let name = path.strip_prefix(root).unwrap_or(path).to_string_lossy();
+        |(path, is_dir): &(PathBuf, bool),
+         (_root, theme, show_icons): &(PathBuf, Arc<Theme>, bool)| {
+            let name = path.file_name();
+            let is_open = name.is_none() && *is_dir;
+            let name = name.map_or_else(|| Cow::Borrowed(".."), |name| name.to_string_lossy());
+            let directory_style = theme.get("ui.text.directory");
+
             if *is_dir {
-                Span::styled(format!("{}/", name), *directory_style).into()
+                let mut spans = Vec::with_capacity(2);
+                if *show_icons {
+                    let icons = ICONS.load();
+                    if let Some(directory) = icons.fs().directory() {
+                        spans.push(Span::from(directory.get_with_style_or_default(
+                            &name,
+                            is_open,
+                            theme,
+                            directory_style,
+                        )));
+                    }
+                }
+                spans.push(Span::styled(format!("{name}/"), directory_style));
+                Line::from(spans).into()
             } else {
-                name.into()
+                let mut spans = Vec::with_capacity(2);
+                if *show_icons {
+                    let icons = ICONS.load();
+                    if let Some(file) = icons.fs().file() {
+                        spans.push(Span::from(file.get_with_style_or_default(path, theme)));
+                    }
+                }
+                spans.push(Span::raw(name.into_owned()));
+                Line::from(spans).into()
             }
         },
     )];
@@ -334,7 +371,7 @@ pub fn file_explorer(root: PathBuf, editor: &Editor) -> Result<FileExplorer, std
         columns,
         0,
         directory_content,
-        (root, directory_style),
+        (root, Arc::new(editor.theme.clone()), editor.config().icons),
         move |cx, (path, is_dir): &(PathBuf, bool), action| {
             if *is_dir {
                 let new_root = stdx::path::normalize(path);

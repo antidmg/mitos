@@ -28,6 +28,7 @@ use view::{
     document::{Mode, SCRATCH_BUFFER_NAME},
     editor::{CompleteAction, CursorShapeConfig},
     graphics::{Color, CursorKind, Modifier, Rect, Style},
+    icons::ICONS,
     input::{KeyEvent, MouseButton, MouseEvent, MouseEventKind},
     keyboard::{KeyCode, KeyModifiers},
     Document, Editor, Theme, View,
@@ -204,6 +205,7 @@ impl EditorView {
             primary_cursor,
             inline_diagnostic_config,
             config.end_of_line_diagnostics,
+            config.icons,
         ));
         render_document(
             surface,
@@ -698,7 +700,35 @@ impl EditorView {
                 bufferline_inactive
             };
 
-            let text = format!(" {}{} ", fname, if doc.is_modified() { "[+]" } else { "" });
+            let show_file_icon = editor.config().icons && doc.path().is_some();
+
+            if show_file_icon {
+                if let Some(path) = doc.path() {
+                    let icons = ICONS.load();
+                    if let Some(file) = icons.fs().file() {
+                        let icon =
+                            file.get_with_active_style_or_default(path, &editor.theme, style);
+                        let used_width = viewport.x.saturating_sub(x);
+                        let rem_width = surface.area.width.saturating_sub(used_width);
+                        x = surface
+                            .set_stringn(
+                                x,
+                                viewport.y,
+                                icon.glyph(),
+                                rem_width as usize,
+                                icon.style(),
+                            )
+                            .0;
+                    }
+                }
+            }
+
+            let text = format!(
+                "{}{}{} ",
+                if show_file_icon { "" } else { " " },
+                fname,
+                if doc.is_modified() { "[+]" } else { "" }
+            );
             let used_width = viewport.x.saturating_sub(x);
             let rem_width = surface.area.width.saturating_sub(used_width);
 

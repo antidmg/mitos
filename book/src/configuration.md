@@ -15,6 +15,8 @@ theme = "onedark"
 [editor]
 line-number = "relative"
 mouse = false
+# Icons require a Nerd Font and are disabled by default.
+icons = true
 
 [editor.cursor-shape]
 insert = "bar"

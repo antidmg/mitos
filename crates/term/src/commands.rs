@@ -48,6 +48,7 @@ use view::{
     document::{FormatterError, Mode, SCRATCH_BUFFER_NAME},
     editor::{Action, Motion},
     expansion,
+    icons::ICONS,
     info::Info,
     input::KeyEvent,
     keyboard::KeyCode,
@@ -2591,7 +2592,7 @@ fn global_search(cx: &mut Context) {
     let config = GlobalSearchConfig {
         smart_case: config.search.smart_case,
         file_picker_config: config.file_picker.clone(),
-        style: PathStyleConfig::new(&cx.editor.theme),
+        style: PathStyleConfig::new(cx.editor),
     };
 
     let columns = [
@@ -3267,14 +3268,19 @@ fn file_explorer_in_current_directory(cx: &mut Context) {
 }
 
 struct PathStyleConfig {
+    theme: std::sync::Arc<view::Theme>,
+    icons: bool,
     directory_style: Style,
     number_style: Style,
     colon_style: Style,
 }
 
 impl PathStyleConfig {
-    fn new(theme: &view::Theme) -> Self {
+    fn new(editor: &Editor) -> Self {
+        let theme = &editor.theme;
         Self {
+            theme: std::sync::Arc::new(theme.clone()),
+            icons: editor.config().icons,
             directory_style: theme.get("ui.text.directory"),
             number_style: theme.get("constant.numeric.integer"),
             colon_style: theme.get("punctuation"),
@@ -3284,6 +3290,14 @@ impl PathStyleConfig {
     fn stylize<'a>(&self, path: Option<&'a Path>, line: Option<usize>) -> Cell<'a> {
         let mut spans = Vec::new();
         if let Some(path) = path {
+            if self.icons {
+                let icons = ICONS.load();
+                if let Some(file) = icons.fs().file() {
+                    spans.push(Span::from(
+                        file.get_with_style_or_default(path, self.theme.as_ref()),
+                    ));
+                }
+            }
             let directories = path
                 .parent()
                 .filter(|p| !p.as_os_str().is_empty())
@@ -3374,7 +3388,7 @@ fn buffer_picker(cx: &mut Context) {
         columns,
         2,
         items,
-        PathStyleConfig::new(&cx.editor.theme),
+        PathStyleConfig::new(cx.editor),
         |cx, meta, action| {
             cx.editor.switch(meta.id, action);
         },
@@ -3460,7 +3474,7 @@ fn jumplist_picker(cx: &mut Context) {
                 .rev()
                 .map(|(doc_id, selection)| new_meta(view, *doc_id, selection.clone()))
         }),
-        PathStyleConfig::new(&cx.editor.theme),
+        PathStyleConfig::new(cx.editor),
         |cx, meta, action| {
             cx.editor.switch(meta.id, action);
             let config = cx.editor.config();
@@ -3482,6 +3496,7 @@ fn jumplist_picker(cx: &mut Context) {
 fn changed_file_picker(cx: &mut Context) {
     pub struct FileChangeData {
         cwd: PathBuf,
+        icons: bool,
         style_untracked: Style,
         style_modified: Style,
         style_conflict: Style,
@@ -3504,14 +3519,45 @@ fn changed_file_picker(cx: &mut Context) {
 
     let columns = [
         PickerColumn::new("change", |change: &FileChange, data: &FileChangeData| {
-            match change {
-                FileChange::Untracked { .. } => Span::styled("+ untracked", data.style_untracked),
-                FileChange::Modified { .. } => Span::styled("~ modified", data.style_modified),
-                FileChange::Conflict { .. } => Span::styled("x conflict", data.style_conflict),
-                FileChange::Deleted { .. } => Span::styled("- deleted", data.style_deleted),
-                FileChange::Renamed { .. } => Span::styled("> renamed", data.style_renamed),
-            }
-            .into()
+            let icons = ICONS.load();
+            let (plain, icon, label, style) = match change {
+                FileChange::Untracked { .. } => (
+                    "+ untracked",
+                    icons.vcs().added(),
+                    "untracked",
+                    data.style_untracked,
+                ),
+                FileChange::Modified { .. } => (
+                    "~ modified",
+                    icons.vcs().modified(),
+                    "modified",
+                    data.style_modified,
+                ),
+                FileChange::Conflict { .. } => (
+                    "x conflict",
+                    icons.vcs().conflict(),
+                    "conflict",
+                    data.style_conflict,
+                ),
+                FileChange::Deleted { .. } => (
+                    "- deleted",
+                    icons.vcs().removed(),
+                    "deleted",
+                    data.style_deleted,
+                ),
+                FileChange::Renamed { .. } => (
+                    "> renamed",
+                    icons.vcs().renamed(),
+                    "renamed",
+                    data.style_renamed,
+                ),
+            };
+            let content = if data.icons {
+                icon.map_or_else(|| label.to_string(), |icon| format!("{icon}{label}"))
+            } else {
+                plain.to_string()
+            };
+            Span::styled(content, style).into()
         }),
         PickerColumn::new("path", |change: &FileChange, data: &FileChangeData| {
             let display_path = |path: &PathBuf| {
@@ -3539,6 +3585,7 @@ fn changed_file_picker(cx: &mut Context) {
         [],
         FileChangeData {
             cwd: cwd.clone(),
+            icons: cx.editor.config().icons,
             style_untracked: added,
             style_modified: modified,
             style_conflict: conflict,

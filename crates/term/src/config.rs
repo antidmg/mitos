@@ -209,4 +209,10 @@ mod tests {
         let default_keys = Config::default().keys;
         assert_eq!(default_keys, keymap::default());
     }
+
+    #[test]
+    fn icons_are_controlled_by_one_editor_option() {
+        assert!(!Config::load_test("").editor.icons);
+        assert!(Config::load_test("[editor]\nicons = true").editor.icons);
+    }
 }

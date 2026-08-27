@@ -5,6 +5,7 @@ use editor_core::syntax::config::LanguageServerFeature;
 use crate::{
     editor::GutterType,
     graphics::{Style, UnderlineStyle},
+    icons::ICONS,
     Document, Editor, Theme, View,
 };
 
@@ -48,7 +49,7 @@ impl GutterType {
 }
 
 pub fn diagnostic<'doc>(
-    _editor: &'doc Editor,
+    editor: &'doc Editor,
     doc: &'doc Document,
     _view: &View,
     theme: &Theme,
@@ -77,7 +78,26 @@ pub fn diagnostic<'doc>(
                         })
                 });
             diagnostics_on_line.max_by_key(|d| d.severity).map(|d| {
-                write!(out, "●").ok();
+                let icon = if editor.config().icons {
+                    let icons = ICONS.load();
+                    Some(match d.severity {
+                        Some(Severity::Error) => icons.diagnostic().error(),
+                        Some(Severity::Warning) | None => icons.diagnostic().warning(),
+                        Some(Severity::Info) => icons.diagnostic().info(),
+                        Some(Severity::Hint) => icons.diagnostic().hint(),
+                    })
+                } else {
+                    None
+                };
+                write!(
+                    out,
+                    "{}",
+                    icon.map_or_else(
+                        || "●".to_string(),
+                        |icon| icon.with_no_padding().to_string()
+                    )
+                )
+                .ok();
                 match d.severity {
                     Some(Severity::Error) => error,
                     Some(Severity::Warning) | None => warning,
