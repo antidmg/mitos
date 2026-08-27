@@ -344,22 +344,14 @@ impl<T: Item + 'static> Component for Menu<T> {
 
         let scroll = self.scroll;
 
-        let options: Vec<_> = self
-            .matches
-            .iter()
-            .map(|(index, _score)| {
-                // (index, self.options.get(*index).unwrap()) // get_unchecked
-                &self.options[*index as usize] // get_unchecked
-            })
-            .collect();
-
-        let len = options.len();
+        let len = self.matches.len();
 
         let win_height = area.height as usize;
 
-        let rows = options
+        let rows = self
+            .matches
             .iter()
-            .map(|option| option.format(&self.editor_data));
+            .map(|(index, _score)| self.options[*index as usize].format(&self.editor_data));
         let table = Table::new(rows)
             .style(style)
             .highlight_style(selected)

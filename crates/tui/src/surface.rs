@@ -135,13 +135,6 @@ impl BufferExt for Buffer {
         let truncated = content_width > available;
         let mut x_offset = x;
 
-        let graphemes: Vec<_> = string.grapheme_indices(true).collect();
-        let iter: Box<dyn Iterator<Item = &(usize, &str)> + '_> = if truncate_start {
-            Box::new(graphemes.iter().rev())
-        } else {
-            Box::new(graphemes.iter())
-        };
-
         if truncate_start {
             let min_x = if truncated && ellipsis {
                 self[(x, y)].set_symbol("…");
@@ -155,7 +148,7 @@ impl BufferExt for Buffer {
                 content_width as u16
             });
             let mut cursor = end;
-            for (byte_offset, grapheme) in iter {
+            for (byte_offset, grapheme) in string.grapheme_indices(true).rev() {
                 let grapheme_width = grapheme.width() as u16;
                 let Some(start) = cursor.checked_sub(grapheme_width) else {
                     break;
@@ -165,7 +158,7 @@ impl BufferExt for Buffer {
                 }
                 self[(start, y)]
                     .set_symbol(grapheme)
-                    .set_style(style(*byte_offset));
+                    .set_style(style(byte_offset));
                 for column in start + 1..cursor {
                     self[(column, y)].reset();
                 }
@@ -173,14 +166,14 @@ impl BufferExt for Buffer {
                 x_offset += grapheme_width;
             }
         } else {
-            for (byte_offset, grapheme) in iter {
+            for (byte_offset, grapheme) in string.grapheme_indices(true) {
                 let grapheme_width = grapheme.width() as u16;
                 if x_offset.saturating_sub(x) as usize + grapheme_width as usize > available {
                     break;
                 }
                 self[(x_offset, y)]
                     .set_symbol(grapheme)
-                    .set_style(style(*byte_offset));
+                    .set_style(style(byte_offset));
                 for column in x_offset + 1..x_offset + grapheme_width {
                     self[(column, y)].reset();
                 }
