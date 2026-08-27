@@ -2,6 +2,7 @@ mod completion;
 mod document;
 pub(crate) mod editor;
 mod info;
+mod layout;
 pub mod lsp;
 mod markdown;
 pub mod menu;
@@ -167,9 +168,11 @@ pub fn raw_regex_prompt(
                                         move |_editor: &mut Editor, compositor: &mut Compositor| {
                                             let contents = Text::new(format!("{}", err));
                                             let size = compositor.size();
+                                            let editor_area =
+                                                layout::ApplicationLayout::new(size, false).editor;
                                             let popup = Popup::new("invalid-regex", contents)
                                                 .position(Some(editor_core::Position::new(
-                                                    size.height as usize - 2, // 2 = statusline + commandline
+                                                    editor_area.bottom().saturating_sub(1) as usize,
                                                     0,
                                                 )))
                                                 .auto_close(true);

@@ -6,6 +6,7 @@ use view::{
 };
 
 use crate::compositor::{Component, Context, Event, EventResult};
+use crate::ui::layout::ApplicationLayout;
 
 pub const FULL_OVERLAID_MAX_WIDTH: u16 = 200;
 
@@ -27,7 +28,8 @@ pub fn overlaid<T>(content: T) -> Overlay<T> {
             } else {
                 90
             };
-            clip_rect_relative(rect.clip_bottom(2), percentage, percentage)
+            let content = ApplicationLayout::new(rect, false).editor;
+            clip_rect_relative(content, percentage, percentage)
         }),
     }
 }
@@ -83,4 +85,3 @@ impl<T: Component + 'static> Component for Overlay<T> {
         self.content.id()
     }
 }
-use view::graphics::RectExt as _;

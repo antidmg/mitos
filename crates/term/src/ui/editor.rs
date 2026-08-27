@@ -7,6 +7,7 @@ use crate::{
     keymap::{KeymapResult, Keymaps},
     ui::{
         document::{render_document, LinePos, TextRenderer},
+        layout::ApplicationLayout,
         statusline,
         text_decorations::{self, Decoration, DecorationManager, InlineDiagnostics},
         Completion, ProgressSpinners,
@@ -79,20 +80,6 @@ impl EditorView {
 
     pub fn spinners_mut(&mut self) -> &mut ProgressSpinners {
         &mut self.spinners
-    }
-
-    fn layout_areas(area: Rect, use_bufferline: bool) -> (Rect, Rect) {
-        let [mut editor_area, statusline_area, _commandline_area] = Layout::vertical([
-            Constraint::Min(0),
-            Constraint::Length(1),
-            Constraint::Length(1),
-        ])
-        .areas(area);
-        if use_bufferline {
-            editor_area = editor_area.clip_top(1);
-        }
-
-        (editor_area, statusline_area)
     }
 
     fn render_welcome(theme: &Theme, view: &View, surface: &mut Surface, colorful: bool) {
@@ -1835,13 +1822,13 @@ impl Component for EditorView {
         };
 
         // Keep one command line and one global status line at the bottom of the editor.
-        let (editor_area, statusline_area) = Self::layout_areas(area, use_bufferline);
+        let layout = ApplicationLayout::new(area, use_bufferline);
 
         // if the terminal size suddenly changed, we need to trigger a resize
-        cx.editor.resize(editor_area);
+        cx.editor.resize(layout.editor);
 
-        if use_bufferline {
-            Self::render_bufferline(cx.editor, area.with_height(1), surface);
+        if let Some(bufferline) = layout.bufferline {
+            Self::render_bufferline(cx.editor, bufferline, surface);
         }
 
         for (view, is_focused) in cx.editor.tree.views() {
@@ -1849,15 +1836,15 @@ impl Component for EditorView {
             self.render_view(cx.editor, doc, view, area, surface, is_focused);
         }
 
-        if statusline_area.height > 0 {
+        if layout.statusline.height > 0 {
             let (view, doc) = current_ref!(cx.editor);
             let mut context = statusline::RenderContext::new(cx.editor, doc, view, &self.spinners);
-            statusline::render(&mut context, statusline_area, surface);
+            statusline::render(&mut context, layout.statusline, surface);
         }
 
         if config.auto_info {
             if let Some(mut info) = cx.editor.autoinfo.take() {
-                info.render(area, surface, cx);
+                info.render(layout.editor, surface, cx);
                 cx.editor.autoinfo = Some(info)
             }
         }
@@ -1876,14 +1863,19 @@ impl Component for EditorView {
             };
 
             surface.set_string(
-                area.x,
-                area.y + area.height.saturating_sub(1),
+                layout.commandline.x,
+                layout.commandline.y,
                 status_msg,
                 style,
             );
         }
 
-        if area.width.saturating_sub(status_msg_width as u16) > key_width {
+        if layout
+            .commandline
+            .width
+            .saturating_sub(status_msg_width as u16)
+            > key_width
+        {
             let mut disp = String::new();
             if let Some(count) = cx.editor.count {
                 disp.push_str(&count.to_string())
@@ -1903,11 +1895,12 @@ impl Component for EditorView {
             let restricted = workspace_trust_indicator_visible(cx.editor);
             let trust_width = if restricted { 3 } else { 0 };
             surface.set_string(
-                area.x
-                    + area
+                layout.commandline.x
+                    + layout
+                        .commandline
                         .width
                         .saturating_sub(key_width + macro_width + trust_width),
-                area.y + area.height.saturating_sub(1),
+                layout.commandline.y,
                 disp.get(disp.len().saturating_sub(key_width as usize)..)
                     .unwrap_or(&disp),
                 style,
@@ -1917,9 +1910,11 @@ impl Component for EditorView {
                     .fg(view::graphics::Color::Yellow)
                     .add_modifier(Modifier::BOLD);
                 surface.set_string(
-                    area.x
-                        .saturating_add(area.width.saturating_sub(3 + macro_width)),
-                    area.y + area.height.saturating_sub(1),
+                    layout
+                        .commandline
+                        .x
+                        .saturating_add(layout.commandline.width.saturating_sub(3 + macro_width)),
+                    layout.commandline.y,
                     "[⚠]",
                     style,
                 );
@@ -1930,8 +1925,8 @@ impl Component for EditorView {
                     .fg(view::graphics::Color::Yellow)
                     .add_modifier(Modifier::BOLD);
                 surface.set_string(
-                    area.x + area.width.saturating_sub(3),
-                    area.y + area.height.saturating_sub(1),
+                    layout.commandline.x + layout.commandline.width.saturating_sub(3),
+                    layout.commandline.y,
                     &disp,
                     style,
                 );
@@ -1970,22 +1965,3 @@ fn canonicalize_key(key: &mut KeyEvent) {
 }
 use tui::buffer::BufferExt as _;
 use view::graphics::RectExt as _;
-
-#[cfg(test)]
-mod tests {
-    use super::EditorView;
-    use view::graphics::Rect;
-
-    #[test]
-    fn layout_reserves_one_global_statusline() {
-        let area = Rect::new(3, 5, 80, 24);
-
-        let (editor, statusline) = EditorView::layout_areas(area, false);
-        assert_eq!(Rect::new(3, 5, 80, 22), editor);
-        assert_eq!(Rect::new(3, 27, 80, 1), statusline);
-
-        let (editor, statusline_with_bufferline) = EditorView::layout_areas(area, true);
-        assert_eq!(Rect::new(3, 6, 80, 21), editor);
-        assert_eq!(statusline, statusline_with_bufferline);
-    }
-}
