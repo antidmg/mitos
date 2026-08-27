@@ -3,14 +3,16 @@ use crate::{
     compositor::{Callback, Component, Context, Event, EventResult},
     ctrl, key,
 };
+use tui::buffer::BufferExt as _;
 use tui::{
     buffer::Buffer as Surface,
-    widgets::{Block, Widget},
+    style::Style as TuiStyle,
+    widgets::{Block, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget},
 };
 
 use editor_core::Position;
 use view::{
-    graphics::{Margin, Rect},
+    graphics::{Margin, Rect, Style},
     input::{MouseEvent, MouseEventKind},
     Editor,
 };
@@ -23,7 +25,38 @@ struct RenderInfo {
     area: Rect,
     child_height: u16,
     render_borders: bool,
-    is_menu: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+enum PopupKind {
+    #[default]
+    Popup,
+    Menu,
+}
+
+fn render_scrollbar(
+    surface: &mut Surface,
+    area: Rect,
+    viewport_height: u16,
+    content_height: u16,
+    scroll: usize,
+    bordered: bool,
+    style: Style,
+) {
+    let thumb = style.fg.unwrap_or(view::theme::Color::Reset);
+    let track = style.bg.unwrap_or(view::theme::Color::Reset);
+    let symbol = if bordered { "▌" } else { "▐" };
+    let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+        .begin_symbol(None)
+        .end_symbol(None)
+        .thumb_symbol(symbol)
+        .thumb_style(TuiStyle::default().fg(thumb.into()))
+        .track_symbol((!bordered).then_some(symbol))
+        .track_style(TuiStyle::default().fg(track.into()));
+    let mut state = ScrollbarState::new(content_height as usize)
+        .position(scroll)
+        .viewport_content_length(viewport_height as usize);
+    scrollbar.render(area, surface, &mut state);
 }
 
 // TODO: share logic with Menu, it's essentially Popup(render_fn), but render fn needs to return
@@ -39,6 +72,7 @@ pub struct Popup<T: Component> {
     ignore_escape_key: bool,
     id: &'static str,
     has_scrollbar: bool,
+    kind: PopupKind,
 }
 
 impl<T: Component> Popup<T> {
@@ -53,6 +87,7 @@ impl<T: Component> Popup<T> {
             ignore_escape_key: false,
             id,
             has_scrollbar: true,
+            kind: PopupKind::default(),
         }
     }
 
@@ -111,6 +146,11 @@ impl<T: Component> Popup<T> {
         self
     }
 
+    pub fn menu_style(mut self) -> Self {
+        self.kind = PopupKind::Menu;
+        self
+    }
+
     pub fn contents(&self) -> &T {
         &self.contents
     }
@@ -134,12 +174,7 @@ impl<T: Component> Popup<T> {
             self.position = Some(position);
         }
 
-        let is_menu = self
-            .contents
-            .type_name()
-            .starts_with("term::ui::menu::Menu");
-
-        let mut render_borders = if is_menu {
+        let mut render_borders = if matches!(self.kind, PopupKind::Menu) {
             editor.menu_border()
         } else {
             editor.popup_border()
@@ -213,7 +248,6 @@ impl<T: Component> Popup<T> {
             area,
             child_height,
             render_borders,
-            is_menu,
         }
     }
 
@@ -319,12 +353,11 @@ impl<T: Component> Component for Popup<T> {
             area,
             child_height,
             render_borders,
-            is_menu,
         } = self.render_info(viewport, cx.editor);
         self.area = area;
 
         // clear area
-        let background = if is_menu {
+        let background = if matches!(self.kind, PopupKind::Menu) {
             // TODO: consistently style menu
             cx.editor
                 .theme
@@ -340,8 +373,6 @@ impl<T: Component> Component for Popup<T> {
             inner = area.inner(Margin::new(1, 1));
             Widget::render(Block::bordered(), area, surface);
         }
-        let border = usize::from(render_borders);
-
         let max_offset = child_height.saturating_sub(inner.height) as usize;
         let half_page_size = (inner.height / 2) as usize;
         let scroll = max_offset.min(self.scroll_half_pages * half_page_size);
@@ -351,36 +382,17 @@ impl<T: Component> Component for Popup<T> {
         cx.scroll = Some(scroll);
         self.contents.render(inner, surface, cx);
 
-        // render scrollbar if contents do not fit
-        if self.has_scrollbar {
-            let win_height = inner.height as usize;
-            let len = child_height as usize;
-            let fits = len <= win_height;
+        if self.has_scrollbar && child_height > inner.height {
             let scroll_style = cx.editor.theme.get("ui.menu.scroll");
-
-            if !fits {
-                let scroll_height = win_height.pow(2).div_ceil(len).min(win_height);
-                let scroll_line = (win_height - scroll_height) * scroll
-                    / std::cmp::max(1, len.saturating_sub(win_height));
-
-                let mut cell;
-                for i in 0..win_height {
-                    cell =
-                        &mut surface[(inner.right() - 1 + border as u16, inner.top() + i as u16)];
-
-                    let half_block = if render_borders { "▌" } else { "▐" };
-
-                    if scroll_line <= i && i < scroll_line + scroll_height {
-                        // Draw scroll thumb
-                        cell.set_symbol(half_block);
-                        cell.set_fg(scroll_style.fg.unwrap_or(view::theme::Color::Reset).into());
-                    } else if !render_borders {
-                        // Draw scroll track
-                        cell.set_symbol(half_block);
-                        cell.set_fg(scroll_style.bg.unwrap_or(view::theme::Color::Reset).into());
-                    }
-                }
-            }
+            render_scrollbar(
+                surface,
+                area,
+                inner.height,
+                child_height,
+                scroll,
+                render_borders,
+                scroll_style,
+            );
         }
     }
 
@@ -388,4 +400,48 @@ impl<T: Component> Component for Popup<T> {
         Some(self.id)
     }
 }
-use tui::buffer::BufferExt as _;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scrollbar_preserves_a_border_track() {
+        let area = Rect::new(0, 0, 5, 4);
+        let mut surface = Surface::with_lines(["....|", "....|", "....|", "....|"]);
+
+        render_scrollbar(
+            &mut surface,
+            area,
+            area.height,
+            8,
+            0,
+            true,
+            Style::default(),
+        );
+
+        let edge: Vec<_> = (0..area.height)
+            .map(|y| surface[(area.right() - 1, y)].symbol())
+            .collect();
+        assert!(edge.contains(&"▌"));
+        assert!(edge.contains(&"|"));
+    }
+
+    #[test]
+    fn borderless_scrollbar_draws_its_track() {
+        let area = Rect::new(0, 0, 5, 4);
+        let mut surface = Surface::empty(area);
+
+        render_scrollbar(
+            &mut surface,
+            area,
+            area.height,
+            8,
+            0,
+            false,
+            Style::default(),
+        );
+
+        assert!((0..area.height).all(|y| surface[(area.right() - 1, y)].symbol() == "▐"));
+    }
+}

@@ -313,6 +313,7 @@ impl Completion {
         });
 
         let popup = Popup::new(Self::ID, menu)
+            .menu_style()
             .with_scrollbar(false)
             .ignore_escape_key(true);
 
