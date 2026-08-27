@@ -1850,11 +1850,43 @@ impl Component for EditorView {
         }
 
         let key_width = 15u16; // for showing pending keys
-        let mut status_msg_width = 0;
+        let status_msg_width = cx
+            .editor
+            .status_msg
+            .as_ref()
+            .map_or(0, |(status_msg, _)| status_msg.width());
+        let macro_width = if cx.editor.macro_recording.is_some() {
+            3
+        } else {
+            0
+        };
+        let restricted = workspace_trust_indicator_visible(cx.editor);
+        let trust_width = if restricted { 3 } else { 0 };
+        let show_pending = layout
+            .commandline
+            .width
+            .saturating_sub(status_msg_width as u16)
+            > key_width;
+        let (status_area, pending_area, trust_area, macro_area) = if show_pending {
+            let [status_area, pending_area, trust_area, macro_area] = Layout::horizontal([
+                Constraint::Min(0),
+                Constraint::Length(key_width),
+                Constraint::Length(trust_width),
+                Constraint::Length(macro_width),
+            ])
+            .areas(layout.commandline);
+            (status_area, pending_area, trust_area, macro_area)
+        } else {
+            (
+                layout.commandline,
+                Rect::default(),
+                Rect::default(),
+                Rect::default(),
+            )
+        };
 
         // render status msg
         if let Some((status_msg, severity)) = &cx.editor.status_msg {
-            status_msg_width = status_msg.width();
             use view::editor::Severity;
             let style = if *severity == Severity::Error {
                 cx.editor.theme.get("error")
@@ -1862,20 +1894,12 @@ impl Component for EditorView {
                 cx.editor.theme.get("ui.text")
             };
 
-            surface.set_string(
-                layout.commandline.x,
-                layout.commandline.y,
-                status_msg,
-                style,
-            );
+            Paragraph::new(status_msg.as_ref())
+                .style(style)
+                .render(status_area, surface);
         }
 
-        if layout
-            .commandline
-            .width
-            .saturating_sub(status_msg_width as u16)
-            > key_width
-        {
+        if show_pending {
             let mut disp = String::new();
             if let Some(count) = cx.editor.count {
                 disp.push_str(&count.to_string())
@@ -1887,49 +1911,30 @@ impl Component for EditorView {
                 disp.push_str(&key.key_sequence_format());
             }
             let style = cx.editor.theme.get("ui.text");
-            let macro_width = if cx.editor.macro_recording.is_some() {
-                3
-            } else {
-                0
-            };
-            let restricted = workspace_trust_indicator_visible(cx.editor);
-            let trust_width = if restricted { 3 } else { 0 };
-            surface.set_string(
-                layout.commandline.x
-                    + layout
-                        .commandline
-                        .width
-                        .saturating_sub(key_width + macro_width + trust_width),
-                layout.commandline.y,
-                disp.get(disp.len().saturating_sub(key_width as usize)..)
-                    .unwrap_or(&disp),
-                style,
-            );
+            let disp = disp
+                .get(disp.len().saturating_sub(key_width as usize)..)
+                .unwrap_or(&disp);
+            Paragraph::new(disp)
+                .style(style)
+                .alignment(Alignment::Right)
+                .render(pending_area, surface);
+
             if restricted {
                 let style = style
                     .fg(view::graphics::Color::Yellow)
                     .add_modifier(Modifier::BOLD);
-                surface.set_string(
-                    layout
-                        .commandline
-                        .x
-                        .saturating_add(layout.commandline.width.saturating_sub(3 + macro_width)),
-                    layout.commandline.y,
-                    "[⚠]",
-                    style,
-                );
+                Paragraph::new("[⚠]")
+                    .style(style)
+                    .render(trust_area, surface);
             }
             if let Some((reg, _)) = cx.editor.macro_recording {
                 let disp = format!("[{}]", reg);
                 let style = style
                     .fg(view::graphics::Color::Yellow)
                     .add_modifier(Modifier::BOLD);
-                surface.set_string(
-                    layout.commandline.x + layout.commandline.width.saturating_sub(3),
-                    layout.commandline.y,
-                    &disp,
-                    style,
-                );
+                Paragraph::new(disp)
+                    .style(style)
+                    .render(macro_area, surface);
             }
         }
 

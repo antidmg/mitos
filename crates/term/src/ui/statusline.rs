@@ -13,7 +13,9 @@ use view::{
 use crate::ui::ProgressSpinners;
 
 use tui::buffer::Buffer as Surface;
+use tui::layout::{Alignment, Constraint, Layout};
 use tui::text::{Line, Span};
+use tui::widgets::{Paragraph, Widget};
 use view::editor::StatusLineElement as StatusLineElementID;
 
 pub struct RenderContext<'a> {
@@ -64,13 +66,6 @@ pub fn render(context: &mut RenderContext, viewport: Rect, surface: &mut Surface
         });
     }
 
-    surface.set_spans(
-        viewport.x,
-        viewport.y,
-        &context.parts.left,
-        context.parts.left.width() as u16,
-    );
-
     // Right side of the status line.
 
     for element_id in &config.statusline.right {
@@ -79,16 +74,6 @@ pub fn render(context: &mut RenderContext, viewport: Rect, surface: &mut Surface
             append(&mut context.parts.right, span, base_style)
         })
     }
-
-    surface.set_spans(
-        viewport.x
-            + viewport
-                .width
-                .saturating_sub(context.parts.right.width() as u16),
-        viewport.y,
-        &context.parts.right,
-        context.parts.right.width() as u16,
-    );
 
     // Center of the status line.
 
@@ -99,19 +84,21 @@ pub fn render(context: &mut RenderContext, viewport: Rect, surface: &mut Surface
         })
     }
 
-    // Width of the empty space between the left and center area and between the center and right area.
-    let spacing = 1u16;
-
     let edge_width = context.parts.left.width().max(context.parts.right.width()) as u16;
-    let center_max_width = viewport.width.saturating_sub(2 * edge_width + 2 * spacing);
-    let center_width = center_max_width.min(context.parts.center.width() as u16);
+    let [left_area, center_area, right_area] = Layout::horizontal([
+        Constraint::Length(edge_width.saturating_add(1)),
+        Constraint::Min(0),
+        Constraint::Length(edge_width.saturating_add(1)),
+    ])
+    .areas(viewport);
 
-    surface.set_spans(
-        viewport.x + viewport.width / 2 - center_width / 2,
-        viewport.y,
-        &context.parts.center,
-        center_width,
-    );
+    Paragraph::new(std::mem::take(&mut context.parts.left)).render(left_area, surface);
+    Paragraph::new(std::mem::take(&mut context.parts.center))
+        .alignment(Alignment::Center)
+        .render(center_area, surface);
+    Paragraph::new(std::mem::take(&mut context.parts.right))
+        .alignment(Alignment::Right)
+        .render(right_area, surface);
 }
 
 fn append<'a>(buffer: &mut Line<'a>, mut span: Span<'a>, base_style: Style) {
@@ -674,5 +661,4 @@ where
         write(context, " ⋮ ".into())
     }
 }
-use tui::buffer::BufferExt as _;
 use view::graphics::RectExt as _;
