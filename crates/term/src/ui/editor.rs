@@ -37,7 +37,9 @@ use view::{
 
 use tui::{
     buffer::Buffer as Surface,
+    layout::{Alignment, Constraint, Layout},
     text::{Line, Span},
+    widgets::{Paragraph, Row, Table, TableState, Widget},
 };
 
 pub struct EditorView {
@@ -79,6 +81,20 @@ impl EditorView {
         &mut self.spinners
     }
 
+    fn layout_areas(area: Rect, use_bufferline: bool) -> (Rect, Rect) {
+        let [mut editor_area, statusline_area, _commandline_area] = Layout::vertical([
+            Constraint::Min(0),
+            Constraint::Length(1),
+            Constraint::Length(1),
+        ])
+        .areas(area);
+        if use_bufferline {
+            editor_area = editor_area.clip_top(1);
+        }
+
+        (editor_area, statusline_area)
+    }
+
     fn render_welcome(theme: &Theme, view: &View, surface: &mut Surface, colorful: bool) {
         const LOGO: &str = r#"███╗   ███╗██╗████████╗ ██████╗ ███████╗
 ████╗ ████║██║╚══██╔══╝██╔═══██╗██╔════╝
@@ -114,61 +130,60 @@ impl EditorView {
                 .collect()
         });
 
-        enum Alignment {
-            Center(Line<'static>),
-            Left(Line<'static>),
-        }
-
         let text = theme.get("ui.text");
         let dim = theme.get("ui.text.inactive");
         let accent = theme.get("special");
         let command_style = theme.get("constant");
-        let command_line = |command: &str, suffix: &str, description: &str| -> Line<'static> {
-            const DESCRIPTION_COLUMN: usize = 20;
-
-            let command_width = command.width() + suffix.width();
-            debug_assert!(command_width < DESCRIPTION_COLUMN);
-            Line::from(vec![
-                Span::styled(command.to_owned(), command_style),
-                Span::styled(suffix.to_owned(), dim),
-                Span::raw(" ".repeat(DESCRIPTION_COLUMN.saturating_sub(command_width))),
-                Span::styled(description.to_owned(), text),
-            ])
-        };
-        let help = [
-            Alignment::Center(Line::styled(
+        let header = [
+            Line::styled(
                 format!("mitos {VERSION_AND_GIT_HASH}"),
                 accent.add_modifier(Modifier::BOLD),
-            )),
-            Alignment::Center(Line::default()),
-            Alignment::Center(Line::styled(
+            ),
+            Line::default(),
+            Line::styled(
                 "A post-modern, modal text editor",
                 dim.add_modifier(Modifier::ITALIC),
-            )),
-            Alignment::Center(Line::default()),
-            Alignment::Left(command_line(":tutor", "<enter>", "learn Mitos")),
-            Alignment::Left(command_line(":theme", "<space><tab>", "choose a theme")),
-            Alignment::Left(command_line("<space>e", "", "file explorer")),
-            Alignment::Left(command_line("<space>?", "", "see all commands")),
-            Alignment::Left(command_line(":quit", "<enter>", "quit Mitos")),
-            Alignment::Center(Line::default()),
-            Alignment::Center(Line::from(vec![
+            ),
+            Line::default(),
+        ];
+        let commands = [
+            (":tutor", "<enter>", "learn Mitos"),
+            (":theme", "<space><tab>", "choose a theme"),
+            ("<space>e", "", "file explorer"),
+            ("<space>?", "", "see all commands"),
+            (":quit", "<enter>", "quit Mitos"),
+        ];
+        let footer = [
+            Line::default(),
+            Line::from(vec![
                 Span::styled("project: ", dim),
                 Span::styled("github.com/matoous/mitos", accent),
-            ])),
+            ]),
         ];
+        let command_width = commands
+            .iter()
+            .map(|(command, suffix, _)| command.width() + suffix.width())
+            .max()
+            .unwrap_or_default() as u16;
+        let description_width = commands
+            .iter()
+            .map(|(_, _, description)| description.width())
+            .max()
+            .unwrap_or_default() as u16;
+        const COMMAND_SPACING: u16 = 2;
+        let command_table_width = command_width + COMMAND_SPACING + description_width;
 
         let area = view.area;
-        let help_height = help.len() as u16;
+        let help_height = (header.len() + commands.len() + footer.len()) as u16;
         if area.height < help_height {
             return;
         }
 
-        let help_width = help
+        let help_width = header
             .iter()
-            .map(|line| match line {
-                Alignment::Center(line) | Alignment::Left(line) => line.width() as u16,
-            })
+            .chain(&footer)
+            .map(|line| line.width() as u16)
+            .chain(std::iter::once(command_table_width))
             .max()
             .unwrap_or_default();
         if area.width < help_width {
@@ -184,32 +199,57 @@ impl EditorView {
         } else {
             help_width
         };
-        let content_x = area.x + area.width.saturating_sub(content_width) / 2;
-        let help_x = if show_logo {
-            content_x + *LOGO_WIDTH + LOGO_HELP_PADDING
-        } else {
-            content_x
-        };
-        let help_y = area.y + area.height.saturating_sub(help_height) / 2;
+        let welcome_area = area.centered(
+            Constraint::Length(content_width),
+            Constraint::Length(help_height),
+        );
 
-        if show_logo {
+        let help_area = if show_logo {
+            let [logo_area, _padding, help_area] = Layout::horizontal([
+                Constraint::Length(*LOGO_WIDTH),
+                Constraint::Length(LOGO_HELP_PADDING),
+                Constraint::Length(help_width),
+            ])
+            .areas(welcome_area);
             let logo = if colorful { &*COLOR_LOGO } else { &*PLAIN_LOGO };
-            let logo_y = help_y + help_height.saturating_sub(logo.len() as u16) / 2;
-            for (offset, line) in logo.iter().enumerate() {
-                surface.set_spans(content_x, logo_y + offset as u16, line, *LOGO_WIDTH);
-            }
-        }
+            let logo_area = logo_area.centered_vertically(Constraint::Length(logo.len() as u16));
+            Paragraph::new(logo.clone()).render(logo_area, surface);
+            help_area
+        } else {
+            welcome_area
+        };
 
-        for (offset, alignment) in help.iter().enumerate() {
-            let (line, x) = match alignment {
-                Alignment::Left(line) => (line, help_x),
-                Alignment::Center(line) => {
-                    let x = help_x + help_width.saturating_sub(line.width() as u16) / 2;
-                    (line, x)
-                }
-            };
-            surface.set_spans(x, help_y + offset as u16, line, line.width() as u16);
-        }
+        let [header_area, commands_area, footer_area] = Layout::vertical([
+            Constraint::Length(header.len() as u16),
+            Constraint::Length(commands.len() as u16),
+            Constraint::Length(footer.len() as u16),
+        ])
+        .areas(help_area);
+
+        Paragraph::new(header.to_vec())
+            .alignment(Alignment::Center)
+            .render(header_area, surface);
+
+        let rows = commands.map(|(command, suffix, description)| {
+            Row::new([
+                Line::from(vec![
+                    Span::styled(command.to_owned(), command_style),
+                    Span::styled(suffix.to_owned(), dim),
+                ]),
+                Line::styled(description.to_owned(), text),
+            ])
+        });
+        Table::new(rows)
+            .widths(&[
+                Constraint::Length(command_width),
+                Constraint::Length(description_width),
+            ])
+            .column_spacing(COMMAND_SPACING)
+            .render_table(commands_area, surface, &mut TableState::default(), false);
+
+        Paragraph::new(footer.to_vec())
+            .alignment(Alignment::Center)
+            .render(footer_area, surface);
     }
 
     pub fn render_view(
@@ -382,16 +422,6 @@ impl EditorView {
         {
             Self::render_diagnostics(doc, view, inner, surface, theme);
         }
-
-        let statusline_area = view
-            .area
-            .clip_top(view.area.height.saturating_sub(1))
-            .clip_bottom(1); // -1 from bottom to remove commandline
-
-        let mut context =
-            statusline::RenderContext::new(editor, doc, view, is_focused, &self.spinners);
-
-        statusline::render(&mut context, statusline_area, surface);
     }
 
     pub fn render_rulers(
@@ -1804,11 +1834,8 @@ impl Component for EditorView {
             _ => false,
         };
 
-        // -1 for commandline and -1 for bufferline
-        let mut editor_area = area.clip_bottom(1);
-        if use_bufferline {
-            editor_area = editor_area.clip_top(1);
-        }
+        // Keep one command line and one global status line at the bottom of the editor.
+        let (editor_area, statusline_area) = Self::layout_areas(area, use_bufferline);
 
         // if the terminal size suddenly changed, we need to trigger a resize
         cx.editor.resize(editor_area);
@@ -1820,6 +1847,12 @@ impl Component for EditorView {
         for (view, is_focused) in cx.editor.tree.views() {
             let doc = cx.editor.document(view.doc).unwrap();
             self.render_view(cx.editor, doc, view, area, surface, is_focused);
+        }
+
+        if statusline_area.height > 0 {
+            let (view, doc) = current_ref!(cx.editor);
+            let mut context = statusline::RenderContext::new(cx.editor, doc, view, &self.spinners);
+            statusline::render(&mut context, statusline_area, surface);
         }
 
         if config.auto_info {
@@ -1937,3 +1970,22 @@ fn canonicalize_key(key: &mut KeyEvent) {
 }
 use tui::buffer::BufferExt as _;
 use view::graphics::RectExt as _;
+
+#[cfg(test)]
+mod tests {
+    use super::EditorView;
+    use view::graphics::Rect;
+
+    #[test]
+    fn layout_reserves_one_global_statusline() {
+        let area = Rect::new(3, 5, 80, 24);
+
+        let (editor, statusline) = EditorView::layout_areas(area, false);
+        assert_eq!(Rect::new(3, 5, 80, 22), editor);
+        assert_eq!(Rect::new(3, 27, 80, 1), statusline);
+
+        let (editor, statusline_with_bufferline) = EditorView::layout_areas(area, true);
+        assert_eq!(Rect::new(3, 6, 80, 21), editor);
+        assert_eq!(statusline, statusline_with_bufferline);
+    }
+}

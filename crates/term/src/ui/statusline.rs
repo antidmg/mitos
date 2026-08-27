@@ -1,5 +1,5 @@
 use editor_core::indent::IndentStyle;
-use editor_core::{coords_at_pos, encoding, unicode::width::UnicodeWidthStr, Position};
+use editor_core::{coords_at_pos, encoding, Position};
 use lsp_client::lsp::DiagnosticSeverity;
 use view::document::DEFAULT_LANGUAGE_NAME;
 use view::{
@@ -20,7 +20,6 @@ pub struct RenderContext<'a> {
     pub editor: &'a Editor,
     pub doc: &'a Document,
     pub view: &'a View,
-    pub focused: bool,
     pub spinners: &'a ProgressSpinners,
     pub parts: RenderBuffer<'a>,
 }
@@ -30,14 +29,12 @@ impl<'a> RenderContext<'a> {
         editor: &'a Editor,
         doc: &'a Document,
         view: &'a View,
-        focused: bool,
         spinners: &'a ProgressSpinners,
     ) -> Self {
         RenderContext {
             editor,
             doc,
             view,
-            focused,
             spinners,
             parts: RenderBuffer::default(),
         }
@@ -52,11 +49,7 @@ pub struct RenderBuffer<'a> {
 }
 
 pub fn render(context: &mut RenderContext, viewport: Rect, surface: &mut Surface) {
-    let base_style = if context.focused {
-        context.editor.theme.get("ui.statusline")
-    } else {
-        context.editor.theme.get("ui.statusline.inactive")
-    };
+    let base_style = context.editor.theme.get("ui.statusline");
 
     surface.set_style(viewport.with_height(1), base_style);
 
@@ -164,7 +157,6 @@ fn render_mode<'a, F>(context: &mut RenderContext<'a>, write: F)
 where
     F: Fn(&mut RenderContext<'a>, Span<'a>) + Copy,
 {
-    let visible = context.focused;
     let config = context.editor.config();
     let modenames = &config.statusline.mode;
     let mode_str = match context.editor.mode() {
@@ -172,13 +164,8 @@ where
         Mode::Select => &modenames.select,
         Mode::Normal => &modenames.normal,
     };
-    let content = if visible {
-        format!(" {mode_str} ")
-    } else {
-        // If not focused, explicitly leave an empty space instead of returning None.
-        " ".repeat(mode_str.width() + 2)
-    };
-    let style = if visible && config.color_modes {
+    let content = format!(" {mode_str} ");
+    let style = if config.color_modes {
         match context.editor.mode() {
             Mode::Insert => context.editor.theme.get("ui.statusline.insert"),
             Mode::Select => context.editor.theme.get("ui.statusline.select"),
@@ -683,7 +670,7 @@ fn render_code_action_hint<'a, F>(context: &mut RenderContext<'a>, write: F)
 where
     F: Fn(&mut RenderContext<'a>, Span<'a>) + Copy,
 {
-    if context.focused && context.doc.code_action_hints(context.view.id) {
+    if context.doc.code_action_hints(context.view.id) {
         write(context, " ⋮ ".into())
     }
 }
