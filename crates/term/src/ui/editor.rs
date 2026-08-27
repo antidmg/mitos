@@ -399,7 +399,6 @@ impl EditorView {
             for y in area.top()..area.bottom() {
                 surface[(x, y)]
                     .set_symbol(tui::symbols::line::VERTICAL)
-                    //.set_symbol(" ")
                     .set_style(border_style);
             }
         }
@@ -1017,7 +1016,7 @@ impl EditorView {
         }
 
         let text = Text::from(lines);
-        let paragraph = Paragraph::new(text.clone())
+        let paragraph = Paragraph::new(text)
             .alignment(Alignment::Right)
             .wrap(Wrap { trim: true });
         let width = 100.min(viewport.width);
