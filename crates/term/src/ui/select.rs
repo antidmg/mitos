@@ -69,8 +69,10 @@ impl<T: Item> Component for Select<T> {
         // Limit the text width to 80% of the screen or 80 columns, whichever is
         // smaller.
         let max_width = 80.min(((area.width as u32) * 80u32 / 100) as u16);
-        let (message_width, message_height) =
-            super::text::required_size(&self.message.contents, max_width);
+        let (message_width, message_height) = self
+            .message
+            .required_size((max_width, area.height))
+            .unwrap();
         let (_, menu_height) = self
             .options
             .required_size((max_width, area.height))

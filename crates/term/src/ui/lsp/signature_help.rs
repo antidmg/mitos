@@ -131,10 +131,9 @@ impl Component for SignatureHelp {
             paragraph.render(area.with_height(1).clip_right(1), surface);
         }
 
-        let (_, sig_text_height) = crate::ui::text::required_size(&sig_text, area.width);
-        let sig_text_para = Paragraph::new(sig_text.clone())
-            .wrap(Wrap { trim: false })
-            .scroll((cx.scroll.unwrap_or_default() as u16, 0));
+        let sig_text_para =
+            crate::ui::text::paragraph(sig_text).scroll((cx.scroll.unwrap_or_default() as u16, 0));
+        let (_, sig_text_height) = crate::ui::text::required_size(&sig_text_para, area.width);
         let sig_text_area = area.with_height(sig_text_height.min(area.height));
         let sig_text_area = sig_text_area.intersection(surface.area);
         sig_text_para.render(sig_text_area, surface);
@@ -183,13 +182,14 @@ impl Component for SignatureHelp {
             &self.config_loader.load(),
             None,
         );
+        let signature_text = crate::ui::text::paragraph(signature_text);
         let (sig_width, sig_height) =
             crate::ui::text::required_size(&signature_text, max_text_width);
 
         let (width, height) = match signature.signature_doc {
             Some(ref doc) => {
                 let doc_md = Markdown::new(doc.clone(), Arc::clone(&self.config_loader));
-                let doc_text = doc_md.parse(None);
+                let doc_text = crate::ui::text::paragraph(doc_md.parse(None));
                 let (doc_width, doc_height) =
                     crate::ui::text::required_size(&doc_text, max_text_width);
                 (

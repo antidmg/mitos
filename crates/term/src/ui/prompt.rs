@@ -477,7 +477,8 @@ impl Prompt {
         }
 
         if let Some(doc) = (self.doc_fn)(&self.line) {
-            let mut text = ui::Text::new(doc.to_string());
+            let text = tui::text::Text::from(doc.to_string());
+            let paragraph = ui::text::paragraph(text);
 
             let max_width = BASE_WIDTH * 3;
             let horizontal_padding = 2; // border + margin
@@ -486,7 +487,7 @@ impl Prompt {
 
             let viewport = area;
 
-            let (_width, height) = ui::text::required_size(&text.contents, text_width);
+            let (_width, height) = ui::text::required_size(&paragraph, text_width);
 
             let area = viewport.intersection(Rect::new(
                 completion_area.x,
@@ -507,7 +508,7 @@ impl Prompt {
             let inner = block.inner(area).inner(Margin::new(1, 0));
 
             block.render(area, surface);
-            text.render(inner, surface, cx);
+            paragraph.render(inner, surface);
         }
 
         let line = area.height - 1;

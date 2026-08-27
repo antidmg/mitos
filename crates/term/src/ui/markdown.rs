@@ -367,13 +367,12 @@ impl Markdown {
 
 impl Component for Markdown {
     fn render(&mut self, area: Rect, surface: &mut Surface, cx: &mut Context) {
-        use tui::widgets::{Paragraph, Widget, Wrap};
+        use tui::widgets::Widget;
 
         let text = self.parse(Some(&cx.editor.theme));
 
-        let par = Paragraph::new(text)
-            .wrap(Wrap { trim: false })
-            .scroll((cx.scroll.unwrap_or_default() as u16, 0));
+        let par =
+            crate::ui::text::paragraph(text).scroll((cx.scroll.unwrap_or_default() as u16, 0));
 
         let margin = Margin::new(1, 1);
         par.render(area.inner(margin), surface);
@@ -381,7 +380,7 @@ impl Component for Markdown {
 
     fn required_size(&mut self, viewport: (u16, u16)) -> Option<(u16, u16)> {
         let padding = 2;
-        let contents = self.parse(None);
+        let contents = crate::ui::text::paragraph(self.parse(None));
 
         // TODO: account for tab width
         let max_text_width = (viewport.0.saturating_sub(padding)).min(120);

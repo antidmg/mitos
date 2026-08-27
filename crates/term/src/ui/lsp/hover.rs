@@ -115,13 +115,13 @@ impl Component for Hover {
         let header_width = header
             .as_ref()
             .map(|header| {
-                let header = header.parse(None);
+                let header = crate::ui::text::paragraph(header.parse(None));
                 let (width, _height) = crate::ui::text::required_size(&header, max_text_width);
                 width
             })
             .unwrap_or_default();
 
-        let contents = contents.parse(None);
+        let contents = crate::ui::text::paragraph(contents.parse(None));
         let (content_width, content_height) =
             crate::ui::text::required_size(&contents, max_text_width);
 
