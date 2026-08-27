@@ -40,7 +40,7 @@ use tui::{
     buffer::Buffer as Surface,
     layout::{Alignment, Constraint, Layout},
     text::{Line, Span},
-    widgets::{Paragraph, Row, Table, TableState, Widget},
+    widgets::{Paragraph, Row, Table, TableState, Tabs, Widget},
 };
 
 pub struct EditorView {
@@ -845,64 +845,59 @@ impl EditorView {
             .try_get("ui.bufferline")
             .unwrap_or_else(|| editor.theme.get("ui.statusline.inactive"));
 
-        let mut x = viewport.x;
         let current_doc = view!(editor).doc;
+        let mut current_tab = 0;
+        // PERF: Ratatui Tabs needs an owned title list every frame. Cache these by document
+        // metadata if bufferline rendering becomes measurable with very large buffer sets.
+        let titles: Vec<Line<'static>> = editor
+            .documents()
+            .enumerate()
+            .map(|(index, doc)| {
+                if current_doc == doc.id() {
+                    current_tab = index;
+                }
 
-        for doc in editor.documents() {
-            let fname = doc
-                .path()
-                .unwrap_or(&scratch)
-                .file_name()
-                .unwrap_or_default()
-                .to_str()
-                .unwrap_or_default();
+                let fname = doc
+                    .path()
+                    .unwrap_or(&scratch)
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_str()
+                    .unwrap_or_default();
 
-            let style = if current_doc == doc.id() {
-                bufferline_active
-            } else {
-                bufferline_inactive
-            };
+                let style = if current_doc == doc.id() {
+                    bufferline_active
+                } else {
+                    bufferline_inactive
+                };
 
-            let show_file_icon = editor.config().icons && doc.path().is_some();
+                let show_file_icon = editor.config().icons && doc.path().is_some();
+                let modified = if doc.is_modified() { "[+]" } else { "" };
 
-            if show_file_icon {
-                if let Some(path) = doc.path() {
-                    let icons = ICONS.load();
-                    if let Some(file) = icons.fs().file() {
-                        let icon =
-                            file.get_with_active_style_or_default(path, &editor.theme, style);
-                        let used_width = viewport.x.saturating_sub(x);
-                        let rem_width = surface.area.width.saturating_sub(used_width);
-                        x = surface
-                            .set_stringn(
-                                x,
-                                viewport.y,
-                                icon.glyph(),
-                                rem_width as usize,
-                                icon.style(),
-                            )
-                            .0;
+                if show_file_icon {
+                    if let Some(path) = doc.path() {
+                        let icons = ICONS.load();
+                        if let Some(file) = icons.fs().file() {
+                            let icon =
+                                file.get_with_active_style_or_default(path, &editor.theme, style);
+                            return Line::from(vec![
+                                Span::styled(icon.glyph().to_string(), icon.style()),
+                                Span::styled(format!("{fname}{modified} "), style),
+                            ]);
+                        }
                     }
                 }
-            }
 
-            let text = format!(
-                "{}{}{} ",
-                if show_file_icon { "" } else { " " },
-                fname,
-                if doc.is_modified() { "[+]" } else { "" }
-            );
-            let used_width = viewport.x.saturating_sub(x);
-            let rem_width = surface.area.width.saturating_sub(used_width);
+                Line::styled(format!(" {fname}{modified} "), style)
+            })
+            .collect();
 
-            x = surface
-                .set_stringn(x, viewport.y, &text, rem_width as usize, style)
-                .0;
-
-            if x >= surface.area.right() {
-                break;
-            }
-        }
+        Tabs::new(titles)
+            .select(current_tab)
+            .highlight_style(Style::default())
+            .divider("")
+            .padding("", "")
+            .render(viewport, surface);
     }
 
     pub fn render_gutter<'d>(
