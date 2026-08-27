@@ -21,12 +21,14 @@ use thiserror::Error;
 use tokio::sync::mpsc::Sender;
 use tui::{
     buffer::Buffer as Surface,
-    layout::Constraint,
+    layout::{Constraint, Layout},
     text::{Line, Span},
-    widgets::{Block, BorderType, Cell, Row, Table},
+    widgets::{Block, Borders, Cell, Padding, Paragraph, Row, Table},
 };
 
+use tui::buffer::BufferExt as _;
 use tui::widgets::Widget;
+use view::graphics::RectExt as _;
 
 use std::{
     borrow::Cow,
@@ -46,7 +48,7 @@ use editor_core::{
 };
 use view::{
     editor::Action,
-    graphics::{CursorKind, Margin, Modifier, Rect},
+    graphics::{CursorKind, Modifier, Rect},
     icons::ICONS,
     view::ViewPosition,
     Document, DocumentId, Editor,
@@ -59,6 +61,17 @@ pub const ID: &str = "picker";
 pub const MIN_AREA_WIDTH_FOR_PREVIEW: u16 = 72;
 /// Biggest file size to preview in bytes
 pub const MAX_FILE_SIZE_FOR_PREVIEW: u64 = 10 * 1024 * 1024;
+
+fn split_picker_area(area: Rect, show_preview: bool) -> (Rect, Option<Rect>) {
+    if show_preview {
+        let [picker, preview] =
+            Layout::horizontal([Constraint::Length(area.width / 2), Constraint::Min(0)])
+                .areas(area);
+        (picker, Some(preview))
+    } else {
+        (area, None)
+    }
+}
 
 #[derive(PartialEq, Eq, Hash)]
 pub enum PathOrId<'a> {
@@ -680,12 +693,16 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
         let background = cx.editor.theme.get("ui.background");
         surface.clear_with(area, background);
 
-        const BLOCK: Block<'_> = Block::bordered();
+        let block = Block::bordered();
+        let inner = block.inner(area);
+        block.render(area, surface);
 
-        // calculate the inner area inside the box
-        let inner = BLOCK.inner(area);
-
-        BLOCK.render(area, surface);
+        let [prompt_area, separator_area, inner] = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Min(0),
+        ])
+        .areas(inner);
 
         // -- Render the input bar:
 
@@ -700,32 +717,27 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
             snapshot.item_count(),
         );
 
-        let area = inner.clip_left(1).with_height(1);
-        let line_area = area.clip_right(count.len() as u16 + 1);
+        let prompt_area = prompt_area.clip_left(1);
+        let [line_area, count_area, _right_padding] = Layout::horizontal([
+            Constraint::Min(0),
+            Constraint::Length(count.len() as u16),
+            Constraint::Length(1),
+        ])
+        .areas(prompt_area);
 
         // render the prompt first since it will clear its background
         self.prompt.render(line_area, surface, cx);
 
-        surface.set_stringn(
-            (area.x + area.width).saturating_sub(count.len() as u16 + 1),
-            area.y,
-            &count,
-            (count.len()).min(area.width as usize),
-            text_style,
-        );
+        Paragraph::new(count)
+            .style(text_style)
+            .render(count_area, surface);
 
-        // -- Separator
         let sep_style = cx.editor.theme.get("ui.background.separator");
-        let borders = BorderType::border_symbols(BorderType::Plain);
-        for x in inner.left()..inner.right() {
-            if let Some(cell) = surface.cell_mut((x, inner.y + 1)) {
-                cell.set_symbol(borders.horizontal_top).set_style(sep_style);
-            }
-        }
+        Block::new()
+            .borders(Borders::TOP)
+            .border_style(sep_style)
+            .render(separator_area, surface);
 
-        // -- Render the contents:
-        // subtract area of prompt from top
-        let inner = inner.clip_top(2);
         let rows = inner.height.saturating_sub(self.header_height()) as u32;
         let offset = self.cursor - (self.cursor % std::cmp::max(1, rows));
         let cursor = self.cursor.saturating_sub(offset);
@@ -866,14 +878,9 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
         let directory = cx.editor.theme.get("ui.text.directory");
         surface.clear_with(area, background);
 
-        const BLOCK: Block<'_> = Block::bordered();
-
-        // calculate the inner area inside the box
-        let inner = BLOCK.inner(area);
-        // 1 column gap on either side
-        let margin = Margin::new(1, 0);
-        let inner = inner.inner(margin);
-        BLOCK.render(area, surface);
+        let block = Block::bordered().padding(Padding::horizontal(1));
+        let inner = block.inner(area);
+        block.render(area, surface);
 
         if let Some((preview, range)) = self.get_preview(cx.editor) {
             let doc = match preview.document() {
@@ -1055,17 +1062,10 @@ impl<I: 'static + Send + Sync, D: 'static + Send + Sync> Component for Picker<I,
         let render_preview =
             self.show_preview && self.file_fn.is_some() && area.width > MIN_AREA_WIDTH_FOR_PREVIEW;
 
-        let picker_width = if render_preview {
-            area.width / 2
-        } else {
-            area.width
-        };
-
-        let picker_area = area.with_width(picker_width);
+        let (picker_area, preview_area) = split_picker_area(area, render_preview);
         self.render_picker(picker_area, surface, cx);
 
-        if render_preview {
-            let preview_area = area.clip_left(picker_width);
+        if let Some(preview_area) = preview_area {
             self.render_preview(preview_area, surface, cx);
         }
     }
@@ -1190,20 +1190,13 @@ impl<I: 'static + Send + Sync, D: 'static + Send + Sync> Component for Picker<I,
     }
 
     fn cursor(&self, area: Rect, editor: &Editor) -> (Option<Position>, CursorKind) {
-        let block = Block::bordered();
-        // calculate the inner area inside the box
-        let inner = block.inner(area);
-
-        // prompt area
         let render_preview =
             self.show_preview && self.file_fn.is_some() && area.width > MIN_AREA_WIDTH_FOR_PREVIEW;
-
-        let picker_width = if render_preview {
-            area.width / 2
-        } else {
-            area.width
-        };
-        let area = inner.clip_left(1).with_height(1).with_width(picker_width);
+        let (picker_area, _) = split_picker_area(area, render_preview);
+        let area = Block::bordered()
+            .inner(picker_area)
+            .with_height(1)
+            .clip_left(1);
 
         self.prompt.cursor(area, editor)
     }
@@ -1225,5 +1218,19 @@ impl<T: 'static + Send + Sync, D> Drop for Picker<T, D> {
 }
 
 type PickerCallback<T> = Box<dyn Fn(&mut Context, &T, Action)>;
-use tui::buffer::BufferExt as _;
-use view::graphics::RectExt as _;
+
+#[cfg(test)]
+mod tests {
+    use super::split_picker_area;
+    use view::graphics::Rect;
+
+    #[test]
+    fn preview_uses_the_right_half_of_the_picker() {
+        let area = Rect::new(3, 5, 81, 24);
+        let (picker, preview) = split_picker_area(area, true);
+
+        assert_eq!(Rect::new(3, 5, 40, 24), picker);
+        assert_eq!(Some(Rect::new(43, 5, 41, 24)), preview);
+        assert_eq!((area, None), split_picker_area(area, false));
+    }
+}

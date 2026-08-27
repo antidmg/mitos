@@ -27,8 +27,8 @@ pub mod text {
 pub mod widgets {
     pub use crate::table::{Cell, Row, Table};
     pub use ratatui::widgets::{
-        Block, BorderType, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
-        StatefulWidget, TableState, Widget, Wrap,
+        Block, BorderType, Borders, Padding, Paragraph, Scrollbar, ScrollbarOrientation,
+        ScrollbarState, StatefulWidget, TableState, Widget, Wrap,
     };
 }
 
