@@ -215,4 +215,14 @@ mod tests {
         assert!(!Config::load_test("").editor.icons);
         assert!(Config::load_test("[editor]\nicons = true").editor.icons);
     }
+
+    #[test]
+    fn welcome_screen_is_enabled_by_default_and_can_be_disabled() {
+        assert!(Config::load_test("").editor.welcome_screen);
+        assert!(
+            !Config::load_test("[editor]\nwelcome-screen = false")
+                .editor
+                .welcome_screen
+        );
+    }
 }

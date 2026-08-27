@@ -294,6 +294,8 @@ where
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case", default, deny_unknown_fields)]
 pub struct Config {
+    /// Whether to show the welcome screen when Mitos starts without a file. Defaults to true.
+    pub welcome_screen: bool,
     /// Padding to keep between the edge of the screen and the cursor when scrolling. Defaults to 5.
     pub scrolloff: usize,
     /// Number of lines to scroll at once. Defaults to 3
@@ -1177,6 +1179,7 @@ impl Default for WordCompletion {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            welcome_screen: true,
             scrolloff: 5,
             scroll_lines: 3,
             mouse: true,
@@ -2074,6 +2077,14 @@ impl Editor {
         self.new_file_from_document(
             action,
             Document::default(self.config.clone(), self.syn_loader.clone()),
+        )
+    }
+
+    /// Create the initial scratch document shown when Mitos starts without a file.
+    pub fn new_file_welcome(&mut self) -> DocumentId {
+        self.new_file_from_document(
+            Action::VerticalSplit,
+            Document::default(self.config.clone(), self.syn_loader.clone()).with_welcome(),
         )
     }
 

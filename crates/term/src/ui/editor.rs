@@ -22,7 +22,8 @@ use editor_core::{
     unicode::width::UnicodeWidthStr,
     visual_offset_from_block, Change, Position, Range, Selection, Transaction,
 };
-use std::{mem::take, num::NonZeroUsize, ops, path::PathBuf, rc::Rc};
+use loader::VERSION_AND_GIT_HASH;
+use std::{mem::take, num::NonZeroUsize, ops, path::PathBuf, rc::Rc, sync::LazyLock};
 use view::{
     annotations::diagnostics::DiagnosticFilter,
     document::{Mode, SCRATCH_BUFFER_NAME},
@@ -34,7 +35,10 @@ use view::{
     Document, Editor, Theme, View,
 };
 
-use tui::{buffer::Buffer as Surface, text::Span};
+use tui::{
+    buffer::Buffer as Surface,
+    text::{Line, Span},
+};
 
 pub struct EditorView {
     pub keymaps: Keymaps,
@@ -73,6 +77,139 @@ impl EditorView {
 
     pub fn spinners_mut(&mut self) -> &mut ProgressSpinners {
         &mut self.spinners
+    }
+
+    fn render_welcome(theme: &Theme, view: &View, surface: &mut Surface, colorful: bool) {
+        const LOGO: &str = r#"███╗   ███╗██╗████████╗ ██████╗ ███████╗
+████╗ ████║██║╚══██╔══╝██╔═══██╗██╔════╝
+██╔████╔██║██║   ██║   ██║   ██║███████╗
+██║╚██╔╝██║██║   ██║   ██║   ██║╚════██║
+██║ ╚═╝ ██║██║   ██║   ╚██████╔╝███████║
+╚═╝     ╚═╝╚═╝   ╚═╝    ╚═════╝ ╚══════╝"#;
+        const LOGO_HELP_PADDING: u16 = 6;
+
+        static LOGO_WIDTH: LazyLock<u16> = LazyLock::new(|| {
+            LOGO.lines()
+                .map(UnicodeWidthStr::width)
+                .max()
+                .unwrap_or_default() as u16
+        });
+        static PLAIN_LOGO: LazyLock<Vec<Line<'static>>> = LazyLock::new(|| {
+            LOGO.lines()
+                .map(|line| Line::from(line.to_owned()))
+                .collect()
+        });
+        static COLOR_LOGO: LazyLock<Vec<Line<'static>>> = LazyLock::new(|| {
+            let colors = [
+                Color::Rgb(110, 170, 255),
+                Color::Rgb(125, 130, 255),
+                Color::Rgb(180, 100, 245),
+                Color::Rgb(230, 95, 190),
+                Color::Rgb(245, 120, 130),
+                Color::Rgb(245, 160, 90),
+            ];
+            LOGO.lines()
+                .zip(colors)
+                .map(|(line, color)| Line::styled(line.to_owned(), Style::default().fg(color)))
+                .collect()
+        });
+
+        enum Alignment {
+            Center(Line<'static>),
+            Left(Line<'static>),
+        }
+
+        let text = theme.get("ui.text");
+        let dim = theme.get("ui.text.inactive");
+        let accent = theme.get("special");
+        let command_style = theme.get("constant");
+        let command_line = |command: &str, suffix: &str, description: &str| -> Line<'static> {
+            const DESCRIPTION_COLUMN: usize = 20;
+
+            let command_width = command.width() + suffix.width();
+            debug_assert!(command_width < DESCRIPTION_COLUMN);
+            Line::from(vec![
+                Span::styled(command.to_owned(), command_style),
+                Span::styled(suffix.to_owned(), dim),
+                Span::raw(" ".repeat(DESCRIPTION_COLUMN.saturating_sub(command_width))),
+                Span::styled(description.to_owned(), text),
+            ])
+        };
+        let help = [
+            Alignment::Center(Line::styled(
+                format!("mitos {VERSION_AND_GIT_HASH}"),
+                accent.add_modifier(Modifier::BOLD),
+            )),
+            Alignment::Center(Line::default()),
+            Alignment::Center(Line::styled(
+                "A post-modern, modal text editor",
+                dim.add_modifier(Modifier::ITALIC),
+            )),
+            Alignment::Center(Line::default()),
+            Alignment::Left(command_line(":tutor", "<enter>", "learn Mitos")),
+            Alignment::Left(command_line(":theme", "<space><tab>", "choose a theme")),
+            Alignment::Left(command_line("<space>e", "", "file explorer")),
+            Alignment::Left(command_line("<space>?", "", "see all commands")),
+            Alignment::Left(command_line(":quit", "<enter>", "quit Mitos")),
+            Alignment::Center(Line::default()),
+            Alignment::Center(Line::from(vec![
+                Span::styled("project: ", dim),
+                Span::styled("github.com/matoous/mitos", accent),
+            ])),
+        ];
+
+        let area = view.area;
+        let help_height = help.len() as u16;
+        if area.height < help_height {
+            return;
+        }
+
+        let help_width = help
+            .iter()
+            .map(|line| match line {
+                Alignment::Center(line) | Alignment::Left(line) => line.width() as u16,
+            })
+            .max()
+            .unwrap_or_default();
+        if area.width < help_width {
+            return;
+        }
+
+        let combined_width = LOGO_WIDTH
+            .saturating_add(LOGO_HELP_PADDING)
+            .saturating_add(help_width);
+        let show_logo = area.width >= combined_width;
+        let content_width = if show_logo {
+            combined_width
+        } else {
+            help_width
+        };
+        let content_x = area.x + area.width.saturating_sub(content_width) / 2;
+        let help_x = if show_logo {
+            content_x + *LOGO_WIDTH + LOGO_HELP_PADDING
+        } else {
+            content_x
+        };
+        let help_y = area.y + area.height.saturating_sub(help_height) / 2;
+
+        if show_logo {
+            let logo = if colorful { &*COLOR_LOGO } else { &*PLAIN_LOGO };
+            let logo_y = help_y + help_height.saturating_sub(logo.len() as u16) / 2;
+            for (offset, line) in logo.iter().enumerate() {
+                surface.set_spans(content_x, logo_y + offset as u16, line, *LOGO_WIDTH);
+            }
+        }
+
+        for (offset, alignment) in help.iter().enumerate() {
+            let (line, x) = match alignment {
+                Alignment::Left(line) => (line, help_x),
+                Alignment::Center(line) => {
+                    let x = help_x + help_width.saturating_sub(line.width() as u16) / 2;
+                    (line, x)
+                }
+            };
+            surface.set_spans(x, help_y + offset as u16, line, line.width() as u16);
+        }
     }
 
     pub fn render_view(
@@ -218,6 +355,15 @@ impl EditorView {
             theme,
             decorations,
         );
+
+        if editor.config().welcome_screen && doc.version() == 0 && doc.is_welcome {
+            Self::render_welcome(
+                theme,
+                view,
+                surface,
+                editor.config().true_color || crate::true_color(),
+            );
+        }
 
         // if we're not at the edge of the screen, draw a right border
         if viewport.right() != view.area.right() {
