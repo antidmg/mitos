@@ -473,7 +473,10 @@ impl Prompt {
         }
 
         if let Some(doc) = (self.doc_fn)(&self.line) {
-            let text = tui::text::Text::from(doc.to_string());
+            // PERF: Command documentation is small, so parsing it on each render keeps this
+            // integration simple. Cache the parsed Markdown if profiling shows this is measurable.
+            let markdown = ui::Markdown::new(doc.into_owned(), cx.editor.syn_loader.clone());
+            let text = markdown.parse(Some(&cx.editor.theme));
             let paragraph = ui::text::paragraph(text);
 
             let max_width = BASE_WIDTH * 3;

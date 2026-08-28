@@ -3107,7 +3107,7 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
     TypableCommand {
         name: "exit",
         aliases: &["x", "xit"],
-        doc: "Write changes to disk if the buffer is modified and then quit. Accepts an optional path (:exit some/path.txt).",
+        doc: "Write changes to disk if the buffer is modified and then quit. Accepts an optional path (`:exit some/path.txt`).",
         fun: exit,
         completer: CommandCompleter::positional(&[completers::filename]),
         signature: Signature {
@@ -3119,7 +3119,7 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
     TypableCommand {
         name: "exit!",
         aliases: &["x!", "xit!"],
-        doc: "Force write changes to disk, creating necessary subdirectories, if the buffer is modified and then quit. Accepts an optional path (:exit! some/path.txt).",
+        doc: "Force write changes to disk, creating necessary subdirectories, if the buffer is modified and then quit. Accepts an optional path (`:exit! some/path.txt`).",
         fun: force_exit,
         completer: CommandCompleter::positional(&[completers::filename]),
         signature: Signature {
@@ -3246,7 +3246,7 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
     TypableCommand {
         name: "write",
         aliases: &["w"],
-        doc: "Write changes to disk. Accepts an optional path (:write some/path.txt)",
+        doc: "Write changes to disk. Accepts an optional path (`:write some/path.txt`).",
         fun: write,
         completer: CommandCompleter::positional(&[completers::filename]),
         signature: Signature {
@@ -3258,7 +3258,7 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
     TypableCommand {
         name: "write!",
         aliases: &["w!"],
-        doc: "Force write changes to disk creating necessary subdirectories. Accepts an optional path (:write! some/path.txt)",
+        doc: "Force write changes to disk creating necessary subdirectories. Accepts an optional path (`:write! some/path.txt`).",
         fun: force_write,
         completer: CommandCompleter::positional(&[completers::filename]),
         signature: Signature {
@@ -3270,7 +3270,7 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
     TypableCommand {
         name: "write-buffer-close",
         aliases: &["wbc"],
-        doc: "Write changes to disk and closes the buffer. Accepts an optional path (:write-buffer-close some/path.txt)",
+        doc: "Write changes to disk and closes the buffer. Accepts an optional path (`:write-buffer-close some/path.txt`).",
         fun: write_buffer_close,
         completer: CommandCompleter::positional(&[completers::filename]),
         signature: Signature {
@@ -3282,7 +3282,7 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
     TypableCommand {
         name: "write-buffer-close!",
         aliases: &["wbc!"],
-        doc: "Force write changes to disk creating necessary subdirectories and closes the buffer. Accepts an optional path (:write-buffer-close! some/path.txt)",
+        doc: "Force write changes to disk creating necessary subdirectories and closes the buffer. Accepts an optional path (`:write-buffer-close! some/path.txt`).",
         fun: force_write_buffer_close,
         completer: CommandCompleter::positional(&[completers::filename]),
         signature: Signature {
@@ -3363,7 +3363,7 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
     TypableCommand {
         name: "write-quit",
         aliases: &["wq"],
-        doc: "Write changes to disk and close the current view. Accepts an optional path (:wq some/path.txt)",
+        doc: "Write changes to disk and close the current view. Accepts an optional path (`:wq some/path.txt`).",
         fun: write_quit,
         completer: CommandCompleter::positional(&[completers::filename]),
         signature: Signature {
@@ -3375,7 +3375,7 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
     TypableCommand {
         name: "write-quit!",
         aliases: &["wq!"],
-        doc: "Write changes to disk and close the current view forcefully. Accepts an optional path (:wq! some/path.txt)",
+        doc: "Write changes to disk and close the current view forcefully. Accepts an optional path (`:wq! some/path.txt`).",
         fun: force_write_quit,
         completer: CommandCompleter::positional(&[completers::filename]),
         signature: Signature {
@@ -3457,7 +3457,7 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
     TypableCommand {
         name: "cquit",
         aliases: &["cq"],
-        doc: "Quit with exit code (default 1). Accepts an optional integer exit code (:cq 2).",
+        doc: "Quit with exit code (default 1). Accepts an optional integer exit code (`:cq 2`).",
         fun: cquit,
         completer: CommandCompleter::none(),
         signature: Signature {
@@ -3468,7 +3468,7 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
     TypableCommand {
         name: "cquit!",
         aliases: &["cq!"],
-        doc: "Force quit with exit code (default 1) ignoring unsaved changes. Accepts an optional integer exit code (:cq! 2).",
+        doc: "Force quit with exit code (default 1) ignoring unsaved changes. Accepts an optional integer exit code (`:cq! 2`).",
         fun: force_cquit,
         completer: CommandCompleter::none(),
         signature: Signature {
@@ -4294,7 +4294,13 @@ fn command_line_doc(input: &str) -> Option<Cow<'_, str>> {
     let mut doc = command.doc.to_string();
 
     if !command.aliases.is_empty() {
-        write!(doc, "\nAliases: {}", command.aliases.join(", ")).unwrap();
+        doc.push_str("\nAliases: ");
+        for (index, alias) in command.aliases.iter().enumerate() {
+            if index > 0 {
+                doc.push_str(", ");
+            }
+            write!(doc, "`:{alias}`").unwrap();
+        }
     }
 
     if !command.signature.flags.is_empty() {
@@ -4324,7 +4330,7 @@ fn command_line_doc(input: &str) -> Option<Cow<'_, str>> {
             let this_flag_len = flag_len(flag);
             write!(
                 doc,
-                "\n  --{flag_text}{spacer:spacing$}  {doc}",
+                "\n  `--{flag_text}`{spacer:spacing$}  {doc}",
                 doc = flag.doc,
                 // `fmt::Arguments` does not respect width controls so we must place the spacers
                 // explicitly:
@@ -4708,4 +4714,21 @@ fn exclude_workspace(
     cx.editor.workspace_trust.exclude(&workspace);
     cx.editor.config_events.0.send(ConfigEvent::Refresh)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod command_line_doc_tests {
+    use super::*;
+
+    #[test]
+    fn formats_command_metadata_as_markdown() {
+        let exit_doc = command_line_doc("exit").unwrap();
+        assert!(exit_doc.contains("(`:exit some/path.txt`)"));
+        assert!(exit_doc.contains("Aliases: `:x`, `:xit`"));
+        assert!(exit_doc.contains("\n  `--no-format`"));
+
+        let sort_doc = command_line_doc("sort").unwrap();
+        assert!(sort_doc.contains("\n  `--insensitive/-i`"));
+        assert!(sort_doc.contains("\n  `--reverse/-r`"));
+    }
 }
