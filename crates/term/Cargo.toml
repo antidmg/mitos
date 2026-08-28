@@ -42,64 +42,61 @@ name = "ms"
 path = "src/main.rs"
 
 [dependencies]
-stdx = { path = "../stdx" }
-core = { path = "../core" }
-event = { path = "../event" }
-view = { path = "../view", features = ["term"] }
-lsp = { path = "../lsp" }
-dap = { path = "../dap" }
-vcs = { path = "../vcs" }
-loader = { path = "../loader" }
+stdx.workspace = true
+core.workspace = true
+event.workspace = true
+view = { workspace = true, features = ["term"] }
+lsp.workspace = true
+dap.workspace = true
+vcs.workspace = true
+loader.workspace = true
 
-anyhow = "1"
-tokio = { version = "1", features = ["rt", "rt-multi-thread", "io-util", "io-std", "time", "process", "macros", "fs", "parking_lot"] }
-tui = { path = "../tui", default-features = false, features = ["termina", "crossterm"] }
+anyhow.workspace = true
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "io-util", "io-std", "time", "process", "macros", "fs", "parking_lot"] }
+tui = { workspace = true, default-features = false, features = ["termina", "crossterm"] }
 termina = { workspace = true, features = ["event-stream"] }
-signal-hook = "0.4"
-tokio-stream = "0.1"
-futures-util = { version = "0.3", features = ["std", "async-await"], default-features = false }
+signal-hook.workspace = true
+tokio-stream.workspace = true
+futures-util.workspace = true
 arc-swap.workspace = true
-termini = "1"
-indexmap = { version = "2.14", features = ["serde"] }
+termini.workspace = true
+indexmap = { workspace = true, features = ["serde"] }
 
 # Logging
-log = { version = "0.4", features = ["std"] }
+log = { workspace = true, features = ["std"] }
 
 # File picker
 nucleo.workspace = true
-ignore = "0.4"
-grep-regex = "0.1"
-grep-searcher = "0.1"
-grep-matcher = "0.1"
+ignore.workspace = true
+grep-regex.workspace = true
+grep-searcher.workspace = true
+grep-matcher.workspace = true
 # markdown doc rendering
-pulldown-cmark = { version = "0.13", default-features = false }
+pulldown-cmark.workspace = true
 thiserror.workspace = true
 
 # opening URLs
-open = "5.3.5"
+open.workspace = true
 
 # config
 toml.workspace = true
 
-serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
+serde_json.workspace = true
+serde.workspace = true
 
-dashmap = "6.2"
-
-parking_lot.workspace = true
+dashmap.workspace = true
 
 [target.'cfg(windows)'.dependencies]
-crossterm = { version = "0.28", features = ["event-stream"] }
+crossterm = { workspace = true, features = ["event-stream"] }
 
 [target.'cfg(not(windows))'.dependencies]  # https://github.com/vorner/signal-hook/issues/100
-signal-hook-tokio = { version = "0.4", features = ["futures-v0_3"] }
-libc = "0.2.186"
+signal-hook-tokio = { workspace = true, features = ["futures-v0_3"] }
+libc.workspace = true
 
 [build-dependencies]
-loader = { path = "../loader" }
+loader.workspace = true
 
 [dev-dependencies]
-smallvec = "1.15"
-indoc = "2.0.6"
+indoc.workspace = true
 tempfile.workspace = true
-same-file = "1.0.1"
+same-file.workspace = true

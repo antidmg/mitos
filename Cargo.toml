@@ -39,31 +39,90 @@ package.tui.opt-level = 2
 package.term.opt-level = 2
 
 [workspace.dependencies]
-tree-house = { version = "0.4", default-features = false }
-nucleo = "0.5.0"
-slotmap = "1.1.1"
-thiserror = "2.0"
-tempfile = "3.27.0"
-bitflags = "2.12"
-unicode-segmentation = "1.13"
-ropey = { version = "1.6.1", default-features = false, features = ["simd"] }
-foldhash = "0.2"
-parking_lot = "0.12"
-futures-executor = "0.3"
-futures-util = { version = "0.3", features = ["std", "async-await"], default-features = false }
-tokio-stream = "0.1.18"
-toml = "1.1"
-termina = "0.3"
-sonic-rs = "0.5"
-globset = "0.4"
-etcetera = "0.11"
+# Workspace crates
+core = { path = "crates/core" }
+dap = { path = "crates/dap" }
+dap-types = { path = "crates/dap-types" }
+event = { path = "crates/event" }
+loader = { path = "crates/loader" }
+lsp = { path = "crates/lsp" }
+lsp-types = { path = "crates/lsp-types" }
+parsec = { path = "crates/parsec" }
+stdx = { path = "crates/stdx" }
+term = { path = "crates/term" }
+tui = { path = "crates/tui", default-features = false }
+ui-core = { path = "crates/ui-core" }
+vcs = { path = "crates/vcs" }
+view = { path = "crates/view" }
+
+# External crates
+anyhow = "1"
 arc-swap = "1.9"
 arrayvec = "0.7"
-ratatui = { version = "0.30.2", default-features = false, features = ["layout-cache", "std", "underline-color", "unstable-rendered-line-info"] }
-
-# dev dependencies
+bitflags = "2.12"
+cc = "1"
+chardetng = "1.0"
+chrono = { version = "0.4", default-features = false, features = ["alloc", "std"] }
+clipboard-win = "5.4"
 criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
+crossterm = "0.28"
+dashmap = "6.2"
+dunce = "1.0"
+encoding_rs = "0.8"
+etcetera = "0.11"
+foldhash = "0.2"
+futures-executor = "0.3.32"
+futures-util = { version = "0.3", features = ["std", "async-await"], default-features = false }
+gix = { version = "0.85.0", default-features = false }
+globset = "0.4"
+grep-matcher = "0.1"
+grep-regex = "0.1"
+grep-searcher = "0.1"
+hashbrown = "0.17"
+ignore = "0.4"
+imara-diff = "0.2.0"
+indoc = "2.0.6"
+indexmap = "2.14"
+kstring = "2.0"
+libc = "0.2.186"
+log = "0.4"
+nucleo = "0.5.0"
+open = "5.3.5"
+parking_lot = "0.12"
+percent-encoding = "2.3"
+pulldown-cmark = { version = "0.13", default-features = false }
 quickcheck = { version = "1", default-features = false }
+ratatui = { version = "0.30.2", default-features = false, features = ["layout-cache", "std", "underline-color", "unstable-rendered-line-info"] }
+regex = "1"
+regex-automata = "0.4.14"
+regex-cursor = "0.1.5"
+ropey = { version = "1.6.1", default-features = false, features = ["simd"] }
+rustix = "1.1"
+same-file = "1.0.1"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+sha2 = "0.11"
+signal-hook = "0.4"
+signal-hook-tokio = "0.4"
+slotmap = "1.1.1"
+smallvec = "1.15"
+smartstring = "1.0.1"
+sonic-rs = "0.5"
+tempfile = "3.27.0"
+termina = "0.3"
+termini = "1"
+textwrap = "0.16.2"
+thiserror = "2.0"
+threadpool = "1.0"
+tokio = "1.50"
+tokio-stream = "0.1.18"
+toml = "1.1"
+tree-house = { version = "0.4", default-features = false }
+unicode-general-category = "1.1"
+unicode-segmentation = "1.13"
+unicode-width = "=0.1.12"
+which = "8.0"
+windows-sys = "0.61"
 
 [workspace.package]
 version = "0.1.0"

@@ -15,14 +15,14 @@ homepage.workspace = true
 default = ["termina", "crossterm"]
 
 [dependencies]
-ui-core = { path = "../ui-core", features = ["term"] }
+ui-core = { workspace = true, features = ["term"] }
 
 ratatui.workspace = true
 unicode-segmentation.workspace = true
-unicode-width = "=0.1.12"
+unicode-width.workspace = true
 termina = { workspace = true, optional = true }
-termini = "1.0"
-log = "~0.4"
+termini.workspace = true
+log.workspace = true
 
 [target.'cfg(windows)'.dependencies]
-crossterm = { version = "0.28", optional = true }
+crossterm = { workspace = true, optional = true }

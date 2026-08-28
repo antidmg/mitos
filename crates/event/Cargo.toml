@@ -13,15 +13,15 @@ homepage.workspace = true
 
 [dependencies]
 foldhash.workspace = true
-hashbrown = "0.17"
-tokio = { version = "1", features = ["rt", "rt-multi-thread", "time", "sync", "parking_lot", "macros"] }
+hashbrown.workspace = true
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "time", "sync", "parking_lot", "macros"] }
 # the event registry is essentially read only but must be an rwlock so we can
 # setup new events on initialization, hardware-lock-elision hugely benefits this case
 # as it essentially makes the lock entirely free as long as there is no writes 
 parking_lot = { workspace = true, features = ["hardware-lock-elision", "send_guard"] }
-anyhow = "1"
-log = "0.4"
-futures-executor = "0.3.32"
+anyhow.workspace = true
+log.workspace = true
+futures-executor.workspace = true
 
 [features]
 integration_test = []

@@ -17,8 +17,8 @@ term = ["dep:termina", "dep:crossterm"]
 [dependencies]
 bitflags.workspace = true
 ratatui.workspace = true
-serde = { version = "1.0", features = ["derive"] }
+serde.workspace = true
 termina = { workspace = true, optional = true }
 
 [target.'cfg(windows)'.dependencies]
-crossterm = { version = "0.28", optional = true }
+crossterm = { workspace = true, optional = true }

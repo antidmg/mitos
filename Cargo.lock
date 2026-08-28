@@ -347,14 +347,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "arc-swap",
- "bitflags 2.13.0",
  "chrono",
  "dap-types",
  "encoding_rs",
  "foldhash 0.2.0",
  "globset",
  "imara-diff",
- "indoc",
  "loader",
  "log",
  "nucleo",
@@ -3426,14 +3424,12 @@ dependencies = [
  "lsp",
  "nucleo",
  "open",
- "parking_lot",
  "pulldown-cmark",
  "same-file",
  "serde",
  "serde_json",
  "signal-hook 0.4.4",
  "signal-hook-tokio",
- "smallvec",
  "stdx",
  "tempfile",
  "termina",
@@ -3935,7 +3931,6 @@ dependencies = [
  "parking_lot",
  "quickcheck",
  "ratatui",
- "rustix 1.1.4",
  "serde",
  "serde_json",
  "slotmap",
@@ -3946,7 +3941,6 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "toml",
- "tui",
  "ui-core",
  "vcs",
 ]
@@ -4477,11 +4471,9 @@ name = "xtask"
 version = "0.1.0"
 dependencies = [
  "core",
- "loader",
  "ropey",
  "stdx",
  "term",
- "toml",
  "view",
 ]
 
