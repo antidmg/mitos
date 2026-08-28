@@ -349,6 +349,7 @@ dependencies = [
  "arc-swap",
  "bitflags 2.13.0",
  "chrono",
+ "dap-types",
  "encoding_rs",
  "foldhash 0.2.0",
  "globset",
@@ -562,7 +563,6 @@ name = "dap"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "core",
  "dap-types",
  "futures-executor",
  "futures-util",

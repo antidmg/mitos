@@ -3,6 +3,53 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct AdvancedCompletion {
+    pub name: Option<String>,
+    pub completion: Option<String>,
+    pub default: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case", untagged)]
+pub enum DebugConfigCompletion {
+    Named(String),
+    Advanced(AdvancedCompletion),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct DebugTemplate {
+    pub name: String,
+    pub request: String,
+    #[serde(default)]
+    pub completion: Vec<DebugConfigCompletion>,
+    pub args: HashMap<String, Value>,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct DebugAdapterConfig {
+    pub name: String,
+    pub transport: String,
+    #[serde(default)]
+    pub command: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+    pub port_arg: Option<String>,
+    pub templates: Vec<DebugTemplate>,
+    #[serde(default)]
+    pub quirks: DebuggerQuirks,
+}
+
+/// Workarounds for differences between debug adapters.
+#[derive(Debug, Default, PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub struct DebuggerQuirks {
+    #[serde(default)]
+    pub absolute_paths: bool,
+}
+
 #[derive(
     Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize,
 )]

@@ -14,7 +14,6 @@ homepage.workspace = true
 
 [dependencies]
 stdx = { path = "../stdx" }
-core = { path = "../core" }
 dap-types = { path = "../dap-types" }
 
 anyhow = "1.0"

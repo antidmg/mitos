@@ -5,7 +5,6 @@ use crate::{
     Error, ProgressMap, ProgressState, Result,
 };
 use dap_types::*;
-use editor_core::syntax::config::{DebugAdapterConfig, DebuggerQuirks};
 
 use serde_json::Value;
 

@@ -1,5 +1,5 @@
 use crate::{Client, Payload, Result, StackFrame};
-use editor_core::syntax::config::DebugAdapterConfig;
+use dap_types::DebugAdapterConfig;
 use futures_executor::block_on;
 use futures_util::stream::SelectAll;
 use slotmap::SlotMap;
