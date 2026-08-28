@@ -55,74 +55,94 @@ ui-core = { path = "crates/ui-core" }
 vcs = { path = "crates/vcs" }
 view = { path = "crates/view" }
 
-# External crates
+# Runtime and diagnostics
 anyhow = "1"
-arc-swap = "1.9"
-arrayvec = "0.7"
-bitflags = "2.12"
-cc = "1"
-chardetng = "1.0"
 chrono = { version = "0.4", default-features = false, features = ["alloc", "std"] }
-clipboard-win = "5.4"
-criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
-crossterm = "0.28"
+log = "0.4"
+thiserror = "2.0"
+
+# Async and concurrency
+arc-swap = "1.9"
 dashmap = "6.2"
-dunce = "1.0"
-encoding_rs = "0.8"
-etcetera = "0.11"
-foldhash = "0.2"
 futures-executor = "0.3.32"
 futures-util = { version = "0.3", features = ["std", "async-await"], default-features = false }
-gix = { version = "0.85.0", default-features = false }
+parking_lot = "0.12"
+tokio = "1.50"
+tokio-stream = "0.1.18"
+
+# Collections and compact storage
+arrayvec = "0.7"
+bitflags = "2.12"
+foldhash = "0.2"
+hashbrown = "0.17"
+indexmap = "2.14"
+kstring = "2.0"
+slotmap = "1.1.1"
+smallvec = "1.15"
+smartstring = "1.0.1"
+
+# Text and Unicode
+chardetng = "1.0"
+encoding_rs = "0.8"
+ropey = { version = "1.6.1", default-features = false, features = ["simd"] }
+textwrap = "0.16.2"
+unicode-general-category = "1.1"
+unicode-segmentation = "1.13"
+unicode-width = "=0.1.12"
+
+# Parsing, search, and diffing
 globset = "0.4"
 grep-matcher = "0.1"
 grep-regex = "0.1"
 grep-searcher = "0.1"
-hashbrown = "0.17"
 ignore = "0.4"
 imara-diff = "0.2.0"
-indoc = "2.0.6"
-indexmap = "2.14"
-kstring = "2.0"
-libc = "0.2.186"
-log = "0.4"
 nucleo = "0.5.0"
-open = "5.3.5"
-parking_lot = "0.12"
 percent-encoding = "2.3"
 pulldown-cmark = { version = "0.13", default-features = false }
-quickcheck = { version = "1", default-features = false }
-ratatui = { version = "0.30.2", default-features = false, features = ["layout-cache", "std", "underline-color", "unstable-rendered-line-info"] }
 regex = "1"
 regex-automata = "0.4.14"
 regex-cursor = "0.1.5"
-ropey = { version = "1.6.1", default-features = false, features = ["simd"] }
-rustix = "1.1"
-same-file = "1.0.1"
+tree-house = { version = "0.4", default-features = false }
+
+# Serialization and configuration
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
-sha2 = "0.11"
-signal-hook = "0.4"
-signal-hook-tokio = "0.4"
-slotmap = "1.1.1"
-smallvec = "1.15"
-smartstring = "1.0.1"
 sonic-rs = "0.5"
-tempfile = "3.27.0"
+toml = "1.1"
+
+# Terminal and UI
+clipboard-win = "5.4"
+crossterm = "0.28"
+ratatui = { version = "0.30.2", default-features = false, features = ["layout-cache", "std", "underline-color", "unstable-rendered-line-info"] }
 termina = "0.3"
 termini = "1"
-textwrap = "0.16.2"
-thiserror = "2.0"
-threadpool = "1.0"
-tokio = "1.50"
-tokio-stream = "0.1.18"
-toml = "1.1"
-tree-house = { version = "0.4", default-features = false }
-unicode-general-category = "1.1"
-unicode-segmentation = "1.13"
-unicode-width = "=0.1.12"
+
+# System integration
+dunce = "1.0"
+etcetera = "0.11"
+libc = "0.2.186"
+open = "5.3.5"
+rustix = "1.1"
+signal-hook = "0.4"
+signal-hook-tokio = "0.4"
+tempfile = "3.27.0"
 which = "8.0"
 windows-sys = "0.61"
+
+# Version control
+gix = { version = "0.85.0", default-features = false }
+
+# Grammar build tooling
+cc = "1"
+sha2 = "0.11"
+threadpool = "1.0"
+
+# Tests and benchmarks
+criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
+indoc = "2.0.6"
+quickcheck = { version = "1", default-features = false }
+same-file = "1.0.1"
 
 [workspace.package]
 version = "0.1.0"
