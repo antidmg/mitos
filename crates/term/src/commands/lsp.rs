@@ -302,12 +302,12 @@ fn diag_picker(
         ui::PickerColumn::new("code", |item: &PickerDiagnostic, _| {
             match item.diag.code.as_ref() {
                 Some(NumberOrString::Number(n)) => n.to_string().into(),
-                Some(NumberOrString::String(s)) => s.as_str().into(),
+                Some(NumberOrString::String(s)) => (&**s).into(),
                 None => "".into(),
             }
         }),
         ui::PickerColumn::new("message", |item: &PickerDiagnostic, _| {
-            item.diag.message.as_str().into()
+            (&*item.diag.message).into()
         }),
     ];
     let mut primary_column = 3; // message
