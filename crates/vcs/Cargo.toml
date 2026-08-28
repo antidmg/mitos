@@ -1,5 +1,6 @@
 [package]
 name = "vcs"
+description = "Version-control status and asynchronous diff support for Mitos"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

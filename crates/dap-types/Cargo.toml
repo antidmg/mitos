@@ -1,6 +1,6 @@
 [package]
 name = "dap-types"
-description = "Types for interaction with a debug adapaters, using Debug Adapter Protocol"
+description = "Serde data types for the Debug Adapter Protocol used by Mitos"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

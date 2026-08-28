@@ -1,6 +1,6 @@
 [package]
 name = "loader"
-description = "Build bootstrapping for Mitos crates"
+description = "Runtime discovery, grammar loading, and workspace trust support for Mitos"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

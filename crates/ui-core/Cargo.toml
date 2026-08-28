@@ -1,6 +1,6 @@
 [package]
 name = "ui-core"
-description = "Lightweight UI primitives shared by Mitos frontends and backends"
+description = "Backend-neutral geometry, color, and style primitives for Mitos UI crates"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

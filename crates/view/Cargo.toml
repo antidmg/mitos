@@ -1,6 +1,6 @@
 [package]
 name = "view"
-description = "UI abstractions for use in backends"
+description = "Editor state, documents, views, input, and themes for Mitos"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

@@ -1,6 +1,6 @@
 [package]
 name = "dap"
-description = "DAP client implementation for Mitos project"
+description = "Async Debug Adapter Protocol client and transport for Mitos"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

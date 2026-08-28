@@ -1,7 +1,7 @@
 [package]
 name = "core"
-description = "Mitos editor core editing primitives"
-include = ["src/**/*", "README.md"]
+description = "Core text-editing primitives and language-aware document operations for Mitos"
+include = ["src/**/*", "README.md", "LICENSE"]
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

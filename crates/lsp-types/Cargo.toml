@@ -9,7 +9,7 @@ authors = [
   "Mitos contributors"
 ]
 edition = "2024"
-description = "Types for interaction with a language server, using VSCode's Language Server Protocol"
+description = "Protocol data types for the Language Server Protocol used by Mitos"
 
 repository = "https://github.com/gluon-lang/lsp-types"
 documentation = "https://docs.rs/lsp-types"

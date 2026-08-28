@@ -1,7 +1,7 @@
 [package]
 name = "parsec"
-description = "Parser combinators for Mitos"
-include = ["src/**/*", "README.md"]
+description = "Small parser combinators for Mitos command and snippet parsers"
+include = ["src/**/*", "README.md", "LICENSE"]
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

@@ -1,7 +1,3 @@
-# tui
+# `tui`
 
-Mitos's terminal UI integration, built on [Ratatui](https://ratatui.rs/).
-
-Ratatui provides the terminal, frame, buffer, layout, text, style, and widget
-implementations. This crate contains only the terminal backends and the small
-editor-specific rendering extensions that Mitos needs.
+`tui` is Mitos's thin terminal-rendering layer over [Ratatui](https://ratatui.rs/). It provides terminal backends, surface extensions, and the small table compatibility layer used by the editor.

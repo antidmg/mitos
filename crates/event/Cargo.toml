@@ -1,5 +1,6 @@
 [package]
 name = "event"
+description = "Typed hooks, async coordination, and redraw signaling for Mitos"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

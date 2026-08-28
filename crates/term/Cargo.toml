@@ -1,7 +1,7 @@
 [package]
 name = "term"
-description = "A post-modern text editor."
-include = ["src/**/*", "README.md"]
+description = "Mitos terminal application, command handlers, event loop, and interactive UI"
+include = ["src/**/*", "README.md", "LICENSE"]
 default-run = "ms"
 version.workspace = true
 authors.workspace = true

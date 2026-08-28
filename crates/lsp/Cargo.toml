@@ -1,6 +1,6 @@
 [package]
 name = "lsp"
-description = "LSP client implementation for Mitos project"
+description = "Async Language Server Protocol client and transport for Mitos"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
