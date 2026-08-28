@@ -3899,12 +3899,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "arc-swap",
- "core",
  "event",
  "gix",
  "imara-diff",
  "log",
  "parking_lot",
+ "ropey",
  "tempfile",
  "tokio",
 ]

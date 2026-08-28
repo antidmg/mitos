@@ -1,4 +1,4 @@
-use editor_core::Rope;
+use ropey::Rope;
 use tokio::task::JoinHandle;
 
 use crate::diff::{DiffHandle, Hunk};

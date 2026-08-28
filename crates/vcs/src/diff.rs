@@ -1,10 +1,10 @@
 use std::iter::Peekable;
 use std::sync::Arc;
 
-use editor_core::Rope;
 use event::RenderLockGuard;
 use imara_diff::Algorithm;
 use parking_lot::{RwLock, RwLockReadGuard};
+use ropey::Rope;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
