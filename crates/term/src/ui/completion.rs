@@ -554,12 +554,6 @@ impl Component for Completion {
         };
 
         let popup_area = self.popup.area(area, cx.editor);
-        let render_border = cx.editor.popup_border();
-        let border_inset = if render_border {
-            panel::BORDER_INSET
-        } else {
-            0
-        };
         let doc_width_available = area.right().saturating_sub(popup_area.right());
         let doc_area = if doc_width_available > 30 {
             let mut doc_width = doc_width_available;
@@ -570,8 +564,10 @@ impl Component for Completion {
             if let Some((rel_width, rel_height)) =
                 markdown_doc.required_size((doc_width, doc_height))
             {
-                doc_width = rel_width.saturating_add(border_inset).min(doc_width);
-                doc_height = rel_height.saturating_add(border_inset).min(doc_height);
+                doc_width = rel_width.saturating_add(panel::BORDER_INSET).min(doc_width);
+                doc_height = rel_height
+                    .saturating_add(panel::BORDER_INSET)
+                    .min(doc_height);
             }
             Rect::new(x, y, doc_width, doc_height)
         } else {
@@ -603,15 +599,10 @@ impl Component for Completion {
         let background = cx.editor.theme.get("ui.popup");
         surface.clear_with(doc_area, background);
 
-        let markdown_area = if render_border {
-            use tui::widgets::Widget;
-            let block = panel::bordered(&cx.editor.theme);
-            let inner = block.inner(doc_area);
-            Widget::render(block, doc_area, surface);
-            inner
-        } else {
-            doc_area
-        };
+        use tui::widgets::Widget;
+        let block = panel::bordered(&cx.editor.theme);
+        let markdown_area = block.inner(doc_area);
+        Widget::render(block, doc_area, surface);
 
         markdown_doc.render(markdown_area, surface, cx);
     }

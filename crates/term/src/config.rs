@@ -240,4 +240,11 @@ mod tests {
                 .welcome_screen
         );
     }
+
+    #[test]
+    fn popup_border_is_not_configurable() {
+        let config = "[editor]\npopup-border = \"none\"".to_owned();
+        let error = Config::load(Ok(&config), Err(ConfigLoadError::default())).unwrap_err();
+        assert!(error.to_string().contains("unknown field `popup-border`"));
+    }
 }

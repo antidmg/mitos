@@ -142,7 +142,7 @@ impl Component for SignatureHelp {
                 Constraint::Length(1),
                 Constraint::Length(1),
                 Constraint::Min(0),
-                Constraint::Length(u16::from(cx.editor.popup_border())),
+                Constraint::Length(1),
             ])
             .areas(area);
         panel::top_border(cx.editor.theme.get("ui.window")).render(separator_area, surface);

@@ -146,12 +146,6 @@ impl<T: Component> Popup<T> {
             self.position = Some(position);
         }
 
-        let mut render_borders = if matches!(self.kind, PopupKind::Menu) {
-            editor.menu_border()
-        } else {
-            editor.popup_border()
-        };
-
         // -- make sure frame doesn't stick out of bounds
         let mut rel_x = position.col as u16;
         let mut rel_y = position.row as u16;
@@ -179,7 +173,7 @@ impl<T: Component> Popup<T> {
         };
         max_height = max_height.min(MAX_HEIGHT);
         let mut max_width = viewport.width.saturating_sub(2).min(MAX_WIDTH);
-        render_borders = render_borders && max_height > 3 && max_width > 3;
+        let render_borders = max_height > 3 && max_width > 3;
         if render_borders {
             max_width -= 2;
             max_height -= 2;

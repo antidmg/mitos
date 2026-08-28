@@ -415,8 +415,6 @@ pub struct Config {
     pub trim_trailing_whitespace: bool,
     /// Enables smart tab
     pub smart_tab: Option<SmartTabConfig>,
-    /// Draw border around popups.
-    pub popup_border: PopupBorderConfig,
     /// Which indent heuristic to use when a new line is inserted
     #[serde(default)]
     pub indent_heuristic: IndentationHeuristic,
@@ -1162,15 +1160,6 @@ impl From<LineEndingConfig> for LineEnding {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum PopupBorderConfig {
-    None,
-    All,
-    Popup,
-    Menu,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "kebab-case", deny_unknown_fields)]
 pub struct WordCompletion {
@@ -1247,7 +1236,6 @@ impl Default for Config {
             trim_final_newlines: false,
             trim_trailing_whitespace: false,
             smart_tab: Some(SmartTabConfig::default()),
-            popup_border: PopupBorderConfig::None,
             indent_heuristic: IndentationHeuristic::default(),
             jump_label_alphabet: ('a'..='z').collect(),
             inline_diagnostics: InlineDiagnosticsConfig::default(),
@@ -1487,16 +1475,6 @@ impl Editor {
             dir_stack: VecDeque::with_capacity(DIR_STACK_CAP),
             workspace_trust,
         }
-    }
-
-    pub fn popup_border(&self) -> bool {
-        self.config().popup_border == PopupBorderConfig::All
-            || self.config().popup_border == PopupBorderConfig::Popup
-    }
-
-    pub fn menu_border(&self) -> bool {
-        self.config().popup_border == PopupBorderConfig::All
-            || self.config().popup_border == PopupBorderConfig::Menu
     }
 
     pub fn apply_motion<F: Fn(&mut Self) + 'static>(&mut self, motion: F) {
