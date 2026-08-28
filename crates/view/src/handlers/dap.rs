@@ -15,7 +15,7 @@ use std::path::PathBuf;
 
 #[macro_export]
 macro_rules! debugger {
-    ($editor:expr) => {{
+    ($editor:expr_2021) => {{
         let Some(debugger) = $editor.debug_adapters.get_active_client_mut() else {
             return;
         };
@@ -269,10 +269,10 @@ impl Editor {
                                     warn!("DAP breakpoint event missing id");
                                     return false;
                                 };
-                                if let Some(source) = &breakpoint.source {
-                                    if source.path.is_none() {
-                                        warn!("DAP breakpoint event missing source path");
-                                    }
+                                if let Some(source) = &breakpoint.source
+                                    && source.path.is_none()
+                                {
+                                    warn!("DAP breakpoint event missing source path");
                                 }
                                 if breakpoint.line.is_none() {
                                     warn!("DAP breakpoint event missing line");
@@ -386,10 +386,15 @@ impl Editor {
                         }
                         // TODO: fetch breakpoints (in case we're attaching)
 
-                        if let Err(err) = debugger.configuration_done().await {
-                            self.set_error(|| format!("Debugger configuration failed: {}", err));
-                        } else {
-                            self.set_status("Debugged application started");
+                        match debugger.configuration_done().await {
+                            Err(err) => {
+                                self.set_error(|| {
+                                    format!("Debugger configuration failed: {}", err)
+                                });
+                            }
+                            _ => {
+                                self.set_status("Debugged application started");
+                            }
                         }
 
                         self.debug_adapters.set_active_client(id);

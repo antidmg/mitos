@@ -265,7 +265,8 @@ impl Transport {
             }
         };
 
-        if let Some(tx) = self.pending_requests.lock().await.remove(&id) {
+        let tx = self.pending_requests.lock().await.remove(&id);
+        if let Some(tx) = tx {
             match tx.send(result).await {
                 Ok(_) => (),
                 Err(_) => log::debug!(
@@ -318,7 +319,11 @@ impl Transport {
                     }
 
                     // Close any outstanding requests.
-                    for (id, tx) in transport.pending_requests.lock().await.drain() {
+                    let pending_requests: Vec<_> = {
+                        let mut pending_requests = transport.pending_requests.lock().await;
+                        pending_requests.drain().collect()
+                    };
+                    for (id, tx) in pending_requests {
                         match tx.send(Err(Error::StreamClosed)).await {
                             Ok(_) => (),
                             Err(_) => {

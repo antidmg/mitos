@@ -53,12 +53,15 @@ pub(super) fn shell_keep_pipe(cx: &mut Context) {
 
         for (i, range) in selection.ranges().iter().enumerate() {
             let fragment = range.slice(text);
-            if let Err(err) = shell_impl(shell, args.join(" ").as_str(), Some(fragment.into())) {
-                log::debug!("Shell command failed: {}", err);
-            } else {
-                ranges.push(*range);
-                if i >= old_index && index.is_none() {
-                    index = Some(ranges.len() - 1);
+            match shell_impl(shell, args.join(" ").as_str(), Some(fragment.into())) {
+                Err(err) => {
+                    log::debug!("Shell command failed: {}", err);
+                }
+                _ => {
+                    ranges.push(*range);
+                    if i >= old_index && index.is_none() {
+                        index = Some(ranges.len() - 1);
+                    }
                 }
             }
         }
@@ -104,21 +107,24 @@ pub(super) async fn shell_impl_async(
             return Err(e.into());
         }
     };
-    let output = if let Some(mut stdin) = process.stdin.take() {
-        let input_task = tokio::spawn(async move {
-            if let Some(input) = input {
-                view::document::to_writer(&mut stdin, (encoding::UTF_8, false), &input).await?;
-            }
-            anyhow::Ok(())
-        });
-        let (output, _) = tokio::join! {
-            process.wait_with_output(),
-            input_task,
-        };
-        output?
-    } else {
-        // Process has no stdin, so we just take the output
-        process.wait_with_output().await?
+    let output = match process.stdin.take() {
+        Some(mut stdin) => {
+            let input_task = tokio::spawn(async move {
+                if let Some(input) = input {
+                    view::document::to_writer(&mut stdin, (encoding::UTF_8, false), &input).await?;
+                }
+                anyhow::Ok(())
+            });
+            let (output, _) = tokio::join! {
+                process.wait_with_output(),
+                input_task,
+            };
+            output?
+        }
+        _ => {
+            // Process has no stdin, so we just take the output
+            process.wait_with_output().await?
+        }
     };
 
     let output = if !output.status.success() {

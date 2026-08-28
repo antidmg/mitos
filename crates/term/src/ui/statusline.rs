@@ -489,15 +489,15 @@ where
 {
     let file_type = context.doc.language_name().unwrap_or(DEFAULT_LANGUAGE_NAME);
 
-    if context.editor.config().icons {
-        if let (Some(file), Some(path)) = (ICONS.load().fs().file(), context.doc.path()) {
-            write(
-                context,
-                Span::from(file.get_with_style_or_default(path, &context.editor.theme)),
-            );
-            write(context, format!("{file_type} ").into());
-            return;
-        }
+    if context.editor.config().icons
+        && let (Some(file), Some(path)) = (ICONS.load().fs().file(), context.doc.path())
+    {
+        write(
+            context,
+            Span::from(file.get_with_style_or_default(path, &context.editor.theme)),
+        );
+        write(context, format!("{file_type} ").into());
+        return;
     }
 
     write(context, format!(" {} ", file_type).into());
@@ -603,12 +603,13 @@ where
         .unwrap_or_default()
         .to_string();
 
-    if context.editor.config().icons && !head.is_empty() {
-        if let Some(icon) = ICONS.load().vcs().branch() {
-            write(context, Span::from(icon));
-            write(context, format!("{head} ").into());
-            return;
-        }
+    if context.editor.config().icons
+        && !head.is_empty()
+        && let Some(icon) = ICONS.load().vcs().branch()
+    {
+        write(context, Span::from(icon));
+        write(context, format!("{head} ").into());
+        return;
     }
 
     write(context, head.into());

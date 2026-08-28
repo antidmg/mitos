@@ -143,10 +143,8 @@ impl<'a> Table<'a> {
 impl<'a> Row<'a> {
     fn into_ratatui(self, widths: &[Constraint], truncate_start: bool) -> RatatuiRow<'a> {
         let cells = self.cells.into_iter().enumerate().map(|(index, mut cell)| {
-            if truncate_start {
-                if let Some(Constraint::Length(width)) = widths.get(index) {
-                    truncate_text_start(&mut cell.content, *width as usize);
-                }
+            if truncate_start && let Some(Constraint::Length(width)) = widths.get(index) {
+                truncate_text_start(&mut cell.content, *width as usize);
             }
             RatatuiCell::new(cell.content)
         });

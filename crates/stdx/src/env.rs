@@ -25,10 +25,10 @@ pub fn current_working_dir() -> PathBuf {
     #[cfg(windows)]
     let pwd = pwd.or_else(|| std::env::var_os("CD"));
 
-    if let Some(pwd) = pwd.map(PathBuf::from) {
-        if pwd.canonicalize().ok().as_ref() == Some(&cwd) {
-            cwd = pwd;
-        }
+    if let Some(pwd) = pwd.map(PathBuf::from)
+        && pwd.canonicalize().ok().as_ref() == Some(&cwd)
+    {
+        cwd = pwd;
     }
     let mut dst = CWD.write().unwrap();
     *dst = Some(cwd.clone());
@@ -192,7 +192,7 @@ mod tests {
     }
 
     macro_rules! assert_env_expand {
-        ($env: expr, $lhs: expr, $rhs: expr) => {
+        ($env: expr_2021, $lhs: expr_2021, $rhs: expr_2021) => {
             assert_eq!(&*expand_impl($lhs.as_ref(), $env), OsStr::new($rhs));
         };
     }

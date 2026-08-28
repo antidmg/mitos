@@ -167,11 +167,6 @@ fn test_treesitter_indent(
 ) {
     let loader = Loader::new(indent_tests_config()).unwrap();
 
-    // set runtime path so we can find the queries
-    let mut runtime = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    runtime.push("../../runtime");
-    std::env::set_var("MITOS_RUNTIME", runtime.to_str().unwrap());
-
     let language = loader.language_for_scope(lang_scope).unwrap();
     let language_config = loader.language(language).config();
     let indent_style = IndentStyle::from_str(&language_config.indent.as_ref().unwrap().unit);

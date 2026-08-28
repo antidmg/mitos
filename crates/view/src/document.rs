@@ -1068,7 +1068,7 @@ impl Document {
         path: Option<P>,
         force: bool,
     ) -> Result<
-        impl Future<Output = Result<DocumentSavedEvent, anyhow::Error>> + 'static + Send,
+        impl Future<Output = Result<DocumentSavedEvent, anyhow::Error>> + 'static + Send + use<P>,
         anyhow::Error,
     > {
         let path = path.map(|path| path.into());
@@ -1084,7 +1084,7 @@ impl Document {
         path: Option<PathBuf>,
         force: bool,
     ) -> Result<
-        impl Future<Output = Result<DocumentSavedEvent, anyhow::Error>> + 'static + Send,
+        impl Future<Output = Result<DocumentSavedEvent, anyhow::Error>> + 'static + Send + use<>,
         anyhow::Error,
     > {
         log::debug!(
@@ -1132,14 +1132,12 @@ impl Document {
             }
 
             // Protect against overwriting changes made externally
-            if !force {
-                if let Ok(metadata) = fs::metadata(&path).await {
-                    if let Ok(mtime) = metadata.modified() {
-                        if last_saved_time < mtime {
-                            bail!("file modified by an external process, use :w! to overwrite");
-                        }
-                    }
-                }
+            if !force
+                && let Ok(metadata) = fs::metadata(&path).await
+                && let Ok(mtime) = metadata.modified()
+                && last_saved_time < mtime
+            {
+                bail!("file modified by an external process, use :w! to overwrite");
             }
             let write_path = tokio::fs::read_link(&path)
                 .await
@@ -1327,10 +1325,10 @@ impl Document {
     }
 
     pub fn detect_editor_config(&mut self) {
-        if self.config.load().editor_config {
-            if let Some(path) = self.path.as_ref() {
-                self.editor_config = EditorConfig::find(path);
-            }
+        if self.config.load().editor_config
+            && let Some(path) = self.path.as_ref()
+        {
+            self.editor_config = EditorConfig::find(path);
         }
     }
 
@@ -2080,14 +2078,17 @@ impl Document {
 
     /// Intialize/updates the differ for this document with a new base.
     pub fn set_diff_base(&mut self, diff_base: Vec<u8>) {
-        if let Ok((diff_base, ..)) = from_reader(&mut diff_base.as_slice(), Some(self.encoding)) {
-            if let Some(differ) = &self.diff_handle {
-                differ.update_diff_base(diff_base);
-                return;
+        match from_reader(&mut diff_base.as_slice(), Some(self.encoding)) {
+            Ok((diff_base, ..)) => {
+                if let Some(differ) = &self.diff_handle {
+                    differ.update_diff_base(diff_base);
+                    return;
+                }
+                self.diff_handle = Some(DiffHandle::new(diff_base, self.text.clone()))
             }
-            self.diff_handle = Some(DiffHandle::new(diff_base, self.text.clone()))
-        } else {
-            self.diff_handle = None;
+            _ => {
+                self.diff_handle = None;
+            }
         }
     }
 
@@ -2287,12 +2288,11 @@ impl Document {
             }
         });
 
-        if let Some(lang_conf) = language_config {
-            if let Some(severity) = severity {
-                if severity < lang_conf.diagnostic_severity {
-                    return None;
-                }
-            }
+        if let Some(lang_conf) = language_config
+            && let Some(severity) = severity
+            && severity < lang_conf.diagnostic_severity
+        {
+            return None;
         };
         use editor_core::diagnostic::{DiagnosticTag, NumberOrString};
 
@@ -2305,16 +2305,13 @@ impl Document {
         };
 
         let tags = if let Some(tags) = &diagnostic.tags {
-            let new_tags = tags
-                .iter()
+            tags.iter()
                 .filter_map(|tag| match *tag {
                     lsp::DiagnosticTag::DEPRECATED => Some(DiagnosticTag::Deprecated),
                     lsp::DiagnosticTag::UNNECESSARY => Some(DiagnosticTag::Unnecessary),
                     _ => None,
                 })
-                .collect();
-
-            new_tags
+                .collect()
         } else {
             Vec::new()
         };
@@ -2978,7 +2975,7 @@ mod test {
     }
 
     macro_rules! decode {
-        ($name:ident, $label:expr, $label_override:expr) => {
+        ($name:ident, $label:expr_2021, $label_override:expr_2021) => {
             #[test]
             fn $name() {
                 let encoding = encoding::Encoding::for_label($label_override.as_bytes()).unwrap();
@@ -2997,13 +2994,13 @@ mod test {
                 assert_eq!(text[..], expectation[..]);
             }
         };
-        ($name:ident, $label:expr) => {
+        ($name:ident, $label:expr_2021) => {
             decode!($name, $label, $label);
         };
     }
 
     macro_rules! encode {
-        ($name:ident, $label:expr, $label_override:expr) => {
+        ($name:ident, $label:expr_2021, $label_override:expr_2021) => {
             #[test]
             fn $name() {
                 let encoding = encoding::Encoding::for_label($label_override.as_bytes()).unwrap();
@@ -3021,7 +3018,7 @@ mod test {
                 assert_eq!(buf, expectation);
             }
         };
-        ($name:ident, $label:expr) => {
+        ($name:ident, $label:expr_2021) => {
             encode!($name, $label, $label);
         };
     }

@@ -1714,10 +1714,10 @@ impl Editor {
             }
         }
 
-        if let Some(dir) = path.parent() {
-            if !dir.is_dir() {
-                fs::create_dir_all(dir)?;
-            }
+        if let Some(dir) = path.parent()
+            && !dir.is_dir()
+        {
+            fs::create_dir_all(dir)?;
         }
         if is_dir {
             fs::create_dir(&path)?;
@@ -2386,18 +2386,21 @@ impl Editor {
         language_servers: &'a lsp_client::Registry,
         diagnostics: &'a Diagnostics,
         document: &Document,
-    ) -> impl Iterator<Item = editor_core::Diagnostic> + 'a {
+    ) -> impl Iterator<Item = editor_core::Diagnostic> + 'a + use<'a> {
         Editor::doc_diagnostics_with_filter(language_servers, diagnostics, document, |_, _| true)
     }
 
     /// Returns all supported diagnostics for the document
     /// filtered by `filter` which is invocated with the raw `lsp::Diagnostic` and the language server id it came from
-    pub fn doc_diagnostics_with_filter<'a>(
+    pub fn doc_diagnostics_with_filter<'a, F>(
         language_servers: &'a lsp_client::Registry,
         diagnostics: &'a Diagnostics,
         document: &Document,
-        filter: impl Fn(&lsp::Diagnostic, &DiagnosticProvider) -> bool + 'a,
-    ) -> impl Iterator<Item = editor_core::Diagnostic> + 'a {
+        filter: F,
+    ) -> impl Iterator<Item = editor_core::Diagnostic> + 'a + use<'a, F>
+    where
+        F: Fn(&lsp::Diagnostic, &DiagnosticProvider) -> bool + 'a,
+    {
         let text = document.text().clone();
         let language_config = document.language.clone();
         document
@@ -2661,7 +2664,7 @@ fn try_restore_indent(doc: &mut Document, view: &mut View) {
     };
 
     fn inserted_a_new_blank_line(changes: &[Operation], pos: usize, line_end_pos: usize) -> bool {
-        if let [Operation::Retain(move_pos), Operation::Insert(ref inserted_str), Operation::Retain(_)] =
+        if let [Operation::Retain(move_pos), Operation::Insert(inserted_str), Operation::Retain(_)] =
             changes
         {
             let mut graphemes = inserted_str.graphemes(true);

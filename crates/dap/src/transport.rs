@@ -153,10 +153,10 @@ impl Transport {
         server_stdin: &mut Box<dyn AsyncWrite + Unpin + Send>,
         mut payload: Payload,
     ) -> Result<()> {
-        if let Payload::Request(request) = &mut payload {
-            if let Some(back) = request.back_ch.take() {
-                self.pending_requests.lock().await.insert(request.seq, back);
-            }
+        if let Payload::Request(request) = &mut payload
+            && let Some(back) = request.back_ch.take()
+        {
+            self.pending_requests.lock().await.insert(request.seq, back);
         }
         let json = serde_json::to_string(&payload)?;
         self.send_string_to_server(server_stdin, json).await
@@ -273,7 +273,11 @@ impl Transport {
                     }
 
                     // Close any outstanding requests.
-                    for (id, tx) in transport.pending_requests.lock().await.drain() {
+                    let pending_requests: Vec<_> = {
+                        let mut pending_requests = transport.pending_requests.lock().await;
+                        pending_requests.drain().collect()
+                    };
+                    for (id, tx) in pending_requests {
                         match tx.send(Err(Error::StreamClosed)).await {
                             Ok(_) => (),
                             Err(_) => {

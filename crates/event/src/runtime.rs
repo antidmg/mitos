@@ -83,7 +83,7 @@ impl<T> Deref for RuntimeLocal<T> {
 #[cfg(feature = "integration_test")]
 #[macro_export]
 macro_rules! runtime_local {
-    ($($(#[$attr:meta])* $vis: vis static $name:ident: $ty: ty = $init: expr;)*) => {
+    ($($(#[$attr:meta])* $vis: vis static $name:ident: $ty: ty = $init: expr_2021;)*) => {
          $($(#[$attr])* $vis static $name: $crate::runtime::RuntimeLocal<$ty> = $crate::runtime::RuntimeLocal::__new(|| $init);)*
     };
 }

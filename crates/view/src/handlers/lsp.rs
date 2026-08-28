@@ -298,11 +298,11 @@ impl Editor {
             .values_mut()
             .find(|doc| doc.uri().is_some_and(|u| u == uri));
 
-        if let Some((version, doc)) = version.zip(doc.as_ref()) {
-            if version != doc.version() {
-                log::info!("Version ({version}) is out of date for {uri:?} (expected ({})), dropping PublishDiagnostic notification", doc.version());
-                return;
-            }
+        if let Some((version, doc)) = version.zip(doc.as_ref())
+            && version != doc.version()
+        {
+            log::info!("Version ({version}) is out of date for {uri:?} (expected ({})), dropping PublishDiagnostic notification", doc.version());
+            return;
         }
 
         let mut unchanged_diag_sources = Vec::new();

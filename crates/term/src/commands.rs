@@ -1365,8 +1365,9 @@ fn selection_overlaps_document_link(
 fn resolve_document_link_request(
     editor: &Editor,
     link: &view::document::DocumentLink,
-) -> Option<impl Future<Output = lsp_client::Result<lsp_client::lsp::DocumentLink>> + Send + 'static>
-{
+) -> Option<
+    impl Future<Output = lsp_client::Result<lsp_client::lsp::DocumentLink>> + Send + 'static + use<>,
+> {
     let language_server = editor.language_server_by_id(link.language_server_id)?;
     let supports_resolve = language_server
         .capabilities()
@@ -1416,10 +1417,10 @@ fn goto_file_impl(cx: &mut Context, action: Action) {
                     if lsp_targets_seen.insert(target.clone()) {
                         lsp_targets.push(target);
                     }
-                } else if unresolved_links.insert((link.start, link.end, link.language_server_id)) {
-                    if let Some(request) = resolve_document_link_request(cx.editor, link) {
-                        resolve_requests.push(request);
-                    }
+                } else if unresolved_links.insert((link.start, link.end, link.language_server_id))
+                    && let Some(request) = resolve_document_link_request(cx.editor, link)
+                {
+                    resolve_requests.push(request);
                 }
             }
             if !matched {
@@ -1443,10 +1444,10 @@ fn goto_file_impl(cx: &mut Context, action: Action) {
             for request in resolve_requests {
                 match request.await {
                     Ok(link) => {
-                        if let Some(target) = link.target {
-                            if seen.insert(target.clone()) {
-                                targets.push(target);
-                            }
+                        if let Some(target) = link.target
+                            && seen.insert(target.clone())
+                        {
+                            targets.push(target);
                         }
                     }
                     Err(err) => log::warn!("Failed to resolve document link: {err}"),
@@ -2204,12 +2205,15 @@ fn select_regex(cx: &mut Context) {
                 return;
             }
             let text = doc.text().slice(..);
-            if let Some(selection) =
-                selection::select_on_matches(text, doc.selection(view.id), &regex)
-            {
-                doc.set_selection(view.id, selection);
-            } else if event == PromptEvent::Validate {
-                cx.editor.set_error(|| "nothing selected");
+            match selection::select_on_matches(text, doc.selection(view.id), &regex) {
+                Some(selection) => {
+                    doc.set_selection(view.id, selection);
+                }
+                _ => {
+                    if event == PromptEvent::Validate {
+                        cx.editor.set_error(|| "nothing selected");
+                    }
+                }
             }
         },
     );
@@ -2413,7 +2417,7 @@ fn search_next_or_prev_impl(cx: &mut Context, movement: Movement, direction: Dir
         };
         let wrap_around = search_config.wrap_around;
         let is_crlf = doc!(cx.editor).line_ending == LineEnding::Crlf;
-        if let Ok(regex) = rope::RegexBuilder::new()
+        match rope::RegexBuilder::new()
             .syntax(
                 rope::Config::new()
                     .case_insensitive(case_insensitive)
@@ -2422,22 +2426,25 @@ fn search_next_or_prev_impl(cx: &mut Context, movement: Movement, direction: Dir
             )
             .build(&query)
         {
-            for _ in 0..count {
-                search_impl(
-                    cx.editor,
-                    &regex,
-                    movement,
-                    direction,
-                    scrolloff,
-                    wrap_around,
-                    true,
-                );
+            Ok(regex) => {
+                for _ in 0..count {
+                    search_impl(
+                        cx.editor,
+                        &regex,
+                        movement,
+                        direction,
+                        scrolloff,
+                        wrap_around,
+                        true,
+                    );
+                }
             }
-        } else {
-            // Only take ownership on the error path so valid repeated searches keep
-            // using the register's borrowed value without an extra allocation.
-            let query = query.into_owned();
-            cx.editor.set_error(|| format!("Invalid regex: {}", query));
+            _ => {
+                // Only take ownership on the error path so valid repeated searches keep
+                // using the register's borrowed value without an extra allocation.
+                let query = query.into_owned();
+                cx.editor.set_error(|| format!("Invalid regex: {}", query));
+            }
         }
     }
 }
@@ -3794,10 +3801,11 @@ pub fn command_palette(cx: &mut Context) {
 fn last_picker(cx: &mut Context) {
     // TODO: last picker does not seem to work well with buffer_picker
     cx.callback.push(Box::new(|compositor, cx| {
-        if let Some(picker) = compositor.last_picker.take() {
-            compositor.push(picker);
-        } else {
-            cx.editor.set_error(|| "no last picker")
+        match compositor.last_picker.take() {
+            Some(picker) => {
+                compositor.push(picker);
+            }
+            _ => cx.editor.set_error(|| "no last picker"),
         }
     }));
 }
@@ -5554,12 +5562,15 @@ fn keep_or_remove_selections_impl(cx: &mut Context, remove: bool) {
             }
             let text = doc.text().slice(..);
 
-            if let Some(selection) =
-                selection::keep_or_remove_matches(text, doc.selection(view.id), &regex, remove)
-            {
-                doc.set_selection(view.id, selection);
-            } else if event == PromptEvent::Validate {
-                cx.editor.set_error(|| "no selections remaining");
+            match selection::keep_or_remove_matches(text, doc.selection(view.id), &regex, remove) {
+                Some(selection) => {
+                    doc.set_selection(view.id, selection);
+                }
+                _ => {
+                    if event == PromptEvent::Validate {
+                        cx.editor.set_error(|| "no selections remaining");
+                    }
+                }
             }
         },
     )
@@ -6128,11 +6139,11 @@ fn vsplit_new(cx: &mut Context) {
 }
 
 fn wclose(cx: &mut Context) {
-    if cx.editor.tree.views().count() == 1 {
-        if let Err(err) = typed::buffers_remaining_impl(cx.editor) {
-            cx.editor.set_error(|| err.to_string());
-            return;
-        }
+    if cx.editor.tree.views().count() == 1
+        && let Err(err) = typed::buffers_remaining_impl(cx.editor)
+    {
+        cx.editor.set_error(|| err.to_string());
+        return;
     }
     let view_id = view!(cx.editor).id;
     // close current split

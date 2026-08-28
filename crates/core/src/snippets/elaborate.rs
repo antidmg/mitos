@@ -206,19 +206,20 @@ impl Snippet {
         transform: parser::Transform,
     ) -> TabstopIdx {
         let idx = TabstopIdx::elaborate(idx);
-        if let Some(transform) = Transform::new(transform) {
-            self.tabstops.push(Tabstop {
+        match Transform::new(transform) {
+            Some(transform) => self.tabstops.push(Tabstop {
                 idx,
                 parent,
                 kind: TabstopKind::Transform(Arc::new(transform)),
-            })
-        } else {
-            // TODO: proper error
-            self.tabstops.push(Tabstop {
-                idx,
-                parent,
-                kind: TabstopKind::Empty,
-            })
+            }),
+            _ => {
+                // TODO: proper error
+                self.tabstops.push(Tabstop {
+                    idx,
+                    parent,
+                    kind: TabstopKind::Empty,
+                })
+            }
         }
         idx
     }

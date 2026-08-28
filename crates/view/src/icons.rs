@@ -73,7 +73,7 @@ impl Icons {
 }
 
 macro_rules! icon {
-    ( glyph: $glyph:expr, fg: $fg:expr, padding: [$p_left:expr, $p_right:expr] ) => {
+    ( glyph: $glyph:expr_2021, fg: $fg:expr_2021, padding: [$p_left:expr_2021, $p_right:expr_2021] ) => {
         Icon {
             glyph: Some(StackString::from($glyph).unwrap()),
             style: Some(Style::default().fg(Color::from_hex($fg).unwrap())),
@@ -83,14 +83,14 @@ macro_rules! icon {
             }),
         }
     };
-    ( glyph: $glyph:expr, fg: $fg:expr ) => {
+    ( glyph: $glyph:expr_2021, fg: $fg:expr_2021 ) => {
         Icon {
             glyph: Some(StackString::from($glyph).unwrap()),
             style: Some(Style::default().fg(Color::from_hex($fg).unwrap())),
             padding: None,
         }
     };
-    ( glyph: $glyph:expr, padding: [$p_left:expr, $p_right:expr] ) => {
+    ( glyph: $glyph:expr_2021, padding: [$p_left:expr_2021, $p_right:expr_2021] ) => {
         Icon {
             glyph: Some(StackString::from($glyph).unwrap()),
             style: None,
@@ -100,14 +100,14 @@ macro_rules! icon {
             }),
         }
     };
-    ( glyph: $glyph:expr ) => {
+    ( glyph: $glyph:expr_2021 ) => {
         Icon {
             glyph: Some(StackString::from($glyph).unwrap()),
             style: None,
             padding: None,
         }
     };
-    ( $glyph:expr ) => {
+    ( $glyph:expr_2021 ) => {
         Icon {
             glyph: Some(StackString::from($glyph).unwrap()),
             style: None,

@@ -134,10 +134,13 @@ impl AsyncHook for Hook {
             Event::Delete(doc, text) => {
                 // If there are pending changes that haven't been indexed since the last debounce,
                 // forget them and delete the old text.
-                if let Some(change) = self.changes.remove(&doc) {
-                    send(&self.coordinator, Event::Delete(doc, change.old_text));
-                } else {
-                    send(&self.coordinator, Event::Delete(doc, text));
+                match self.changes.remove(&doc) {
+                    Some(change) => {
+                        send(&self.coordinator, Event::Delete(doc, change.old_text));
+                    }
+                    _ => {
+                        send(&self.coordinator, Event::Delete(doc, text));
+                    }
                 }
                 timeout
             }

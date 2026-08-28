@@ -916,17 +916,16 @@ fn start_client(
     let root_path = root.clone().unwrap_or_else(|| workspace.clone());
     let root_uri = root.and_then(|root| lsp::Url::from_file_path(root).ok());
 
-    if let Some(globset) = &ls_config.required_root_patterns {
-        if !root_path
+    if let Some(globset) = &ls_config.required_root_patterns
+        && !root_path
             .read_dir()?
             .flatten()
             .map(|entry| entry.file_name())
             .any(|entry| globset.is_match(entry))
-        {
-            // TODO: also show the globset that should be matched: https://github.com/BurntSushi/ripgrep/issues/3274
-            warn!("The lsp {name:?} tried to start at {root_path:?} but failed to match it's 'required_root_patterns'");
-            return Err(StartupError::NoRequiredRootFound);
-        }
+    {
+        // TODO: also show the globset that should be matched: https://github.com/BurntSushi/ripgrep/issues/3274
+        warn!("The lsp {name:?} tried to start at {root_path:?} but failed to match it's 'required_root_patterns'");
+        return Err(StartupError::NoRequiredRootFound);
     }
 
     let (client, incoming, initialize_notify) = Client::start(
@@ -1043,7 +1042,7 @@ mod tests {
     #[test]
     fn converts_lsp_pos_to_pos() {
         macro_rules! test_case {
-            ($doc:expr, ($x:expr, $y:expr) => $want:expr) => {
+            ($doc:expr_2021, ($x:expr_2021, $y:expr_2021) => $want:expr_2021) => {
                 let doc = Rope::from($doc);
                 let pos = lsp::Position::new($x, $y);
                 assert_eq!($want, lsp_pos_to_pos(&doc, pos, OffsetEncoding::Utf16));

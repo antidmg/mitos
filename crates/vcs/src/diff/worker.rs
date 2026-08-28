@@ -152,10 +152,13 @@ impl EventAccumulator {
                 sync_debounce
             };
 
-            if let Ok(Some(event)) = timeout(debounce, channel.recv()).await {
-                self.handle_event(event).await;
-            } else {
-                break;
+            match timeout(debounce, channel.recv()).await {
+                Ok(Some(event)) => {
+                    self.handle_event(event).await;
+                }
+                _ => {
+                    break;
+                }
             }
         }
 

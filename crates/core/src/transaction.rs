@@ -396,7 +396,7 @@ impl ChangeSet {
 
         'outer: loop {
             macro_rules! map {
-                ($map: expr, $i: expr) => {
+                ($map: expr_2021, $i: expr_2021) => {
                     loop {
                         let Some((pos, assoc)) = positions.peek_mut() else {
                             return;

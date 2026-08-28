@@ -175,7 +175,7 @@ where
 /// ```
 #[macro_export]
 macro_rules! seq {
-    ($($parsers: expr),+ $(,)?) => {
+    ($($parsers: expr_2021),+ $(,)?) => {
         ($($parsers),+)
     }
 }
@@ -200,13 +200,13 @@ macro_rules! seq_impl {
 }
 
 macro_rules! seq_body_impl {
-    ($input:expr, $next_input:expr, $head:ident, $($tail:ident),+ ; $(,)? $($acc:ident),*) => {
+    ($input:expr_2021, $next_input:expr_2021, $head:ident, $($tail:ident),+ ; $(,)? $($acc:ident),*) => {
         match $head.parse($next_input) {
             Ok((next_input, $head)) => seq_body_impl!($input, next_input, $($tail),+ ; $($acc),*, $head),
             Err(_) => Err($input),
         }
     };
-    ($input:expr, $next_input:expr, $last:ident ; $(,)? $($acc:ident),*) => {
+    ($input:expr_2021, $next_input:expr_2021, $last:ident ; $(,)? $($acc:ident),*) => {
         match $last.parse($next_input) {
             Ok((next_input, last)) => Ok((next_input, ($($acc),+, last))),
             Err(_) => Err($input),
@@ -240,10 +240,10 @@ seq_impl!(A, B, C, D, E, F, G, H, I, J);
 /// ```
 #[macro_export]
 macro_rules! choice {
-    ($parser: expr $(,)?) => {
+    ($parser: expr_2021 $(,)?) => {
         $parser
     };
-    ($parser: expr, $($rest: expr),+ $(,)?) => {
+    ($parser: expr_2021, $($rest: expr_2021),+ $(,)?) => {
         or($parser, choice!($($rest),+))
     }
 }
@@ -338,10 +338,10 @@ where
     F: Fn(&P::Output) -> bool,
 {
     move |input| {
-        if let Ok((next_input, value)) = parser.parse(input) {
-            if pred_fn(&value) {
-                return Ok((next_input, value));
-            }
+        if let Ok((next_input, value)) = parser.parse(input)
+            && pred_fn(&value)
+        {
+            return Ok((next_input, value));
         }
         Err(input)
     }

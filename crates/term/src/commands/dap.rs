@@ -206,13 +206,13 @@ fn prepare_dap_params(template: &DebugTemplate, params: &[std::borrow::Cow<str>]
         .enumerate()
         .map(|(i, x)| {
             let mut param = x.to_string();
-            if let Some(DebugConfigCompletion::Advanced(cfg)) = template.completion.get(i) {
-                if matches!(cfg.completion.as_deref(), Some("filename" | "directory")) {
-                    param = std::fs::canonicalize(x.as_ref())
-                        .ok()
-                        .and_then(|pb| pb.into_os_string().into_string().ok())
-                        .unwrap_or_else(|| x.to_string());
-                }
+            if let Some(DebugConfigCompletion::Advanced(cfg)) = template.completion.get(i)
+                && matches!(cfg.completion.as_deref(), Some("filename" | "directory"))
+            {
+                param = std::fs::canonicalize(x.as_ref())
+                    .ok()
+                    .and_then(|pb| pb.into_os_string().into_string().ok())
+                    .unwrap_or_else(|| x.to_string());
             }
             param
         })
@@ -389,13 +389,15 @@ fn debug_parameter_prompt(
                     Ok(call)
                 });
                 cx.jobs.callback(callback);
-            } else if let Err(err) = dap_start_impl(
-                cx,
-                Some(&config_name),
-                None,
-                Some(params.iter().map(|x| x.into()).collect()),
-            ) {
-                cx.editor.set_error(|| err.to_string());
+            } else {
+                if let Err(err) = dap_start_impl(
+                    cx,
+                    Some(&config_name),
+                    None,
+                    Some(params.iter().map(|x| x.into()).collect()),
+                ) {
+                    cx.editor.set_error(|| err.to_string());
+                }
             }
         },
     )

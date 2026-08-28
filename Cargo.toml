@@ -1,5 +1,5 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 members = [
   "crates/core",
   "crates/ui-core",
@@ -146,7 +146,7 @@ same-file = "1.0.1"
 
 [workspace.package]
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["Blaž Hrastnik <blaz@mxxn.io>"]
 categories = ["editor"]
 repository = "https://github.com/matoous/mitos"
