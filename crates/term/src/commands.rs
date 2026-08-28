@@ -81,6 +81,7 @@ use std::{
     future::Future,
     io::Read,
     num::NonZeroUsize,
+    sync::LazyLock,
 };
 
 use std::{
@@ -88,7 +89,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use once_cell::sync::Lazy;
 use serde::de::{self, Deserialize, Deserializer};
 use stdx::Url;
 
@@ -5064,7 +5064,7 @@ pub(crate) enum Paste {
     Cursor,
 }
 
-static LINE_ENDING_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"\r\n|\r|\n").unwrap());
+static LINE_ENDING_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\r\n|\r|\n").unwrap());
 
 fn paste_impl(
     values: &[String],

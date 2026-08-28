@@ -4,7 +4,6 @@ use crate::{
 };
 use arrayvec::ArrayString;
 use editor_core::unicode::width::UnicodeWidthStr;
-use once_cell::sync::Lazy;
 use ratatui::text::Span;
 use std::{
     collections::HashMap,
@@ -17,7 +16,7 @@ type SmartString = String;
 type StackString = ArrayString<28>;
 
 /// Centralized location for icons that can be used throughout the UI.
-pub static ICONS: Lazy<Icons> = Lazy::new(Icons::default);
+pub static ICONS: LazyLock<Icons> = LazyLock::new(Icons::default);
 
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct Icons {
@@ -316,7 +315,7 @@ impl Kind {
             .get("color")
             .or_else(|| KIND.icons.get("color"))
             .copied()
-            .expect("`color` should be populated in the Lazy impl")
+            .expect("`color` should be populated in the lazy initializer")
     }
 }
 

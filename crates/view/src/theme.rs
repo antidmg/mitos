@@ -2,13 +2,13 @@ use std::{
     collections::{HashMap, HashSet},
     path::{Path, PathBuf},
     str,
+    sync::LazyLock,
 };
 
 use anyhow::{anyhow, Result};
 use editor_core::{hashmap, syntax::Highlight};
 use loader::merge_toml_values;
 use log::warn;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Deserializer};
 use toml::{map::Map, Value};
 
@@ -18,22 +18,22 @@ pub use ui_core::{
     theme::Mode,
 };
 
-pub static DEFAULT_THEME_DATA: Lazy<Value> = Lazy::new(|| {
+pub static DEFAULT_THEME_DATA: LazyLock<Value> = LazyLock::new(|| {
     let bytes = include_bytes!("../../../runtime/themes/base16_terminal.toml");
     toml::from_str(str::from_utf8(bytes).unwrap()).expect("Failed to parse default theme")
 });
 
-pub static BASE16_DEFAULT_THEME_DATA: Lazy<Value> = Lazy::new(|| {
+pub static BASE16_DEFAULT_THEME_DATA: LazyLock<Value> = LazyLock::new(|| {
     let bytes = include_bytes!("../../../base16_theme.toml");
     toml::from_str(str::from_utf8(bytes).unwrap()).expect("Failed to parse base 16 default theme")
 });
 
-pub static DEFAULT_THEME: Lazy<Theme> = Lazy::new(|| Theme {
+pub static DEFAULT_THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
     name: "default".into(),
     ..Theme::from(DEFAULT_THEME_DATA.clone())
 });
 
-pub static BASE16_DEFAULT_THEME: Lazy<Theme> = Lazy::new(|| Theme {
+pub static BASE16_DEFAULT_THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
     name: "base16_default".into(),
     ..Theme::from(BASE16_DEFAULT_THEME_DATA.clone())
 });

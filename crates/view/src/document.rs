@@ -15,7 +15,6 @@ use futures_util::future::BoxFuture;
 use futures_util::FutureExt;
 use lsp_client::lsp::DocumentSymbol;
 use lsp_client::util::lsp_pos_to_pos;
-use once_cell::sync::OnceCell;
 use stdx::faccess::{copy_metadata, readonly};
 use thiserror;
 use vcs::{DiffHandle, DiffProviderRegistry};
@@ -31,7 +30,7 @@ use std::future::Future;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::sync::{Arc, Weak};
+use std::sync::{Arc, OnceLock, Weak};
 use std::time::SystemTime;
 
 use editor_core::{
@@ -168,12 +167,12 @@ pub struct Document {
     breadcrumbs: HashMap<ViewId, Breadcrumbs>,
 
     path: Option<PathBuf>,
-    relative_path: OnceCell<Option<PathBuf>>,
+    relative_path: OnceLock<Option<PathBuf>>,
     /// Lazily-computed workspace root for this document (the ancestor that contains a `.git` /
     /// `.svn` / `.jj` / `.mitos`). Avoids per-call `find_workspace_in` ancestor walks for hot
     /// consumers like the statusline trust indicator, LSP launch, and DAP launch. Taken in
     /// `set_path` so save-as recomputes.
-    workspace_root: OnceCell<PathBuf>,
+    workspace_root: OnceLock<PathBuf>,
     encoding: &'static encoding::Encoding,
     has_bom: bool,
 
@@ -812,8 +811,8 @@ impl Document {
             id: DocumentId::default(),
             active_snippet: None,
             path: None,
-            relative_path: OnceCell::new(),
-            workspace_root: OnceCell::new(),
+            relative_path: OnceLock::new(),
+            workspace_root: OnceLock::new(),
             encoding,
             has_bom,
             text,

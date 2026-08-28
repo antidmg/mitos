@@ -1,10 +1,10 @@
 //! A queue of async messages/errors that will be shown in the editor
 
 use std::borrow::Cow;
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use crate::{runtime_local, send_blocking};
-use once_cell::sync::OnceCell;
 use tokio::sync::mpsc::{Receiver, Sender};
 
 /// Describes the severity level of a [`StatusMessage`].
@@ -40,7 +40,7 @@ impl From<&'static str> for StatusMessage {
 }
 
 runtime_local! {
-    static MESSAGES: OnceCell<Sender<StatusMessage>> = OnceCell::new();
+    static MESSAGES: OnceLock<Sender<StatusMessage>> = OnceLock::new();
 }
 
 pub async fn report(msg: impl Into<StatusMessage>) {
