@@ -2829,6 +2829,77 @@ fn reset_diff_change(
 }
 
 #[cold]
+fn show_diff_change(
+    cx: &mut compositor::Context,
+    _args: Args,
+    event: PromptEvent,
+) -> anyhow::Result<()> {
+    if event != PromptEvent::Validate {
+        return Ok(());
+    }
+
+    let position = cx.editor.cursor().0;
+    let (view, doc) = current!(cx.editor);
+    let Some(handle) = doc.diff_handle() else {
+        bail!("Diff is not available in the current buffer")
+    };
+
+    let cursor_line = doc
+        .selection(view.id)
+        .primary()
+        .cursor_line(doc.text().slice(..)) as u32;
+    let diff = handle.load();
+    let Some(hunk_index) = diff.hunk_at(cursor_line, true) else {
+        bail!("There is no change under the cursor")
+    };
+    let hunk = diff.nth_hunk(hunk_index);
+    let mut lines = diff_preview_lines(diff.diff_base().slice(..), hunk.before, '-');
+    lines.extend(diff_preview_lines(diff.doc().slice(..), hunk.after, '+'));
+    cx.jobs.callback(async move {
+        let call: job::Callback = Callback::EditorCompositor(Box::new(
+            move |editor: &mut Editor, compositor: &mut Compositor| {
+                let minus = editor.theme.get("diff.minus");
+                let plus = editor.theme.get("diff.plus");
+                let contents = lines
+                    .into_iter()
+                    .map(|(prefix, line)| {
+                        let style = if prefix == '-' { minus } else { plus };
+                        Line::from(Span::styled(format!("{prefix} {line}"), style))
+                    })
+                    .collect::<Vec<_>>();
+                let contents = ui::Text::from(tui::text::Text::from(contents));
+                let popup = Popup::new("diff-change", contents)
+                    .position(position)
+                    .auto_close(true);
+                compositor.replace_or_push("diff-change", popup);
+            },
+        ));
+        Ok(call)
+    });
+
+    Ok(())
+}
+
+fn diff_preview_lines(
+    text: RopeSlice<'_>,
+    range: std::ops::Range<u32>,
+    prefix: char,
+) -> Vec<(char, String)> {
+    (range.start..range.end)
+        .map(move |line| {
+            let mut line = text.line(line as usize).to_string();
+            if line.ends_with('\n') {
+                line.pop();
+                if line.ends_with('\r') {
+                    line.pop();
+                }
+            }
+            (prefix, line.trim().to_owned())
+        })
+        .collect()
+}
+
+#[cold]
 fn clear_register(
     cx: &mut compositor::Context,
     args: Args,
@@ -4083,6 +4154,17 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
         },
     },
     TypableCommand {
+        name: "show-diff-change",
+        aliases: &[],
+        doc: "Show the diff change at the cursor position.",
+        fun: show_diff_change,
+        completer: CommandCompleter::none(),
+        signature: Signature {
+            positionals: (0, Some(0)),
+            ..Signature::DEFAULT
+        },
+    },
+    TypableCommand {
         name: "clear-register",
         aliases: &[],
         doc: "Clear given register. If no argument is provided, clear all registers.",
@@ -4849,5 +4931,32 @@ mod command_line_doc_tests {
         let doc = command_line_doc_with_custom("save-and-close", &commands).unwrap();
         assert!(doc.starts_with("`:save-and-close` `<path>` — Save *and* close"));
         assert!(doc.contains("Maps to: `:write` → `:buffer-close`"));
+    }
+
+    #[test]
+    fn diff_preview_lines_returns_prefixed_lines_without_line_endings() {
+        let text = Rope::from("  old  line  \r\n\told second line\n");
+
+        assert_eq!(
+            diff_preview_lines(text.slice(..), 0..2, '-'),
+            [('-', "old  line".into()), ('-', "old second line".into())]
+        );
+    }
+
+    #[test]
+    fn diff_preview_lines_is_empty_for_an_empty_hunk() {
+        let text = Rope::from("unchanged\n");
+
+        assert!(diff_preview_lines(text.slice(..), 1..1, '+').is_empty());
+    }
+
+    #[test]
+    fn diff_preview_lines_removes_whitespace_only_lines() {
+        let text = Rope::from(" \t\n");
+
+        assert_eq!(
+            diff_preview_lines(text.slice(..), 0..1, '-'),
+            [('-', "".into())]
+        );
     }
 }
