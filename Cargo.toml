@@ -147,7 +147,7 @@ same-file = "1.0.1"
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-authors = ["Blaž Hrastnik <blaz@mxxn.io>"]
+authors = ["Matouš Dzivjak <matousdzivjak@gmail.com>"]
 categories = ["editor"]
 repository = "https://github.com/matoous/mitos"
 homepage = "https://github.com/matoous/mitos"
