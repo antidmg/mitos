@@ -1512,7 +1512,7 @@ impl Document {
 
         self.view_data_mut(view_id);
 
-        if self.config.load().breadcrumb.enable {
+        if self.breadcrumb_enabled() {
             self.update_breadcrumbs_for_view(view_id);
         }
     }
@@ -2150,6 +2150,12 @@ impl Document {
         self.path.as_deref()
     }
 
+    /// Whether this file-backed document should display and maintain breadcrumbs.
+    #[inline]
+    pub fn breadcrumb_enabled(&self) -> bool {
+        self.path.is_some() && self.config.load().breadcrumb.enable
+    }
+
     /// File path as a URL.
     pub fn url(&self) -> Option<Url> {
         Url::from_file_path(self.path()?).ok()
@@ -2508,6 +2514,11 @@ impl Document {
         symbols: Vec<DocumentSymbol>,
         offset_encoding: OffsetEncoding,
     ) {
+        if !self.breadcrumb_enabled() {
+            self.clear_document_symbols();
+            return;
+        }
+
         self.symbols = Some(DocumentSymbolCache {
             tree: {
                 let mut tree = Vec::with_capacity(symbols.len());
@@ -2550,6 +2561,11 @@ impl Document {
     // We want to make sure this is inlined in the hotpath (cursor position change).
     #[inline(always)]
     pub fn update_breadcrumbs_for_view_inlined(&mut self, view_id: ViewId) {
+        if !self.breadcrumb_enabled() {
+            self.breadcrumbs.remove(&view_id);
+            return;
+        }
+
         #[inline(always)]
         const fn in_range(pos: lsp::Position, range: lsp::Range) -> bool {
             // PERF:
@@ -2746,12 +2762,15 @@ mod test {
     #[test]
     fn document_symbols_refresh_breadcrumbs_without_reallocating_names() {
         let text = Rope::from("impl A {\n fn b() {}\n}\n");
+        let mut config = Config::default();
+        config.breadcrumb.enable = true;
         let mut doc = Document::from(
             text,
             None,
-            Arc::new(ArcSwap::new(Arc::new(Config::default()))),
+            Arc::new(ArcSwap::new(Arc::new(config))),
             Arc::new(ArcSwap::from_pointee(syntax::Loader::default())),
         );
+        doc.set_path(Some(Path::new("test.rs")));
         let view = ViewId::default();
         let cursor = doc.text().line_to_char(1) + 5;
         doc.set_selection(view, Selection::single(cursor, cursor));

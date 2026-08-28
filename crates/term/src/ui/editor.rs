@@ -260,7 +260,7 @@ impl EditorView {
         let text_annotations = view.text_annotations(doc, Some(theme));
         let mut decorations = DecorationManager::default();
 
-        if config.breadcrumb.enable && !area.is_empty() {
+        if doc.breadcrumb_enabled() && !area.is_empty() {
             Self::render_breadcrumb(editor, doc, view, area.with_height(1), surface);
         }
 

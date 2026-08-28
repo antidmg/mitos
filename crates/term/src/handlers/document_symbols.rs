@@ -12,13 +12,12 @@ use view::{
 };
 
 fn request_document_symbols(editor: &mut Editor, doc_id: DocumentId) {
-    if !editor.config().breadcrumb.enable {
-        return;
-    }
-
     let Some(doc) = editor.document_mut(doc_id) else {
         return;
     };
+    if !doc.breadcrumb_enabled() {
+        return;
+    }
 
     let Some(language_server) = doc
         // Get the first LSP Server that supports `DocumentSymbols`.

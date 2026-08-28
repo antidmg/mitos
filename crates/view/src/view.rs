@@ -243,7 +243,7 @@ impl View {
     }
 
     pub fn breadcrumb_offset(&self, doc: &Document) -> u16 {
-        u16::from(doc.config.load().breadcrumb.enable)
+        u16::from(doc.breadcrumb_enabled())
     }
 
     pub fn offset_coords_to_in_view(
@@ -724,7 +724,7 @@ impl View {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
+    use std::{path::Path, sync::Arc};
 
     use super::*;
     use arc_swap::ArcSwap;
@@ -740,17 +740,18 @@ mod tests {
     use crate::editor::{Config, GutterConfig, GutterLineNumbersConfig, GutterType};
 
     #[test]
-    fn breadcrumbs_reduce_only_the_top_of_the_view_content() {
+    fn breadcrumbs_reduce_only_the_top_of_file_backed_view_content() {
         let mut config = Config::default();
         config.breadcrumb.enable = true;
         let mut view = View::new(DocumentId::default(), GutterConfig::default());
         view.area = Rect::new(40, 40, 40, 40);
-        let doc = Document::from(
+        let mut doc = Document::from(
             Rope::from_str("first\nsecond\n"),
             None,
             Arc::new(ArcSwap::new(Arc::new(config))),
             Arc::new(ArcSwap::from_pointee(syntax::Loader::default())),
         );
+        doc.set_path(Some(Path::new("test.rs")));
 
         assert_eq!(
             view.inner_area(&doc),
@@ -766,6 +767,31 @@ mod tests {
         assert_eq!(
             view.gutter_coords_at_screen_coords(&doc, 41, 40),
             Some(Position::new(0, 0))
+        );
+    }
+
+    #[test]
+    fn breadcrumbs_do_not_reduce_scratch_buffer_content() {
+        let mut config = Config::default();
+        config.breadcrumb.enable = true;
+        let mut view = View::new(DocumentId::default(), GutterConfig::default());
+        view.area = Rect::new(40, 40, 40, 40);
+        let doc = Document::from(
+            Rope::from_str("first\nsecond\n"),
+            None,
+            Arc::new(ArcSwap::new(Arc::new(config))),
+            Arc::new(ArcSwap::from_pointee(syntax::Loader::default())),
+        );
+
+        assert_eq!(view.breadcrumb_offset(&doc), 0);
+        assert_eq!(
+            view.inner_area(&doc),
+            Rect::new(
+                40 + DEFAULT_GUTTER_OFFSET,
+                40,
+                40 - DEFAULT_GUTTER_OFFSET,
+                40,
+            )
         );
     }
 
