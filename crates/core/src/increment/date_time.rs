@@ -1,4 +1,4 @@
-use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
+use jiff::{fmt::strtime, Span};
 use regex::Regex;
 use std::fmt::Write;
 use std::sync::LazyLock;
@@ -24,27 +24,31 @@ pub fn increment(selected_text: &str, amount: i64) -> Option<String> {
         let date_time = &selected_text[date_time.start()..date_time.end()];
         match (has_date, has_time) {
             (true, true) => {
-                let date_time = NaiveDateTime::parse_from_str(date_time, format.fmt).ok()?;
+                let date_time = strtime::parse(format.fmt, date_time)
+                    .ok()?
+                    .to_datetime()
+                    .ok()?;
                 Some(
                     date_time
-                        .checked_add_signed(Duration::try_minutes(amount)?)?
-                        .format(format.fmt)
+                        .checked_add(Span::new().try_minutes(amount).ok()?)
+                        .ok()?
+                        .strftime(format.fmt)
                         .to_string(),
                 )
             }
             (true, false) => {
-                let date = NaiveDate::parse_from_str(date_time, format.fmt).ok()?;
+                let date = strtime::parse(format.fmt, date_time).ok()?.to_date().ok()?;
                 Some(
-                    date.checked_add_signed(Duration::try_days(amount)?)?
-                        .format(format.fmt)
+                    date.checked_add(Span::new().try_days(amount).ok()?)
+                        .ok()?
+                        .strftime(format.fmt)
                         .to_string(),
                 )
             }
             (false, true) => {
-                let time = NaiveTime::parse_from_str(date_time, format.fmt).ok()?;
-                let (adjusted_time, _) =
-                    time.overflowing_add_signed(Duration::try_minutes(amount)?);
-                Some(adjusted_time.format(format.fmt).to_string())
+                let time = strtime::parse(format.fmt, date_time).ok()?.to_time().ok()?;
+                let adjusted_time = time.wrapping_add(Span::new().try_minutes(amount).ok()?);
+                Some(adjusted_time.strftime(format.fmt).to_string())
             }
             (false, false) => None,
         }

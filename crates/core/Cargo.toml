@@ -50,7 +50,7 @@ toml.workspace = true
 imara-diff.workspace = true
 encoding_rs.workspace = true
 
-chrono.workspace = true
+jiff.workspace = true
 
 textwrap.workspace = true
 
