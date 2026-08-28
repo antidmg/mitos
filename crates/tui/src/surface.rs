@@ -1,7 +1,7 @@
-use editor_core::unicode::width::UnicodeWidthStr;
 use ratatui::{buffer::Buffer, text::Line};
+use ui_core::graphics::Style;
 use unicode_segmentation::UnicodeSegmentation;
-use view::graphics::Style;
+use unicode_width::UnicodeWidthStr;
 
 /// Editor-specific operations on Ratatui's screen buffer.
 pub trait BufferExt {

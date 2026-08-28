@@ -45,7 +45,7 @@ path = "src/main.rs"
 stdx = { path = "../stdx" }
 core = { path = "../core" }
 event = { path = "../event" }
-view = { path = "../view" }
+view = { path = "../view", features = ["term"] }
 lsp = { path = "../lsp" }
 dap = { path = "../dap" }
 vcs = { path = "../vcs" }

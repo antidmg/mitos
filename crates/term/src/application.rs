@@ -67,6 +67,14 @@ type TerminalEvent = crossterm::event::Event;
 
 type Terminal = tui::Terminal<TerminalBackend>;
 
+fn terminal_config(config: &view::editor::Config) -> tui::terminal::Config {
+    tui::terminal::Config {
+        enable_mouse_capture: config.mouse,
+        force_enable_extended_underlines: config.undercurl,
+        kitty_keyboard_protocol: config.kitty_keyboard_protocol,
+    }
+}
+
 pub struct Application {
     compositor: Compositor,
     terminal: Terminal,
@@ -107,10 +115,10 @@ impl Application {
         let theme_loader = theme::Loader::new(&theme_parent_dirs);
 
         #[cfg(all(not(windows), not(feature = "integration")))]
-        let backend = TerminaBackend::new((&config.editor).into())
+        let backend = TerminaBackend::new(terminal_config(&config.editor))
             .context("failed to create terminal backend")?;
         #[cfg(all(windows, not(feature = "integration")))]
-        let backend = CrosstermBackend::new(std::io::stdout(), (&config.editor).into());
+        let backend = CrosstermBackend::new(std::io::stdout(), terminal_config(&config.editor));
 
         #[cfg(feature = "integration")]
         let backend = TestBackend::new(120, 150);
@@ -407,7 +415,7 @@ impl Application {
                 if let Err(err) = self
                     .terminal
                     .backend_mut()
-                    .reconfigure((&app_config.editor).into())
+                    .reconfigure(terminal_config(&app_config.editor))
                 {
                     self.editor.set_error(|| err.to_string());
                 };
@@ -474,7 +482,7 @@ impl Application {
 
             self.terminal
                 .backend_mut()
-                .reconfigure((&default_config.editor).into())?;
+                .reconfigure(terminal_config(&default_config.editor))?;
             // Store new config
             self.config.store(Arc::new(default_config));
             Ok(())

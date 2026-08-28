@@ -162,7 +162,7 @@ impl Color {
     /// # Examples
     ///
     /// ```rust
-    /// use view::theme::Color;
+    /// use ui_core::theme::Color;
     ///
     /// let color1 = Color::from_hex("#c0ffee").unwrap();
     /// let color2 = Color::Rgb(192, 255, 238);
@@ -380,7 +380,7 @@ bitflags! {
     /// ## Examples
     ///
     /// ```rust
-    /// # use view::graphics::Modifier;
+    /// # use ui_core::graphics::Modifier;
     ///
     /// let m = Modifier::BOLD | Modifier::ITALIC;
     /// ```
@@ -449,7 +449,7 @@ impl FromStr for Modifier {
 /// Style let you control the main characteristics of the displayed elements.
 ///
 /// ```rust
-/// # use view::graphics::{Color, Modifier, Style};
+/// # use ui_core::graphics::{Color, Modifier, Style};
 /// Style::default()
 ///     .fg(Color::Black)
 ///     .bg(Color::Green)
@@ -461,8 +461,9 @@ impl FromStr for Modifier {
 /// just S3.
 ///
 /// ```rust
-/// # use view::graphics::{Rect, Color, Modifier, Style};
-/// # use tui::buffer::Buffer;
+/// # use ui_core::graphics::{Rect, Color, Modifier, Style};
+/// # use ratatui::buffer::Buffer;
+/// # use ratatui::style::{Modifier as RatatuiModifier, Style as RatatuiStyle};
 /// let styles = [
 ///     Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD | Modifier::ITALIC),
 ///     Style::default().bg(Color::Red),
@@ -473,11 +474,11 @@ impl FromStr for Modifier {
 ///   buffer[(0, 0)].set_style(*style);
 /// }
 /// assert_eq!(
-///     tui::style::Style::default()
+///     RatatuiStyle::default()
 ///         .fg(Color::Yellow.into())
 ///         .bg(Color::Red.into())
 ///         .underline_color(Color::Reset.into())
-///         .add_modifier(tui::style::Modifier::BOLD),
+///         .add_modifier(RatatuiModifier::BOLD),
 ///     buffer[(0, 0)].style(),
 /// );
 /// ```
@@ -486,8 +487,8 @@ impl FromStr for Modifier {
 /// reset all properties until that point use [`Style::reset`].
 ///
 /// ```
-/// # use view::graphics::{Rect, Color, Modifier, Style};
-/// # use tui::buffer::Buffer;
+/// # use ui_core::graphics::{Rect, Color, Modifier, Style};
+/// # use ratatui::{buffer::Buffer, style::Style as RatatuiStyle};
 /// let styles = [
 ///     Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD | Modifier::ITALIC),
 ///     Style::reset().fg(Color::Yellow),
@@ -497,7 +498,7 @@ impl FromStr for Modifier {
 ///   buffer[(0, 0)].set_style(*style);
 /// }
 /// assert_eq!(
-///     tui::style::Style::default()
+///     RatatuiStyle::default()
 ///         .fg(Color::Yellow.into())
 ///         .bg(Color::Reset.into())
 ///         .underline_color(Color::Reset.into()),
@@ -549,7 +550,7 @@ impl Style {
     /// ## Examples
     ///
     /// ```rust
-    /// # use view::graphics::{Color, Style};
+    /// # use ui_core::graphics::{Color, Style};
     /// let style = Style::default().fg(Color::Blue);
     /// let diff = Style::default().fg(Color::Red);
     /// assert_eq!(style.patch(diff), Style::default().fg(Color::Red));
@@ -564,7 +565,7 @@ impl Style {
     /// ## Examples
     ///
     /// ```rust
-    /// # use view::graphics::{Color, Style};
+    /// # use ui_core::graphics::{Color, Style};
     /// let style = Style::default().bg(Color::Blue);
     /// let diff = Style::default().bg(Color::Red);
     /// assert_eq!(style.patch(diff), Style::default().bg(Color::Red));
@@ -579,7 +580,7 @@ impl Style {
     /// ## Examples
     ///
     /// ```rust
-    /// # use view::graphics::{Color, Style};
+    /// # use ui_core::graphics::{Color, Style};
     /// let style = Style::default().underline_color(Color::Blue);
     /// let diff = Style::default().underline_color(Color::Red);
     /// assert_eq!(style.patch(diff), Style::default().underline_color(Color::Red));
@@ -594,7 +595,7 @@ impl Style {
     /// ## Examples
     ///
     /// ```rust
-    /// # use view::graphics::{UnderlineStyle, Style};
+    /// # use ui_core::graphics::{UnderlineStyle, Style};
     /// let style = Style::default().underline_style(UnderlineStyle::Line);
     /// let diff = Style::default().underline_style(UnderlineStyle::Curl);
     /// assert_eq!(style.patch(diff), Style::default().underline_style(UnderlineStyle::Curl));
@@ -611,7 +612,7 @@ impl Style {
     /// ## Examples
     ///
     /// ```rust
-    /// # use view::graphics::{Color, Modifier, Style};
+    /// # use ui_core::graphics::{Color, Modifier, Style};
     /// let style = Style::default().add_modifier(Modifier::BOLD);
     /// let diff = Style::default().add_modifier(Modifier::ITALIC);
     /// let patched = style.patch(diff);
@@ -631,7 +632,7 @@ impl Style {
     /// ## Examples
     ///
     /// ```rust
-    /// # use view::graphics::{Color, Modifier, Style};
+    /// # use ui_core::graphics::{Color, Modifier, Style};
     /// let style = Style::default().add_modifier(Modifier::BOLD | Modifier::ITALIC);
     /// let diff = Style::default().remove_modifier(Modifier::ITALIC);
     /// let patched = style.patch(diff);
@@ -649,7 +650,7 @@ impl Style {
     ///
     /// ## Examples
     /// ```
-    /// # use view::graphics::{Color, Modifier, Style};
+    /// # use ui_core::graphics::{Color, Modifier, Style};
     /// let style_1 = Style::default().fg(Color::Yellow);
     /// let style_2 = Style::default().bg(Color::Red);
     /// let combined = style_1.patch(style_2);

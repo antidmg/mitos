@@ -1,4 +1,3 @@
-use editor_core::unicode::width::UnicodeWidthStr;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Rect},
@@ -9,6 +8,7 @@ use ratatui::{
     },
 };
 use unicode_segmentation::UnicodeSegmentation;
+use unicode_width::UnicodeWidthStr;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Cell<'a> {

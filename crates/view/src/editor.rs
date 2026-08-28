@@ -55,6 +55,7 @@ use editor_core::{
 };
 use lsp_client::lsp;
 use stdx::path::canonicalize;
+pub use ui_core::terminal::KittyKeyboardProtocolConfig;
 
 use serde::{ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 
@@ -560,15 +561,6 @@ impl PickerStartPosition {
     pub fn is_current(self) -> bool {
         matches!(self, Self::Current)
     }
-}
-
-#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize, Clone, Copy)]
-#[serde(rename_all = "kebab-case")]
-pub enum KittyKeyboardProtocolConfig {
-    #[default]
-    Auto,
-    Disabled,
-    Enabled,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, Eq, PartialOrd, Ord)]

@@ -1,6 +1,6 @@
 use std::io;
 
-use view::{graphics::CursorKind, theme};
+use ui_core::{graphics::CursorKind, theme};
 
 use crate::terminal::Config;
 

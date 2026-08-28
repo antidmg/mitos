@@ -12,8 +12,11 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Deserializer};
 use toml::{map::Map, Value};
 
-use crate::graphics::UnderlineStyle;
-pub use crate::graphics::{Color, Modifier, Style};
+use ui_core::graphics::UnderlineStyle;
+pub use ui_core::{
+    graphics::{Color, Modifier, Style},
+    theme::Mode,
+};
 
 pub static DEFAULT_THEME_DATA: Lazy<Value> = Lazy::new(|| {
     let bytes = include_bytes!("../../../runtime/themes/base16_terminal.toml");
@@ -34,22 +37,6 @@ pub static BASE16_DEFAULT_THEME: Lazy<Theme> = Lazy::new(|| Theme {
     name: "base16_default".into(),
     ..Theme::from(BASE16_DEFAULT_THEME_DATA.clone())
 });
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Mode {
-    Dark,
-    Light,
-}
-
-#[cfg(feature = "term")]
-impl From<termina::escape::csi::ThemeMode> for Mode {
-    fn from(mode: termina::escape::csi::ThemeMode) -> Self {
-        match mode {
-            termina::escape::csi::ThemeMode::Dark => Self::Dark,
-            termina::escape::csi::ThemeMode::Light => Self::Light,
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(untagged, deny_unknown_fields, rename_all = "kebab-case")]

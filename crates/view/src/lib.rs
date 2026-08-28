@@ -8,7 +8,7 @@ pub mod document;
 pub mod editor;
 pub mod events;
 pub mod expansion;
-pub mod graphics;
+pub use ui_core::graphics;
 pub mod gutter;
 pub mod handlers;
 pub mod icons;

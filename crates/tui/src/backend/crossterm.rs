@@ -26,7 +26,10 @@ use std::{
     sync::OnceLock,
 };
 use termini::TermInfo;
-use view::graphics::{CursorKind, Rect, UnderlineStyle};
+use ui_core::{
+    graphics::{CursorKind, Rect, UnderlineStyle},
+    theme,
+};
 
 fn term_program() -> Option<String> {
     // Some terminals don't set $TERM_PROGRAM
@@ -349,11 +352,11 @@ where
         false
     }
 
-    fn get_theme_mode(&self) -> Option<view::theme::Mode> {
+    fn get_theme_mode(&self) -> Option<theme::Mode> {
         None
     }
 
-    fn set_background_color(&mut self, _color: Option<view::theme::Color>) -> io::Result<()> {
+    fn set_background_color(&mut self, _color: Option<theme::Color>) -> io::Result<()> {
         Ok(())
     }
 }
@@ -452,11 +455,11 @@ where
         CrosstermBackend::supports_true_color(self)
     }
 
-    fn get_theme_mode(&self) -> Option<view::theme::Mode> {
+    fn get_theme_mode(&self) -> Option<theme::Mode> {
         CrosstermBackend::get_theme_mode(self)
     }
 
-    fn set_background_color(&mut self, color: Option<view::theme::Color>) -> io::Result<()> {
+    fn set_background_color(&mut self, color: Option<theme::Color>) -> io::Result<()> {
         CrosstermBackend::set_background_color(self, color)
     }
 }

@@ -15,9 +15,9 @@ use termina::{
     style::{ColorSpec, CursorStyle, RgbColor},
     Event, OneBased, PlatformTerminal, Terminal as _, WindowSize as TerminaWindowSize,
 };
-use view::{
-    editor::KittyKeyboardProtocolConfig,
+use ui_core::{
     graphics::{CursorKind, Rect, UnderlineStyle},
+    terminal::KittyKeyboardProtocolConfig,
     theme::{self, Color},
 };
 

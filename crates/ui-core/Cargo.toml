@@ -1,7 +1,6 @@
 [package]
-name = "tui"
-description = """A library to build rich terminal user interfaces or dashboards"""
-include = ["src/**/*", "README.md"]
+name = "ui-core"
+description = "Lightweight UI primitives shared by Mitos frontends and backends"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -12,17 +11,14 @@ repository.workspace = true
 homepage.workspace = true
 
 [features]
-default = ["termina", "crossterm"]
+default = []
+term = ["dep:termina", "dep:crossterm"]
 
 [dependencies]
-ui-core = { path = "../ui-core", features = ["term"] }
-
+bitflags.workspace = true
 ratatui.workspace = true
-unicode-segmentation.workspace = true
-unicode-width = "=0.1.12"
+serde = { version = "1.0", features = ["derive"] }
 termina = { workspace = true, optional = true }
-termini = "1.0"
-log = "~0.4"
 
 [target.'cfg(windows)'.dependencies]
 crossterm = { version = "0.28", optional = true }

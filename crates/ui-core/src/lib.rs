@@ -1,0 +1,42 @@
+//! Lightweight UI types shared across rendering and terminal backends.
+//!
+//! Keep this crate independent from editor state and protocol clients. That
+//! boundary lets terminal-only changes compile without rebuilding the editor,
+//! LSP, DAP, and VCS dependency graph.
+
+pub mod graphics;
+
+pub mod theme {
+    pub use crate::graphics::{Color, Modifier, Style};
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub enum Mode {
+        Dark,
+        Light,
+    }
+
+    #[cfg(feature = "term")]
+    impl From<termina::escape::csi::ThemeMode> for Mode {
+        fn from(mode: termina::escape::csi::ThemeMode) -> Self {
+            match mode {
+                termina::escape::csi::ThemeMode::Dark => Self::Dark,
+                termina::escape::csi::ThemeMode::Light => Self::Light,
+            }
+        }
+    }
+}
+
+pub mod terminal {
+    use serde::{Deserialize, Serialize};
+
+    #[derive(
+        Debug, Default, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize, Clone, Copy,
+    )]
+    #[serde(rename_all = "kebab-case")]
+    pub enum KittyKeyboardProtocolConfig {
+        #[default]
+        Auto,
+        Disabled,
+        Enabled,
+    }
+}

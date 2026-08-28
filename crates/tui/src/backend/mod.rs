@@ -3,7 +3,10 @@
 use std::io;
 
 use crate::terminal::Config;
-use view::{graphics::CursorKind, theme::Color};
+use ui_core::{
+    graphics::CursorKind,
+    theme::{Color, Mode},
+};
 
 #[cfg(all(feature = "termina", not(windows)))]
 mod termina;
@@ -37,6 +40,6 @@ pub trait BackendExt {
     /// Ends the synchronized-output frame opened by `start_sync`.
     fn end_sync(&mut self) -> Result<(), io::Error>;
     fn supports_true_color(&self) -> bool;
-    fn get_theme_mode(&self) -> Option<view::theme::Mode>;
+    fn get_theme_mode(&self) -> Option<Mode>;
     fn set_background_color(&mut self, color: Option<Color>) -> io::Result<()>;
 }

@@ -17,12 +17,13 @@ bench = false
 
 [features]
 default = []
-term = ["termina", "crossterm"]
+term = ["termina", "crossterm", "ui-core/term"]
 unicode-lines = []
 # Exposes internals. Should not be enabled except for benchmarking.
 bench = []
 
 [dependencies]
+ui-core = { path = "../ui-core" }
 stdx = { path = "../stdx" }
 core = { path = "../core" }
 event = { path = "../event" }
