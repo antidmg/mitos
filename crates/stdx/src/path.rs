@@ -335,7 +335,7 @@ mod tests {
     }
 
     macro_rules! assert_match {
-        ($regex: expr_2021, $haystack: expr_2021) => {
+        ($regex: expr, $haystack: expr) => {
             let haystack = Input::new(RopeSlice::from($haystack));
             assert!(
                 $regex.is_match(haystack),
@@ -345,7 +345,7 @@ mod tests {
         };
     }
     macro_rules! assert_no_match {
-        ($regex: expr_2021, $haystack: expr_2021) => {
+        ($regex: expr, $haystack: expr) => {
             let haystack = Input::new(RopeSlice::from($haystack));
             assert!(
                 !$regex.is_match(haystack),
@@ -356,7 +356,7 @@ mod tests {
     }
 
     macro_rules! assert_matches {
-        ($regex: expr_2021, $haystack: expr_2021, [$($matches: expr_2021),*]) => {
+        ($regex: expr, $haystack: expr, [$($matches: expr),*]) => {
             let src = $haystack;
             let matches: Vec<_> = $regex
                 .find_iter(Input::new(RopeSlice::from(src)))

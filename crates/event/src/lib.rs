@@ -129,7 +129,7 @@ macro_rules! events {
     };
     () => {};
     (@replace_lt $name: ident, $($lt1: lifetime, $lt2: lifetime),* ) => {$name<$($lt1),*>};
-    (@sum $($val: expr_2021, $lt1: lifetime),* ) => {0 $(+ $val)*};
+    (@sum $($val: expr, $lt1: lifetime),* ) => {0 $(+ $val)*};
 }
 
 /// Safely register statically typed event hooks
@@ -138,7 +138,7 @@ macro_rules! register_hook {
     // Safety: this is safe because we fully control the type of the event here and
     // ensure all lifetime arguments are fully generic and the correct number of lifetime arguments
     // is present
-    (move |$event:ident: &mut $event_ty: ident<$($lt: lifetime),*>| $body: expr_2021) => {
+    (move |$event:ident: &mut $event_ty: ident<$($lt: lifetime),*>| $body: expr) => {
         let val = move |$event: &mut $event_ty<$($lt),*>| $body;
         unsafe {
             // Lifetimes are a bit of a pain. We want to allow events being
@@ -190,7 +190,7 @@ macro_rules! register_hook {
             $crate::register_hook_raw::<$crate::events!(@replace_lt $event_ty, $('static, $lt),*)>(val);
         }
     };
-    (move |$event:ident: &mut $event_ty: ident| $body: expr_2021) => {
+    (move |$event:ident: &mut $event_ty: ident| $body: expr) => {
         let val = move |$event: &mut $event_ty| $body;
         unsafe {
             #[allow(unused)]

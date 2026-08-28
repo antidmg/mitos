@@ -1042,7 +1042,7 @@ mod tests {
     #[test]
     fn converts_lsp_pos_to_pos() {
         macro_rules! test_case {
-            ($doc:expr_2021, ($x:expr_2021, $y:expr_2021) => $want:expr_2021) => {
+            ($doc:expr, ($x:expr, $y:expr) => $want:expr) => {
                 let doc = Rope::from($doc);
                 let pos = lsp::Position::new($x, $y);
                 assert_eq!($want, lsp_pos_to_pos(&doc, pos, OffsetEncoding::Utf16));

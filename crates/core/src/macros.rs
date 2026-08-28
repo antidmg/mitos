@@ -1,10 +1,10 @@
 #[macro_export]
 macro_rules! hashmap {
     (@single $($x:tt)*) => (());
-    (@count $($rest:expr_2021),*) => (<[()]>::len(&[$(hashmap!(@single $rest)),*]));
+    (@count $($rest:expr),*) => (<[()]>::len(&[$(hashmap!(@single $rest)),*]));
 
-    ($($key:expr_2021 => $value:expr_2021,)+) => { hashmap!($($key => $value),+) };
-    ($($key:expr_2021 => $value:expr_2021),*) => {
+    ($($key:expr => $value:expr,)+) => { hashmap!($($key => $value),+) };
+    ($($key:expr => $value:expr),*) => {
         {
             let _cap = hashmap!(@count $($key),*);
             let mut _map = ::std::collections::HashMap::with_capacity(_cap);
@@ -14,4 +14,14 @@ macro_rules! hashmap {
             _map
         }
     };
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn hashmap_accepts_2024_const_expressions() {
+        let map = hashmap!(const { 1 } => const { 2 });
+
+        assert_eq!(map.get(&1), Some(&2));
+    }
 }

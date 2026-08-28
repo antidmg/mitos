@@ -51,7 +51,7 @@ use std::{
 /// will spam the "No configured language server supports \<feature>" status message confusingly.
 #[macro_export]
 macro_rules! language_server_with_feature {
-    ($editor:expr_2021, $doc:expr_2021, $feature:expr_2021) => {{
+    ($editor:expr, $doc:expr, $feature:expr) => {{
         let language_server = $doc.language_servers_with_feature($feature).next();
         match language_server {
             Some(language_server) => language_server,

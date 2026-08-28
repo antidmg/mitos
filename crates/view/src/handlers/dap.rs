@@ -15,7 +15,7 @@ use std::path::PathBuf;
 
 #[macro_export]
 macro_rules! debugger {
-    ($editor:expr_2021) => {{
+    ($editor:expr) => {{
         let Some(debugger) = $editor.debug_adapters.get_active_client_mut() else {
             return;
         };

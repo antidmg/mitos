@@ -2994,7 +2994,7 @@ mod test {
     }
 
     macro_rules! decode {
-        ($name:ident, $label:expr_2021, $label_override:expr_2021) => {
+        ($name:ident, $label:expr, $label_override:expr) => {
             #[test]
             fn $name() {
                 let encoding = encoding::Encoding::for_label($label_override.as_bytes()).unwrap();
@@ -3013,13 +3013,13 @@ mod test {
                 assert_eq!(text[..], expectation[..]);
             }
         };
-        ($name:ident, $label:expr_2021) => {
+        ($name:ident, $label:expr) => {
             decode!($name, $label, $label);
         };
     }
 
     macro_rules! encode {
-        ($name:ident, $label:expr_2021, $label_override:expr_2021) => {
+        ($name:ident, $label:expr, $label_override:expr) => {
             #[test]
             fn $name() {
                 let encoding = encoding::Encoding::for_label($label_override.as_bytes()).unwrap();
@@ -3037,7 +3037,7 @@ mod test {
                 assert_eq!(buf, expectation);
             }
         };
-        ($name:ident, $label:expr_2021) => {
+        ($name:ident, $label:expr) => {
             encode!($name, $label, $label);
         };
     }
