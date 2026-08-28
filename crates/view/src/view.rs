@@ -208,11 +208,16 @@ impl View {
     }
 
     pub fn inner_area(&self, doc: &Document) -> Rect {
-        self.area.clip_left(self.gutter_offset(doc))
+        self.area
+            .clip_top(self.breadcrumb_offset(doc))
+            .clip_left(self.gutter_offset(doc))
     }
 
-    pub fn inner_height(&self) -> usize {
-        self.area.height.into()
+    pub fn inner_height(&self, doc: &Document) -> usize {
+        self.area
+            .clip_top(self.breadcrumb_offset(doc))
+            .height
+            .into()
     }
 
     pub fn inner_width(&self, doc: &Document) -> u16 {
@@ -237,7 +242,10 @@ impl View {
         }
     }
 
-    //
+    pub fn breadcrumb_offset(&self, doc: &Document) -> u16 {
+        u16::from(doc.config.load().breadcrumb.enable)
+    }
+
     pub fn offset_coords_to_in_view(
         &self,
         doc: &Document,
@@ -378,7 +386,7 @@ impl View {
         let doc_text = doc.text().slice(..);
         let line = doc_text.char_to_line(doc.view_offset(self.id).anchor.min(doc_text.len_chars()));
         // Saturating subs to make it inclusive zero indexing.
-        (line + self.inner_height())
+        (line + self.inner_height(doc))
             .min(doc_text.len_lines())
             .saturating_sub(1)
     }
@@ -630,18 +638,23 @@ impl View {
     /// Translates screen coordinates into coordinates on the gutter of the view.
     /// Returns a tuple of usize typed line and column numbers starting with 0.
     /// Returns None if coordinates are not on the gutter.
-    pub fn gutter_coords_at_screen_coords(&self, row: u16, column: u16) -> Option<Position> {
-        // 1 for status
-        if row < self.area.top() || row >= self.area.bottom() {
+    pub fn gutter_coords_at_screen_coords(
+        &self,
+        doc: &Document,
+        row: u16,
+        column: u16,
+    ) -> Option<Position> {
+        let inner = self.inner_area(doc);
+        if row < inner.top() || row >= inner.bottom() {
             return None;
         }
 
-        if column < self.area.left() || column > self.area.right() {
+        if column < self.area.left() || column >= inner.left() {
             return None;
         }
 
         Some(Position::new(
-            (row - self.area.top()) as usize,
+            (row - inner.top()) as usize,
             (column - self.area.left()) as usize,
         ))
     }
@@ -726,6 +739,36 @@ mod tests {
 
     use crate::document::Document;
     use crate::editor::{Config, GutterConfig, GutterLineNumbersConfig, GutterType};
+
+    #[test]
+    fn breadcrumbs_reduce_only_the_top_of_the_view_content() {
+        let mut config = Config::default();
+        config.breadcrumb.enable = true;
+        let mut view = View::new(DocumentId::default(), GutterConfig::default());
+        view.area = Rect::new(40, 40, 40, 40);
+        let doc = Document::from(
+            Rope::from_str("first\nsecond\n"),
+            None,
+            Arc::new(ArcSwap::new(Arc::new(config))),
+            Arc::new(ArcSwap::from_pointee(syntax::Loader::default())),
+        );
+
+        assert_eq!(
+            view.inner_area(&doc),
+            Rect::new(
+                40 + DEFAULT_GUTTER_OFFSET,
+                41,
+                40 - DEFAULT_GUTTER_OFFSET,
+                39,
+            )
+        );
+        assert_eq!(view.inner_height(&doc), 39);
+        assert_eq!(view.gutter_coords_at_screen_coords(&doc, 40, 40), None);
+        assert_eq!(
+            view.gutter_coords_at_screen_coords(&doc, 41, 40),
+            Some(Position::new(0, 0))
+        );
+    }
 
     #[test]
     fn test_text_pos_at_screen_coords() {

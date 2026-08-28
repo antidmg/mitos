@@ -217,6 +217,21 @@ mod tests {
     }
 
     #[test]
+    fn breadcrumbs_are_disabled_by_default_and_configurable() {
+        use view::editor::BreadcrumbPathOptions;
+
+        let default = Config::load_test("").editor.breadcrumb;
+        assert!(!default.enable);
+        assert_eq!(default.path, BreadcrumbPathOptions::Full);
+
+        let configured = Config::load_test("[editor.breadcrumb]\nenable = true\npath = \"file\"")
+            .editor
+            .breadcrumb;
+        assert!(configured.enable);
+        assert_eq!(configured.path, BreadcrumbPathOptions::File);
+    }
+
+    #[test]
     fn welcome_screen_is_enabled_by_default_and_can_be_disabled() {
         assert!(Config::load_test("").editor.welcome_screen);
         assert!(

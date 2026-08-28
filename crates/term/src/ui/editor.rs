@@ -24,11 +24,12 @@ use editor_core::{
     visual_offset_from_block, Change, Position, Range, Selection, Transaction,
 };
 use loader::VERSION_AND_GIT_HASH;
+use lsp_client::lsp::SymbolKind;
 use std::{mem::take, num::NonZeroUsize, ops, path::PathBuf, rc::Rc, sync::LazyLock};
 use view::{
     annotations::diagnostics::DiagnosticFilter,
     document::{Mode, SCRATCH_BUFFER_NAME},
-    editor::{CompleteAction, CursorShapeConfig},
+    editor::{BufferLine, CompleteAction, CursorShapeConfig},
     graphics::{Color, CursorKind, Modifier, Rect, Style},
     icons::ICONS,
     input::{KeyEvent, MouseButton, MouseEvent, MouseEventKind},
@@ -82,7 +83,7 @@ impl EditorView {
         &mut self.spinners
     }
 
-    fn render_welcome(theme: &Theme, view: &View, surface: &mut Surface, colorful: bool) {
+    fn render_welcome(theme: &Theme, area: Rect, surface: &mut Surface, colorful: bool) {
         const LOGO: &str = r#"███╗   ███╗██╗████████╗ ██████╗ ███████╗
 ████╗ ████║██║╚══██╔══╝██╔═══██╗██╔════╝
 ██╔████╔██║██║   ██║   ██║   ██║███████╗
@@ -160,7 +161,6 @@ impl EditorView {
         const COMMAND_SPACING: u16 = 2;
         let command_table_width = command_width + COMMAND_SPACING + description_width;
 
-        let area = view.area;
         let help_height = (header.len() + commands.len() + footer.len()) as u16;
         if area.height < help_height {
             return;
@@ -239,6 +239,7 @@ impl EditorView {
             .render(footer_area, surface);
     }
 
+    #[allow(clippy::too_many_lines)]
     pub fn render_view(
         &self,
         editor: &Editor,
@@ -258,6 +259,10 @@ impl EditorView {
 
         let text_annotations = view.text_annotations(doc, Some(theme));
         let mut decorations = DecorationManager::default();
+
+        if config.breadcrumb.enable && !area.is_empty() {
+            Self::render_breadcrumb(editor, doc, view, area.with_height(1), surface);
+        }
 
         if is_focused && config.cursorline {
             decorations.add_decoration(Self::cursorline(doc, view, theme));
@@ -386,7 +391,7 @@ impl EditorView {
         if editor.config().welcome_screen && doc.version() == 0 && doc.is_welcome {
             Self::render_welcome(
                 theme,
-                view,
+                inner,
                 surface,
                 editor.config().true_color || crate::true_color(),
             );
@@ -899,6 +904,136 @@ impl EditorView {
             .render(viewport, surface);
     }
 
+    #[allow(clippy::too_many_lines)]
+    pub fn render_breadcrumb(
+        editor: &Editor,
+        doc: &Document,
+        view: &View,
+        viewport: Rect,
+        surface: &mut Surface,
+    ) {
+        use view::editor::BreadcrumbPathOptions::{File, Full};
+
+        #[inline]
+        #[must_use]
+        fn draw_element(
+            surface: &mut Surface,
+            viewport: Rect,
+            x: u16,
+            content: &str,
+            style: Style,
+        ) -> u16 {
+            let remaining = viewport.right().saturating_sub(x) as usize;
+            surface
+                .set_stringn(x, viewport.y, content, remaining, style)
+                .0
+        }
+
+        let config = editor.config();
+
+        // PERF: Render directly into the surface to avoid allocating a span list every frame.
+
+        let style = editor
+            .theme
+            .try_get_exact("ui.breadcrumb")
+            .unwrap_or_else(|| editor.theme.get("ui.text"));
+
+        surface.clear_with(viewport, style);
+
+        let mut x = viewport.x.saturating_add(1);
+
+        let separator = " > ";
+        let separator_style = editor.theme.get("ui.breadcrumb.separator");
+        let mut draw_separator = false;
+
+        if matches!(config.breadcrumb.path, Full | File) {
+            if let Some(path) = doc.relative_path() {
+                let mut components = path.components().peekable();
+                let file_only = matches!(config.breadcrumb.path, File);
+
+                loop {
+                    let component = if file_only {
+                        components.next_back()
+                    } else {
+                        components.next()
+                    };
+                    let Some(component) = component else {
+                        break;
+                    };
+                    if draw_separator {
+                        x = draw_element(surface, viewport, x, separator, separator_style);
+                    } else {
+                        draw_separator = true;
+                    }
+
+                    let segment = component.as_os_str().to_string_lossy();
+                    let is_directory = !file_only && components.peek().is_some();
+
+                    let style = if is_directory {
+                        editor.theme.get("ui.text.directory")
+                    } else {
+                        style
+                    };
+
+                    x = draw_element(surface, viewport, x, &segment, style);
+
+                    if file_only {
+                        break;
+                    }
+                }
+            } else {
+                // Handle `[scratch]`
+                x = draw_element(surface, viewport, x, SCRATCH_BUFFER_NAME, style);
+            }
+        }
+
+        // Draw symbols, if any.
+        if let Some(breadcrumb) = doc.breadcrumbs(view.id) {
+            for symbol in breadcrumb.iter() {
+                if draw_separator {
+                    x = draw_element(surface, viewport, x, separator, separator_style);
+                } else {
+                    draw_separator = true;
+                }
+
+                let style = match symbol.kind {
+                    SymbolKind::MODULE
+                    | SymbolKind::NAMESPACE
+                    | SymbolKind::PACKAGE => editor.theme.get("namespace"),
+
+                    SymbolKind::OBJECT // impl Block
+                    | SymbolKind::STRUCT
+                    | SymbolKind::INTERFACE
+                    | SymbolKind::CLASS => editor.theme.get("type"),
+
+                    SymbolKind::METHOD => editor.theme.get("function.method"),
+                    SymbolKind::FUNCTION => editor.theme.get("function"),
+
+                    SymbolKind::ENUM => editor.theme.get("type.enum"),
+                    SymbolKind::ENUM_MEMBER => editor.theme.get("type.enum.variant"),
+
+                   SymbolKind::FIELD | SymbolKind::PROPERTY => {
+                        editor.theme.get("variable.other.member")
+                    }
+
+                    SymbolKind::VARIABLE => editor.theme.get("variable"),
+                    SymbolKind::CONSTANT => editor.theme.get("constant"),
+                    SymbolKind::CONSTRUCTOR => editor.theme.get("constructor"),
+                    SymbolKind::STRING => editor.theme.get("string"),
+                    SymbolKind::NUMBER => editor.theme.get("constant.numeric"),
+                    SymbolKind::BOOLEAN => editor.theme.get("constant.builtin.boolean"),
+                    SymbolKind::ARRAY => editor.theme.get("punctuation.bracket"),
+                    SymbolKind::KEY => editor.theme.get("label"),
+                    SymbolKind::NULL => editor.theme.get("constant.builtin"),
+                    SymbolKind::TYPE_PARAMETER => editor.theme.get("type.parameter"),
+                    _ => style,
+                };
+
+                x = draw_element(surface, viewport, x, symbol.name.as_ref(), style);
+            }
+        }
+    }
+
     pub fn render_gutter<'d>(
         editor: &'d Editor,
         doc: &'d Document,
@@ -1100,9 +1235,9 @@ impl EditorView {
             {
                 let area = Rect::new(
                     inner_area.x + (col - view_offset.horizontal_offset) as u16,
-                    view.area.y,
+                    inner_area.y,
                     1,
-                    view.area.height,
+                    inner_area.height,
                 );
                 if is_primary {
                     surface.set_style(area, primary_style)
@@ -1418,7 +1553,7 @@ impl EditorView {
 
         let gutter_coords_and_view = |editor: &Editor, row, column| {
             editor.tree.views().find_map(|(view, _focus)| {
-                view.gutter_coords_at_screen_coords(row, column)
+                view.gutter_coords_at_screen_coords(&editor.documents[&view.doc], row, column)
                     .map(|coords| (coords, view.id))
             })
         };
@@ -1808,7 +1943,6 @@ impl Component for EditorView {
         let config = cx.editor.config();
 
         // check if bufferline should be rendered
-        use view::editor::BufferLine;
         let use_bufferline = match config.bufferline {
             BufferLine::Always => true,
             BufferLine::Multiple if cx.editor.documents.len() > 1 => true,
