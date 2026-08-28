@@ -14,8 +14,9 @@ use editor_core::line_ending;
 use serde_json::Value;
 use stdx::path::home_dir;
 use ui::completers::{self, Completer};
+use view::custom_commands::{CustomCommand, CustomCommands};
 use view::document::{read_to_string, DEFAULT_LANGUAGE_NAME};
-use view::editor::{CloseError, ConfigEvent};
+use view::editor::{CloseError, Config, ConfigEvent};
 use view::expansion;
 
 #[derive(Clone)]
@@ -2371,7 +2372,8 @@ fn set_option(cx: &mut compositor::Context, args: Args, event: PromptEvent) -> a
     } else {
         arg.parse().map_err(field_error)?
     };
-    let config = serde_json::from_value(config).map_err(field_error)?;
+    let mut config: Box<Config> = serde_json::from_value(config).map_err(field_error)?;
+    config.commands = cx.editor.config().commands.clone();
 
     cx.editor
         .config_events
@@ -2466,8 +2468,9 @@ fn toggle_option(
     };
 
     let status = format!("'{key}' is now set to {value}");
-    let config = serde_json::from_value(config)
+    let mut config: Box<Config> = serde_json::from_value(config)
         .map_err(|err| anyhow::anyhow!("Failed to parse config: {err}"))?;
+    config.commands = cx.editor.config().commands.clone();
 
     cx.editor
         .config_events
@@ -4220,22 +4223,64 @@ fn execute_command_line(
     cx: &mut compositor::Context,
     input: &str,
     event: PromptEvent,
-) -> anyhow::Result<()> {
-    let (command, rest, _) = command_line::split(input);
+) -> anyhow::Result<Vec<compositor::Callback>> {
+    let (command, args, _) = command_line::split(input);
     if command.is_empty() {
-        return Ok(());
+        return Ok(Vec::new());
+    }
+
+    let (escaped, command) = command
+        .strip_prefix(CustomCommand::ESCAPE)
+        .map_or((false, command), |command| (true, command));
+
+    if !escaped {
+        let custom_commands = cx.editor.config().commands.clone();
+        if let Some(custom) = custom_commands.get(command) {
+            let positional_args =
+                Args::parse(args, Signature::DEFAULT, false, |token| Ok(token.content))
+                    .expect("argument parsing cannot fail when validation is disabled");
+            let mut callbacks = Vec::new();
+
+            for configured in &custom.commands {
+                if let Some(typable) = configured.strip_prefix(':') {
+                    let (name, args, _) = command_line::split(typable);
+                    let command = TYPABLE_COMMAND_MAP
+                        .get(name)
+                        .ok_or_else(|| anyhow!("no such command: '{name}'"))?;
+                    execute_command(cx, command, args, &positional_args, event)?;
+                } else if event == PromptEvent::Validate {
+                    let command: MappableCommand = configured.parse()?;
+                    let mut command_cx = super::Context {
+                        register: None,
+                        count: None,
+                        editor: cx.editor,
+                        callback: Vec::new(),
+                        on_next_key_callback: None,
+                        jobs: cx.jobs,
+                    };
+                    command.execute(&mut command_cx);
+                    callbacks.extend(command_cx.callback);
+                }
+            }
+
+            return Ok(callbacks);
+        }
     }
 
     // If command is numeric, interpret as line number and go there.
-    if command.parse::<usize>().is_ok() && rest.trim().is_empty() {
+    if command.parse::<usize>().is_ok() && args.trim().is_empty() {
         let cmd = TYPABLE_COMMAND_MAP.get("goto").unwrap();
-        return execute_command(cx, cmd, command, event);
+        execute_command(cx, cmd, command, &Args::empty(), event)?;
+        return Ok(Vec::new());
     }
 
     match typed::TYPABLE_COMMAND_MAP.get(command) {
-        Some(cmd) => execute_command(cx, cmd, rest, event),
+        Some(cmd) => {
+            execute_command(cx, cmd, args, &Args::empty(), event)?;
+            Ok(Vec::new())
+        }
         None if event == PromptEvent::Validate => Err(anyhow!("no such command: '{command}'")),
-        None => Ok(()),
+        None => Ok(Vec::new()),
     }
 }
 
@@ -4243,16 +4288,20 @@ pub(super) fn execute_command(
     cx: &mut compositor::Context,
     cmd: &TypableCommand,
     args: &str,
+    positional_args: &Args,
     event: PromptEvent,
 ) -> anyhow::Result<()> {
     let args = if event == PromptEvent::Validate {
         Args::parse(args, cmd.signature, true, |token| {
-            expansion::expand(cx.editor, token).map_err(|err| err.into())
+            expansion::expand(cx.editor, token, positional_args.as_slice())
+                .map_err(|err| err.into())
         })
         .map_err(|err| anyhow!("'{}': {err}", cmd.name))?
     } else {
-        Args::parse(args, cmd.signature, false, |token| Ok(token.content))
-            .expect("arg parsing cannot fail when validation is turned off")
+        Args::parse(args, cmd.signature, false, |token| {
+            expansion::expand_only_arg(token, positional_args.as_slice()).map_err(|err| err.into())
+        })
+        .map_err(|err| anyhow!("'{}': {err}", cmd.name))?
     };
 
     (cmd.fun)(cx, args, event).map_err(|err| anyhow!("'{}': {err}", cmd.name))
@@ -4260,17 +4309,28 @@ pub(super) fn execute_command(
 
 #[allow(clippy::unnecessary_unwrap)]
 pub(super) fn command_mode(cx: &mut Context) {
-    let mut prompt = Prompt::new(
+    let mut prompt = Prompt::new_with_callback(
         ":".into(),
         Some(':'),
         complete_command_line,
         move |cx: &mut compositor::Context, input: &str, event: PromptEvent| {
-            if let Err(err) = execute_command_line(cx, input, event) {
-                cx.editor.set_error(|| err.to_string());
+            match execute_command_line(cx, input, event) {
+                Ok(callbacks) if !callbacks.is_empty() => Some(Box::new(move |compositor, cx| {
+                    for callback in callbacks {
+                        callback(compositor, cx);
+                    }
+                })),
+                Ok(_) => None,
+                Err(err) => {
+                    cx.editor.set_error(|| err.to_string());
+                    None
+                }
             }
         },
     );
-    prompt.doc_fn = Box::new(command_line_doc);
+
+    let custom_commands = cx.editor.config().commands.clone();
+    prompt.doc_fn = Box::new(move |input| command_line_doc_with_custom(input, &custom_commands));
 
     // Calculate initial completion
     prompt.recalculate_completion(cx.editor);
@@ -4279,6 +4339,9 @@ pub(super) fn command_mode(cx: &mut Context) {
 
 fn command_line_doc(input: &str) -> Option<Cow<'_, str>> {
     let (command, _, _) = command_line::split(input);
+    let command = command
+        .strip_prefix(CustomCommand::ESCAPE)
+        .unwrap_or(command);
     let command = TYPABLE_COMMAND_MAP.get(command)?;
 
     if command.aliases.is_empty() && command.signature.flags.is_empty() {
@@ -4355,21 +4418,67 @@ fn command_line_doc(input: &str) -> Option<Cow<'_, str>> {
     Some(Cow::Owned(doc))
 }
 
+fn command_line_doc_with_custom<'a>(
+    input: &'a str,
+    custom_commands: &CustomCommands,
+) -> Option<Cow<'a, str>> {
+    let (command, _, _) = command_line::split(input);
+    if !command.starts_with(CustomCommand::ESCAPE)
+        && let Some(command) = custom_commands.get(command)
+    {
+        return (!command.hidden).then(|| Cow::Owned(command.prompt()));
+    }
+    command_line_doc(input)
+}
+
 fn complete_command_line(editor: &Editor, input: &str) -> Vec<ui::prompt::Completion> {
     let (command, rest, complete_command) = command_line::split(input);
+    let config = editor.config();
+    let (escaped, command) = command
+        .strip_prefix(CustomCommand::ESCAPE)
+        .map_or((false, command), |command| (true, command));
 
     if complete_command {
-        fuzzy_match(
-            input,
-            TYPABLE_COMMAND_LIST.iter().map(|command| command.name),
-            false,
-        )
-        .into_iter()
-        .map(|(name, _)| (0.., name.into()))
-        .collect()
-    } else {
+        if escaped {
+            fuzzy_match(
+                command,
+                TYPABLE_COMMAND_LIST.iter().map(|command| command.name),
+                false,
+            )
+            .into_iter()
+            .map(|(name, _)| (0.., format!("^{}", name).into()))
+            .collect()
+        } else {
+            // PERF: prompt completions require `'static` spans, so names from reloadable config
+            // must be copied. Revisit if the prompt can accept completion spans tied to config.
+            let custom = config
+                .commands
+                .visible_names()
+                .map(|name| Cow::Owned(name.to_owned()));
+            let builtins = TYPABLE_COMMAND_LIST
+                .iter()
+                .map(|command| Cow::Borrowed(command.name));
+
+            fuzzy_match(command, custom.chain(builtins), false)
+                .into_iter()
+                .map(|(name, _)| (0.., name.into()))
+                .collect()
+        }
+    } else if escaped {
         TYPABLE_COMMAND_MAP
             .get(command)
+            .map_or_else(Vec::new, |cmd| {
+                let args_offset = command.len() + 2;
+                complete_command_args(editor, cmd.signature, &cmd.completer, rest, args_offset)
+            })
+    } else {
+        let completer_command = config
+            .commands
+            .get(command)
+            .and_then(|custom| custom.completer.as_deref())
+            .unwrap_or(command);
+        TYPABLE_COMMAND_MAP
+            .get(completer_command)
             .map_or_else(Vec::new, |cmd| {
                 let args_offset = command.len() + 1;
                 complete_command_args(editor, cmd.signature, &cmd.completer, rest, args_offset)
@@ -4481,6 +4590,7 @@ pub fn complete_command_args(
         TokenKind::Expansion(ExpansionKind::Register) => {
             complete_register_expansion(editor, &token.content, offset + token.content_start)
         }
+        TokenKind::Expansion(ExpansionKind::Arg) => Vec::new(),
         TokenKind::ExpansionKind => {
             complete_expansion_kind(&token.content, offset + token.content_start)
         }
@@ -4724,5 +4834,20 @@ mod command_line_doc_tests {
         let sort_doc = command_line_doc("sort").unwrap();
         assert!(sort_doc.contains("\n  `--insensitive/-i`"));
         assert!(sort_doc.contains("\n  `--reverse/-r`"));
+    }
+
+    #[test]
+    fn formats_custom_command_docs_as_markdown() {
+        let commands = CustomCommands::new(vec![CustomCommand {
+            name: "save-and-close".into(),
+            description: Some("Save *and* close the buffer".into()),
+            commands: vec![":write".into(), ":buffer-close".into()],
+            accepts: Some("<path>".into()),
+            ..CustomCommand::default()
+        }]);
+
+        let doc = command_line_doc_with_custom("save-and-close", &commands).unwrap();
+        assert!(doc.starts_with("`:save-and-close` `<path>` — Save *and* close"));
+        assert!(doc.contains("Maps to: `:write` → `:buffer-close`"));
     }
 }

@@ -257,11 +257,20 @@ pub enum ExpansionKind {
     ///
     /// For example `%reg{a}`.
     Register,
+    /// Expand a positional argument supplied to a custom command.
+    ///
+    /// For example `%arg{0}`.
+    Arg,
 }
 
 impl ExpansionKind {
-    pub const VARIANTS: &'static [Self] =
-        &[Self::Variable, Self::Unicode, Self::Shell, Self::Register];
+    pub const VARIANTS: &'static [Self] = &[
+        Self::Variable,
+        Self::Unicode,
+        Self::Shell,
+        Self::Register,
+        Self::Arg,
+    ];
 
     pub const fn as_str(&self) -> &'static str {
         match self {
@@ -269,6 +278,7 @@ impl ExpansionKind {
             Self::Unicode => "u",
             Self::Shell => "sh",
             Self::Register => "reg",
+            Self::Arg => "arg",
         }
     }
 
@@ -278,6 +288,7 @@ impl ExpansionKind {
             "u" => Some(Self::Unicode),
             "sh" => Some(Self::Shell),
             "reg" => Some(Self::Register),
+            "arg" => Some(Self::Arg),
             _ => None,
         }
     }
@@ -773,6 +784,10 @@ impl<'a> Args<'a> {
         }
     }
 
+    pub fn empty() -> Self {
+        Self::default()
+    }
+
     /// Reads the next token out of the given parser.
     ///
     /// If the command's signature sets a maximum number of positionals (via `raw_after`) then
@@ -931,6 +946,11 @@ impl<'a> Args<'a> {
     /// Gets the positional argument at the given index, if one exists.
     pub fn get(&'a self, index: usize) -> Option<&'a str> {
         self.positionals.get(index).map(AsRef::as_ref)
+    }
+
+    /// Gets the positional arguments as a slice.
+    pub fn as_slice(&self) -> &[Cow<'a, str>] {
+        &self.positionals
     }
 
     /// Flattens all positional arguments together with the given separator between each

@@ -2,11 +2,12 @@ use crate::keymap;
 use crate::keymap::{merge_keys, KeyTrie};
 use loader::merge_toml_values;
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Display;
 use std::fs;
 use std::io::Error as IOError;
 use toml::de::Error as TomlError;
+use view::custom_commands::{CustomCommand, CustomCommands};
 use view::{document::Mode, theme};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -22,6 +23,28 @@ pub struct ConfigRaw {
     pub theme: Option<theme::Config>,
     pub keys: Option<HashMap<Mode, KeyTrie>>,
     pub editor: Option<toml::Value>,
+    commands: Option<Commands>,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+struct Commands {
+    #[serde(flatten)]
+    commands: BTreeMap<String, CustomCommand>,
+}
+
+impl Commands {
+    fn merge(&mut self, other: Self) {
+        self.commands.extend(other.commands);
+    }
+
+    fn into_custom_commands(self) -> CustomCommands {
+        CustomCommands::new(
+            self.commands
+                .into_iter()
+                .map(|(name, command)| command.named(name))
+                .collect(),
+        )
+    }
 }
 
 impl Default for Config {
@@ -65,7 +88,7 @@ impl Config {
         let local_config: Result<ConfigRaw, ConfigLoadError> =
             local.and_then(|file| toml::from_str(&file).map_err(ConfigLoadError::BadConfig));
         let res = match (global_config, local_config) {
-            (Ok(global), Ok(local)) => {
+            (Ok(mut global), Ok(local)) => {
                 let mut keys = keymap::default();
                 if let Some(global_keys) = global.keys {
                     merge_keys(&mut keys, global_keys)
@@ -74,7 +97,7 @@ impl Config {
                     merge_keys(&mut keys, local_keys)
                 }
 
-                let editor = match (global.editor, local.editor) {
+                let mut editor = match (global.editor, local.editor) {
                     (None, None) => view::editor::Config::default(),
                     (None, Some(val)) | (Some(val), None) => {
                         val.try_into().map_err(ConfigLoadError::BadConfig)?
@@ -83,6 +106,17 @@ impl Config {
                         .try_into()
                         .map_err(ConfigLoadError::BadConfig)?,
                 };
+
+                if let Some(local_commands) = local.commands {
+                    if let Some(global_commands) = &mut global.commands {
+                        global_commands.merge(local_commands);
+                    } else {
+                        global.commands = Some(local_commands);
+                    }
+                }
+                if let Some(commands) = global.commands {
+                    editor.commands = commands.into_custom_commands();
+                }
 
                 Config {
                     theme: local.theme.or(global.theme),
@@ -100,13 +134,18 @@ impl Config {
                 if let Some(keymap) = config.keys {
                     merge_keys(&mut keys, keymap);
                 }
+                let mut editor = config.editor.map_or_else(
+                    || Ok(view::editor::Config::default()),
+                    |val| val.try_into().map_err(ConfigLoadError::BadConfig),
+                )?;
+                if let Some(commands) = config.commands {
+                    editor.commands = commands.into_custom_commands();
+                }
+
                 Config {
                     theme: config.theme,
                     keys,
-                    editor: config.editor.map_or_else(
-                        || Ok(view::editor::Config::default()),
-                        |val| val.try_into().map_err(ConfigLoadError::BadConfig),
-                    )?,
+                    editor,
                 }
             }
 
@@ -158,6 +197,10 @@ mod tests {
     impl Config {
         fn load_test(config: &str) -> Config {
             Config::load(Ok(&config.to_owned()), Err(ConfigLoadError::default())).unwrap()
+        }
+
+        fn load_test_result(config: &str) -> Result<Config, ConfigLoadError> {
+            Config::load(Ok(&config.to_owned()), Err(ConfigLoadError::default()))
         }
     }
 
@@ -246,5 +289,59 @@ mod tests {
         let config = "[editor]\npopup-border = \"none\"".to_owned();
         let error = Config::load(Ok(&config), Err(ConfigLoadError::default())).unwrap_err();
         assert!(error.to_string().contains("unknown field `popup-border`"));
+    }
+
+    #[test]
+    fn deserializes_custom_commands() {
+        let config = Config::load_test(
+            r#"
+[commands]
+":wq" = [":write", ":quit"]
+":w" = ":write!"
+"0" = ":goto 1"
+
+[commands.":wcd!"]
+commands = [":write! %arg{0}", ":cd %sh{ %arg{0} | path dirname }"]
+desc = "Force save, then change directory"
+accepts = "<path>"
+completer = ":write"
+"#,
+        );
+
+        assert!(config.editor.commands.get("wq").is_some());
+        assert!(config.editor.commands.get("0").unwrap().hidden);
+        assert_eq!(
+            config
+                .editor
+                .commands
+                .get("wcd!")
+                .unwrap()
+                .completer
+                .as_deref(),
+            Some("write")
+        );
+    }
+
+    #[test]
+    fn local_custom_commands_override_global_commands() {
+        let global = "[commands]\n':save' = ':write'".to_owned();
+        let local = "[commands]\n':save' = ':write!'\n':quit' = ':quit'".to_owned();
+        let config = Config::load(Ok(&global), Ok(local)).unwrap();
+
+        assert_eq!(
+            config.editor.commands.get("save").unwrap().commands,
+            [":write!"]
+        );
+        assert!(config.editor.commands.get("quit").is_some());
+    }
+
+    #[test]
+    fn rejects_macros_in_command_sequences() {
+        let error =
+            Config::load_test_result("[commands]\n':fail' = { commands = ['@100xd', ':write'] }")
+                .unwrap_err();
+        assert!(error
+            .to_string()
+            .contains("macro keybindings may not be used in command sequences"));
     }
 }

@@ -103,7 +103,11 @@ impl Variable {
 ///
 /// Note that the lifetime of the expanded variable is only bound to the input token and not the
 /// `Editor`. See `expand_variable` below for more discussion of lifetimes.
-pub fn expand<'a>(editor: &Editor, token: Token<'a>) -> Result<Cow<'a, str>> {
+pub fn expand<'a>(
+    editor: &Editor,
+    token: Token<'a>,
+    positional_args: &[Cow<'a, str>],
+) -> Result<Cow<'a, str>> {
     // Note: see the `TokenKind` documentation for more details on how each branch should expand.
     match token.kind {
         TokenKind::Unquoted | TokenKind::Quoted(_) => Ok(token.content),
@@ -126,9 +130,12 @@ pub fn expand<'a>(editor: &Editor, token: Token<'a>) -> Result<Cow<'a, str>> {
                 ))
             }
         }
-        TokenKind::Expand => expand_inner(editor, token.content),
-        TokenKind::Expansion(ExpansionKind::Shell) => expand_shell(editor, token.content),
+        TokenKind::Expand => expand_inner(editor, token.content, positional_args),
+        TokenKind::Expansion(ExpansionKind::Shell) => {
+            expand_shell(editor, token.content, positional_args)
+        }
         TokenKind::Expansion(ExpansionKind::Register) => expand_register(editor, token.content),
+        TokenKind::Expansion(ExpansionKind::Arg) => expand_arg(&token.content, positional_args),
         // Note: see the docs for this variant.
         TokenKind::ExpansionKind => unreachable!(
             "expansion name tokens cannot be emitted when command line validation is enabled"
@@ -136,12 +143,40 @@ pub fn expand<'a>(editor: &Editor, token: Token<'a>) -> Result<Cow<'a, str>> {
     }
 }
 
+/// Expands only positional-argument placeholders in a token.
+///
+/// Prompt updates use this path so potentially expensive or side-effecting expansions are only
+/// evaluated when the command is submitted.
+pub fn expand_only_arg<'a>(
+    token: Token<'a>,
+    positional_args: &[Cow<'a, str>],
+) -> Result<Cow<'a, str>> {
+    match token.kind {
+        TokenKind::Expansion(ExpansionKind::Arg) => expand_arg(&token.content, positional_args),
+        _ => Ok(token.content),
+    }
+}
+
+fn expand_arg<'a>(
+    content: &Cow<'a, str>,
+    positional_args: &[Cow<'a, str>],
+) -> Result<Cow<'a, str>> {
+    let index = content
+        .parse::<usize>()
+        .map_err(|_| anyhow!("invalid positional argument index '{content}'"))?;
+    Ok(positional_args.get(index).cloned().unwrap_or_default())
+}
+
 /// Expand a shell command.
-pub fn expand_shell<'a>(editor: &Editor, content: Cow<'a, str>) -> Result<Cow<'a, str>> {
+pub fn expand_shell<'a>(
+    editor: &Editor,
+    content: Cow<'a, str>,
+    positional_args: &[Cow<'a, str>],
+) -> Result<Cow<'a, str>> {
     use std::process::{Command, Stdio};
 
     // Recursively expand the expansion's content before executing the shell command.
-    let content = expand_inner(editor, content)?;
+    let content = expand_inner(editor, content, positional_args)?;
 
     let config = editor.config();
     let shell = &config.shell;
@@ -201,7 +236,11 @@ pub fn expand_register<'a>(editor: &Editor, content: Cow<'a, str>) -> Result<Cow
 }
 
 /// Expand a token's contents recursively.
-fn expand_inner<'a>(editor: &Editor, content: Cow<'a, str>) -> Result<Cow<'a, str>> {
+fn expand_inner<'a>(
+    editor: &Editor,
+    content: Cow<'a, str>,
+    positional_args: &[Cow<'a, str>],
+) -> Result<Cow<'a, str>> {
     let mut escaped = String::new();
     let mut start = 0;
 
@@ -223,7 +262,7 @@ fn expand_inner<'a>(editor: &Editor, content: Cow<'a, str>) -> Result<Cow<'a, st
                 .unwrap()
                 .map_err(|err| anyhow!("{err}"))?;
             // expand it (this is the recursive part),
-            let expanded = expand(editor, token)?;
+            let expanded = expand(editor, token, positional_args)?;
             escaped.push_str(expanded.as_ref());
             // and move forward to the end of the expansion.
             start = idx + tokenizer.pos();
@@ -300,5 +339,19 @@ fn expand_variable(editor: &Editor, variable: Variable) -> Result<Cow<'static, s
             let end_line = doc.selection(view.id).primary().line_range(text).1;
             Ok(Cow::Owned((end_line + 1).to_string()))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn expands_positional_arguments() {
+        let args = [Cow::Borrowed("first"), Cow::Borrowed("second")];
+
+        assert_eq!(expand_arg(&Cow::Borrowed("1"), &args).unwrap(), "second");
+        assert_eq!(expand_arg(&Cow::Borrowed("2"), &args).unwrap(), "");
+        assert!(expand_arg(&Cow::Borrowed("invalid"), &args).is_err());
     }
 }

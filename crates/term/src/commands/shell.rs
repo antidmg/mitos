@@ -242,7 +242,7 @@ where
                 return;
             }
             match Args::parse(input, SHELL_SIGNATURE, true, |token| {
-                super::expansion::expand(cx.editor, token).map_err(|err| err.into())
+                super::expansion::expand(cx.editor, token, &[]).map_err(|err| err.into())
             }) {
                 Ok(args) => callback_fn(cx, args),
                 Err(err) => cx.editor.set_error(|| err.to_string()),

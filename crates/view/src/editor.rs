@@ -1,6 +1,7 @@
 use crate::{
     annotations::diagnostics::{DiagnosticFilter, InlineDiagnosticsConfig},
     clipboard::ClipboardProvider,
+    custom_commands::CustomCommands,
     document::{
         DocumentOpenError, DocumentSavedEventFuture, DocumentSavedEventResult, Mode, SavePoint,
     },
@@ -439,6 +440,9 @@ pub struct Config {
     pub buffer_picker: BufferPickerConfig,
     /// Workspace-trust configuration.
     pub workspace_trust: WorkspaceTrustConfig,
+    /// Commands defined in the top-level `[commands]` configuration table.
+    #[serde(skip)]
+    pub commands: CustomCommands,
 }
 
 /// User-facing configuration for `[editor.workspace-trust]`.
@@ -1246,6 +1250,7 @@ impl Default for Config {
             kitty_keyboard_protocol: Default::default(),
             buffer_picker: BufferPickerConfig::default(),
             workspace_trust: WorkspaceTrustConfig::default(),
+            commands: CustomCommands::default(),
         }
     }
 }

@@ -26,7 +26,8 @@ type PromptCharHandler = Box<dyn Fn(&mut Prompt, char, &Context)>;
 
 pub type Completion = (RangeFrom<usize>, Span<'static>);
 type CompletionFn = Box<dyn FnMut(&Editor, &str) -> Vec<Completion>>;
-type CallbackFn = Box<dyn FnMut(&mut Context, &str, PromptEvent)>;
+type CallbackFn =
+    Box<dyn FnMut(&mut Context, &str, PromptEvent) -> Option<crate::compositor::Callback>>;
 pub type DocFn = Box<dyn Fn(&str) -> Option<Cow<str>>>;
 
 pub struct Prompt {
@@ -85,7 +86,28 @@ impl Prompt {
         prompt: Cow<'static, str>,
         history_register: Option<char>,
         completion_fn: impl FnMut(&Editor, &str) -> Vec<Completion> + 'static,
-        callback_fn: impl FnMut(&mut Context, &str, PromptEvent) + 'static,
+        mut callback_fn: impl FnMut(&mut Context, &str, PromptEvent) + 'static,
+    ) -> Self {
+        Self::new_with_callback(
+            prompt,
+            history_register,
+            completion_fn,
+            move |cx, input, event| {
+                callback_fn(cx, input, event);
+                None
+            },
+        )
+    }
+
+    /// Creates a prompt whose validation may schedule work after the prompt closes.
+    ///
+    /// Callbacks returned for update or abort events are ignored.
+    pub fn new_with_callback(
+        prompt: Cow<'static, str>,
+        history_register: Option<char>,
+        completion_fn: impl FnMut(&Editor, &str) -> Vec<Completion> + 'static,
+        callback_fn: impl FnMut(&mut Context, &str, PromptEvent) -> Option<crate::compositor::Callback>
+            + 'static,
     ) -> Self {
         Self {
             prompt,
@@ -697,9 +719,17 @@ impl Component for Prompt {
                         &self.line
                     };
 
-                    (self.callback_fn)(cx, input, PromptEvent::Validate);
+                    let callback = (self.callback_fn)(cx, input, PromptEvent::Validate);
 
-                    return close_fn;
+                    return match callback {
+                        Some(callback) => EventResult::Consumed(Some(Box::new(
+                            move |compositor: &mut Compositor, cx| {
+                                compositor.pop();
+                                callback(compositor, cx);
+                            },
+                        ))),
+                        None => close_fn,
+                    };
                 }
             }
             ctrl!('p') | key!(Up) => {
@@ -718,11 +748,11 @@ impl Component for Prompt {
                 if self.completion.len() == 1 && self.line.ends_with(std::path::MAIN_SEPARATOR) {
                     self.recalculate_completion(cx.editor);
                 }
-                (self.callback_fn)(cx, &self.line, PromptEvent::Update)
+                (self.callback_fn)(cx, &self.line, PromptEvent::Update);
             }
             shift!(Tab) => {
                 self.change_completion_selection(CompletionDirection::Backward);
-                (self.callback_fn)(cx, &self.line, PromptEvent::Update)
+                (self.callback_fn)(cx, &self.line, PromptEvent::Update);
             }
             ctrl!('q') => self.exit_selection(),
             ctrl!('r') => {

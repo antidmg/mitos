@@ -1,6 +1,7 @@
 use super::*;
 
 use editor_core::diagnostic::Severity;
+use view::custom_commands::{CustomCommand, CustomCommands};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn history_completion() -> anyhow::Result<()> {
@@ -157,4 +158,73 @@ async fn percent_escaping() -> anyhow::Result<()> {
     )
     .await?;
     Ok(())
+}
+
+fn config_with_custom_command(name: &str, commands: &[&str]) -> Config {
+    let mut config = test_config();
+    config.editor.commands = CustomCommands::new(vec![CustomCommand {
+        name: name.to_owned(),
+        commands: commands
+            .iter()
+            .map(|command| (*command).to_owned())
+            .collect(),
+        ..CustomCommand::default()
+    }]);
+    config
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn custom_command_expands_positional_arguments() -> anyhow::Result<()> {
+    let config = config_with_custom_command("say", &[":echo %arg{1} %arg{0}"]);
+    test_key_sequence(
+        &mut AppBuilder::new().with_config(config).build()?,
+        Some(":say first second<ret>"),
+        Some(&|app| {
+            let (status, severity) = app.editor.get_status().unwrap();
+            assert_eq!(status.as_ref(), "second first");
+            assert_eq!(*severity, Severity::Info);
+        }),
+        false,
+    )
+    .await
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn escaped_custom_command_calls_the_builtin() -> anyhow::Result<()> {
+    let config = config_with_custom_command("echo", &[":echo custom"]);
+    let mut app = AppBuilder::new().with_config(config).build()?;
+
+    test_key_sequences(
+        &mut app,
+        vec![
+            (
+                Some(":echo ignored<ret>"),
+                Some(&|app| {
+                    assert_eq!(app.editor.get_status().unwrap().0.as_ref(), "custom");
+                }),
+            ),
+            (
+                Some(":^echo builtin<ret>"),
+                Some(&|app| {
+                    assert_eq!(app.editor.get_status().unwrap().0.as_ref(), "builtin");
+                }),
+            ),
+        ],
+        false,
+    )
+    .await
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn custom_macro_runs_after_the_prompt_closes() -> anyhow::Result<()> {
+    let config = config_with_custom_command("insert-greeting", &["@ihello<esc>"]);
+    test_key_sequence(
+        &mut AppBuilder::new().with_config(config).build()?,
+        Some(":insert-greeting<ret>"),
+        Some(&|app| {
+            assert_eq!(view::doc!(app.editor).text().to_string(), "hello\n");
+        }),
+        false,
+    )
+    .await
 }
