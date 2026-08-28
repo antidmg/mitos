@@ -1,5 +1,6 @@
 inherits="adwaita-dark"
 "attribute" = "orange_5"
+# License: LGPL-2.1-or-later (see licenses/adwaita.license)
 
 "type" = "teal_4"
 "type.builtin" = "teal_4"

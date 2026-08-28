@@ -1,6 +1,7 @@
 # Author : Koen Van der Auwera <atog@hey.com>
 # Based on SpaceBones Light https://github.com/chipotle/spacebones
 # https://github.com/chipotle/spacebones/blob/main/SpaceBones%20Light.bbColorScheme
+# License: MIT (see licenses/spacebones.license)
 
 "attribute" = "#b1951d"
 "keyword" = { fg = "#3a81c3" }

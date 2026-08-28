@@ -1,4 +1,5 @@
 # Author: Joseph Harrison-Lim <josephharrisonlim@gmail.com>
+# License: MIT (see licenses/noctis.LICENSE)
 
 "attribute" = { fg = "#7060eb", modifiers = ["bold"] }
 "comment" = { fg = "base03", modifiers = ["italic"] }

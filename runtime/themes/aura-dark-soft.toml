@@ -3,7 +3,7 @@
 
 # aura originally by:
 # Author: Dalton Menezes
-# License: MIT
+# License: MIT (see licenses/aura.LICENSE)
 
 "ui.background" = { fg = "white", bg = "black"}
 
@@ -141,5 +141,4 @@ accent33 = "#2e2b38"
 
 # https://github.com/daltonmenezes/aura-theme/tree/c607be79c8eeaa5a5d7ac66421f8b5c51d936fe8/src/core/colors/schemes
 accent24 = "#1f1a27" # soft dark
-
 

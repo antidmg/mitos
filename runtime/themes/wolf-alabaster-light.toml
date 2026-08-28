@@ -18,6 +18,7 @@
 #   * The [priorities and ideas](https://tonsky.me/blog/syntax-highlighting/) behind the Alabaster Theme (which exists for many editors) by Nikita Prokopov
 #   * His [actual repo implementing the theme](https://github.com/tonsky/sublime-scheme-alabaster)
 #   * A [theme template](https://github.com/joegm/helix-theme-template) on GitHub provided by joegm
+# License: MIT (see licenses/wolf-alabaster.license)
 
 # I don't consider this to be done! I absolutely want feedback. I absolutely will continue to tinker.
 

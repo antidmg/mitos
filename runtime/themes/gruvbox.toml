@@ -1,5 +1,6 @@
 # Author : Jakub Bartodziej <kubabartodziej@gmail.com>
 # The theme uses the gruvbox dark palette with standard contrast: github.com/morhetz/gruvbox
+# License: MIT (see licenses/gruvbox.license)
 
 "annotation" = { fg = "fg1" }
 

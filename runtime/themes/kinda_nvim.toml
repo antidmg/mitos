@@ -1,7 +1,7 @@
 # Theme  : kinda_nvim (dark)
 # 
 # Author : Strash familev.imen.otchestvovich@gmail.com
-# License: MIT
+# License: MIT (see licenses/kinda_nvim.LICENSE)
 # 
 # GitHub : https://github.com/strash/kinda_nvim.hx
 
@@ -186,4 +186,3 @@ bg_err = "#382125"
 bg_warn = "#383221"
 bg_info = "#212D38"
 bg_hint = "#213638"
-

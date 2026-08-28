@@ -1,5 +1,5 @@
 # Author: spentbliss <zyhkekrz.hatbox475@passinbox.com>
-# License: MIT (originally by NTBBloodbath)
+# License: MIT (see licenses/doom-one.LICENSE)
 
 "ui.background" = { bg = "bg", fg = "fg" } 
 "ui.text" = "fg"

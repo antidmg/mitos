@@ -1,7 +1,7 @@
 # Gruvbox Material Dark Medium for Helix
 # Original Author: @sainnhe (https://github.com/sainnhe/gruvbox-material)
 # Ported by: @satoqz
-# License: MIT
+# License: MIT (see licenses/gruvbox_material.license)
 
 "attribute" = "green"
 "comment" = { fg = "grey1", modifiers = ["italic"] }

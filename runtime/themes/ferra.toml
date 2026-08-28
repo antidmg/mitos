@@ -1,4 +1,5 @@
 # Author : Casper Rogild Storm <casper@asynkron.xyz>
+# License: MIT (see licenses/ferra.license)
 
 "comment" = { fg = "ferra_bark", modifiers = ["italic"] }
 "constant" = { fg = "ferra_sage" }

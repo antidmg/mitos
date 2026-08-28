@@ -1,4 +1,5 @@
 # Author: Shafkath Shuhan <shafkathshuhannyc@gmail.com>
+# License: MIT (see licenses/vscode.license)
 
 "tag" = { fg = "tag" }
 

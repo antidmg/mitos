@@ -1,7 +1,7 @@
 # Port of Vim's Zenburn theme (https://github.com/jnurmine/Zenburn/)
 # based on theli-ua's Helix port (https://github.com/theli-ua/helix/tree/zenburn)
 # Author: Jakob Jordan <jakobjordan(at)posteo.de>
-# License: GNU GPL <http://www.gnu.org/licenses/gpl.html> 
+# License: GPL-3.0 (see licenses/zenburn.license)
 
 # "attribute"
 "type" = "zb-type-fg"

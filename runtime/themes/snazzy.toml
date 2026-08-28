@@ -1,5 +1,6 @@
 # Author : Timothy DeHerrera <tim@nrdxp.dev>
 "comment".fg = "comment"
+# License: MIT (see licenses/snazzy.license)
 
 "constant.builtin".fg          = "olive"
 "constant.character.escape".fg = "magenta"

@@ -2,7 +2,7 @@
 # Original Author: @sainnhe (https://github.com/sainnhe/gruvbox-material)
 # Base theme ported by: @satoqz
 # Palette ported by: @ivan-shymkiv
-# License: MIT
+# License: MIT (see licenses/gruvbox_material.license)
 
 "attribute" = "green"
 "comment" = { fg = "grey1", modifiers = ["italic"] }

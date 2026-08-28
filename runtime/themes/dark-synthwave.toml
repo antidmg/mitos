@@ -2,7 +2,7 @@
 # Based on Dark SynthWave '84 for VS Code (https://github.com/brainomite/dark-synthwave-vscode/tree/main)
 # 
 # Author : Peter Retzlaff <pe.retzlaff@gmail.com>
-# License: MIT License
+# License: MIT (see licenses/dark-synthwave.license)
 
 # UI Colors
 "ui.background" = { bg = "black", fg = "blood-red" }
@@ -111,4 +111,3 @@ dark-grey = "#141414"
 error = "#ff5252"
 warning = "#ffab40"
 info = "#40c4ff"
-

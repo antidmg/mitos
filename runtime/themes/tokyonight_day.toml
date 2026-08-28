@@ -1,4 +1,5 @@
 # Author: Paul Graydon <untimely.creation97@proton.me>
+# License: Apache-2.0 (see licenses/tokyonight.license)
 
 inherits = "tokyonight"
 

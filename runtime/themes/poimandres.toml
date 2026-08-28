@@ -1,5 +1,6 @@
 # Author: Ambuj Kumar <ambujs89@gmail.com>
 # Ported from: https://github.com/drcmda/poimandres-theme
+# License: MIT (see licenses/poimandres.LICENSE)
 
 attribute = { fg = "desaturatedBlue", modifiers = ["italic"] }
 keyword = "brightMint"

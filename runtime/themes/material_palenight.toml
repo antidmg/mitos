@@ -1,4 +1,5 @@
 # Material Theme <https://material-theme.com/> for Helix Editor
+# License: GPL-2.0 (see licenses/material.license)
 
 inherits = "material_deep_ocean"
 

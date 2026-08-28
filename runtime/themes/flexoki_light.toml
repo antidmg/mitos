@@ -1,4 +1,5 @@
 # Based on Flexoki: https://stephango.com/flexoki
+# License: MIT (see licenses/flexoki.license)
 
 "ui.background" = { bg = "bg" }
 "ui.cursor" = { fg = "tx", bg = "tx-3" }

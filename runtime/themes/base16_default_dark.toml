@@ -1,4 +1,5 @@
 # Author: RayGervais <raygervais@hotmail.ca>
+# License: MIT (see licenses/base16.license)
 
 "ui.background" = { bg = "base00" }
 "ui.virtual.whitespace" = "base03"

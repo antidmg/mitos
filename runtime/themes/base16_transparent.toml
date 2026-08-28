@@ -1,5 +1,6 @@
 # Author: GreasySlug <9619abgoni@gmail.com>
 # This theme is base on base16_theme(Author: NNB <nnbnh@protonmail.com>)
+# License: MIT (see licenses/base16.license)
 
 "ui.background" = { fg = "white"}
 "ui.background.separator" = { fg = "gray" }

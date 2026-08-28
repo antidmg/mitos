@@ -1,6 +1,7 @@
 # Seoul256 Dark
 # Author : EricHenry
 # Original Creator: https://github.com/junegunn/seoul256.vim
+# License: MIT (see licenses/seoul256.license)
 
 # Syntax highlighting configuration
 "attribute" = { fg = "yellow" }

@@ -1,3 +1,4 @@
+# License: MIT (see licenses/new_moon.license)
 
 "namespace" = { fg = "blue" }
 "module" = { fg = "blue" }

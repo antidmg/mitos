@@ -1,6 +1,6 @@
 # Author: Felipe Lima
 # Source: https://github.com/felipefdl/warm-burnout
-# License: MIT
+# License: MIT (see licenses/warm-burnout.license)
 # Warm Burnout Dark: Helix theme
 # Copy to ~/.config/helix/themes/warm-burnout-dark.toml
 # Then set: theme = "warm-burnout-dark" in ~/.config/helix/config.toml
@@ -244,4 +244,3 @@ hint = "#b4a89c"
 added = "#70bf56"
 modified = "#73b8ff"
 deleted = "#f26d78"
-

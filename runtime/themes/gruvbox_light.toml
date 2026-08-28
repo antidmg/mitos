@@ -1,6 +1,7 @@
 # Author : Rohan Jain <crodjer@pm.me> 
 # Author : Jakub Bartodziej <kubabartodziej@gmail.com>
 # The theme uses the gruvbox light palette with standard contrast: github.com/morhetz/gruvbox
+# License: MIT (see licenses/gruvbox.license)
 
 inherits = "gruvbox"
 

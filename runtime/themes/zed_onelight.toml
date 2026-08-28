@@ -1,5 +1,6 @@
 # Zed OneLight
 # Author : EricHenry
+# License: MIT (see licenses/zed_one.license)
 
 inherits = "zed_onedark"
 

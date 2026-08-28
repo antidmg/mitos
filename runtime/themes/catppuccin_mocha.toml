@@ -2,6 +2,7 @@
 # Syntax highlighting
 # -------------------
 "attribute" = "yellow"
+# License: MIT (see licenses/catppuccin.license)
 
 "type" = "yellow"
 "type.builtin" = "mauve"

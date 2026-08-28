@@ -1,6 +1,7 @@
 # Seoul256 Light
 # Author : EricHenry
 # Original Creator: https://github.com/junegunn/seoul256.vim
+# License: MIT (see licenses/seoul256.license)
 
 inherits = "seoul256-dark"
 
@@ -48,4 +49,3 @@ inherits = "seoul256-dark"
 "ui.help" = { fg = "black1", bg = "white" }
 "ui.popup" = { fg = "black1", bg = "white" }
 "ui.menu" = { fg = "black1", bg = "white" }
-

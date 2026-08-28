@@ -3,6 +3,7 @@
 # Contributing:
 #   Please submit changes to https://github.com/rose-pine/helix.
 #   The Rosé Pine team will update Helix, including you as a co-author.
+# License: MIT (see licenses/rose_pine.license)
 
 inherits = "rose_pine"
 

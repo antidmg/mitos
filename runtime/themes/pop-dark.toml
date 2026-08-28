@@ -3,6 +3,7 @@
 # Repo: https://github.com/workingJ/helix-pop-theme
 # Version: 1.0
 # This theme is based on Nathaniel Webb's VSCodePopTheme <https://github.com/ArtisanByteCrafter/VSCodePopTheme>
+# License: MIT (see licenses/pop-dark.license)
 
 info = { fg = 'brownD' }
 hint = { fg = 'yellowH', modifiers = ['bold'] }

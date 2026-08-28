@@ -1,4 +1,5 @@
 inherits = "catppuccin_mocha"
+# License: MIT (see licenses/catppuccin.license)
 
 [palette]
 rosewater = "#f4dbd6"

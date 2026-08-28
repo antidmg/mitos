@@ -3,6 +3,7 @@
 #
 # This variant is optimized for users with blue-yellow color deficiency (tritanopia)
 # Version 4.6.0
+# License: GPL-3.0 (see licenses/modus.LICENSE)
 
 inherits = "modus_operandi"
 

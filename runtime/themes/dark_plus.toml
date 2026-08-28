@@ -1,4 +1,5 @@
 # Author: David Else <12832280+David-Else@users.noreply.github.com>
+# License: MIT (see licenses/vscode.license)
 
 # SYNTAX
 "attribute"                 = "variable"

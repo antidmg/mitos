@@ -1,4 +1,5 @@
 # GreasySlug : dark high contrast <9619abgoni@gmail.com>
+# License: MIT (see licenses/vscode.license)
 
 # Interface
 "ui.background" = { bg = "black" }

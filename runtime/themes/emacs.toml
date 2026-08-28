@@ -1,4 +1,5 @@
 # Ported by Yevgnen.
+# License: GPL-3.0-or-later (see licenses/emacs.license)
 
 "comment" = { fg = "firebrick" }
 "constant" = { fg = "dark_cyan" }

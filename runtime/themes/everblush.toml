@@ -1,4 +1,5 @@
 # Author: Isotoxal <isotoxal@proton.me>
+# License: MIT (see licenses/everblush.license)
 
 "attribute" = { fg = "blue" }
 "comment" = { fg = "comment", modifiers = ["italic"] }

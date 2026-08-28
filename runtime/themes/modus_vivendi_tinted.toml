@@ -2,6 +2,7 @@
 # Adapted from: https://protesilaos.com/emacs/modus-themes, by Protesilaos Stavrou
 # Source: https://github.com/protesilaos/modus-themes/blob/main/modus-vivendi-tinted-theme.el
 # Version 4.6.0
+# License: GPL-3.0 (see licenses/modus.LICENSE)
 
 inherits = "modus_vivendi"
 

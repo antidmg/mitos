@@ -1,6 +1,6 @@
 # Gruvbox Material for Helix
 # Original Author: @sainnhe (https://github.com/sainnhe/gruvbox-material)
 # Ported by: @satoqz
-# License: MIT
+# License: MIT (see licenses/gruvbox_material.license)
 
 inherits = "gruvbox_material_dark_medium"

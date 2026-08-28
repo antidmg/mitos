@@ -2,6 +2,7 @@
 #
 # This theme is a port of naysayer-theme.el:
 #    https://github.com/nickav/naysayer-theme.el
+# License: GPL-3.0-or-later (see licenses/naysayer.license)
 
 "ui.background" = { bg = "bg" }
 "ui.text" = "text"

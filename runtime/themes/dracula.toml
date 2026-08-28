@@ -1,5 +1,6 @@
 # Author : Sebastian Zivota <loewenheim@mailbox.org>
 # Author : Chirikumbrah
+# License: MIT (see licenses/dracula.license)
 
 "annotation"                      = { fg = "foreground"                                                     }
 
@@ -156,4 +157,3 @@ red               = "#ff5555"
 selection         = "#363848"
 whitespace        = "#586693"
 yellow            = "#f1fa8c" 
-

@@ -1,5 +1,6 @@
 # Author: André Sá <enkodr@outlook.com>
 # Based on the AYU theme colors from https://github.com/dempfi/ayu
+# License: MIT (see licenses/ayu.license)
 
 # Syntax highlighting
 "type" = "blue"

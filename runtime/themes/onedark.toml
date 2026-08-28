@@ -1,4 +1,5 @@
 # Author : Gokul Soumya <gokulps15@gmail.com>
+# License: MIT (see licenses/onedark.license)
 
 "tag" = { fg = "red" }
 "attribute" = { fg = "yellow" }

@@ -4,6 +4,7 @@
 # https://github.com/doomemacs/themes/blob/master/themes/doom-acario-dark-theme.el
 # I've done my best to make it look like the Emacs theme, there are still things that looks different from the original.
 # But I've decided to keep it like that as I found it to be easier to read when there's a lot going on i.e lots of variables, strings and functions close to each other.
+# License: MIT (see licenses/doom_acario_dark.license)
 
 'attribute' = { fg = 'blue' }
 'comment' = { fg = 'gray', modifiers = ['italic'] }

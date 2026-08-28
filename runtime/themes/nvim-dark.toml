@@ -1,5 +1,6 @@
 # A port of Neovim's default dark color scheme created by echasnovski: https://github.com/neovim/neovim/pull/26334
 # Based on Kim Nørgaard's Neovim dark (accented) theme for Zed: https://github.com/KimNorgaard/zed-neovim-default
+# License: MIT (see licenses/nvim_dark.license)
 
 attribute = "fog"
 keyword = { fg = "fog", modifiers = ["bold"] }

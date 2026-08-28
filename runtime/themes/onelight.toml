@@ -1,4 +1,5 @@
 # Author : erasin<erasinoo@gmail.com>
+# License: MIT (see licenses/onelight.license)
 
 "attribute" = { fg = "yellow" }
 "label" = { fg = "cyan" }

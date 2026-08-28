@@ -1,6 +1,7 @@
 # Author : tangowithfoxtrot
 # Author : neonvoidx
 # Eldritch - a theme for the Ancient Ones
+# License: MIT (see licenses/eldritch.license)
 
 "annotation"                      = { fg = "foreground"                                                     }
 "attribute"                       = { fg = "green",              modifiers = ["italic"]                     }

@@ -1,5 +1,6 @@
 # Author : Rohit K Viswanath <kvrohit@gmail.com>
 # Theme: Mellow
+# License: MIT (see licenses/mellow.license)
 
 "attribute" = { fg = "blue", modifiers = ["italic"] }
 

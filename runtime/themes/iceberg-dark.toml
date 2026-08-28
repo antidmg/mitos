@@ -1,4 +1,5 @@
 # Author : Chromo-residuum-opec <development.0extl@simplelogin.com>
+# License: MIT (see licenses/iceberg.license)
 
 "attribute" = { fg = "green" }
 "boolean" = { fg = "purple" }

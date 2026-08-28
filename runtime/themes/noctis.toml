@@ -1,4 +1,5 @@
 # Author : 0rphee <0rph3e@proton.me>
+# License: MIT (see licenses/noctis.LICENSE)
 
 # Template written with the help of https://github.com/n0s4/helix-theme-template
 # Keep in mind that I made this to fit Haskell and Python syntax, it may not work so well with other languages.
@@ -210,4 +211,3 @@ red = "#e34e1b"
 dark-blue = "#19a2b7"
 mid-blue = "#47ace8"
 light-blue = "#87efff"
-

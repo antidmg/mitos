@@ -1,5 +1,6 @@
 # Author : Joe Mckay joemckay3006@gmail.com
 # Palette from https://github.com/haishanh/night-owl.vim
+# License: MIT (see licenses/night_owl.license)
 
 'warning' = { fg = 'peach', modifiers = ['dim'] }
 'error' = { fg = 'red', modifiers = ['dim'] }

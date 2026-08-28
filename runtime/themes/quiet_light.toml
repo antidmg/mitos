@@ -1,5 +1,5 @@
 # Author: Tyler Laprade <tyler@tylerlaprade.com>
-# License: MIT
+# License: MIT (see licenses/quiet_light.license)
 # Port of VSCode's built-in "Quiet Light" theme (originally by occlure, itself
 # ported from Ian Beck's TextMate theme of the same name). Distinctive for its
 # bold-on-functions / bold-on-types styling.

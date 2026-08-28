@@ -1,6 +1,7 @@
 # Author: Alexis Mousset <contact@amousset.me>
 # modus_operandi.toml variant
 # Version 4.6.0
+# License: GPL-3.0 (see licenses/modus.LICENSE)
 
 inherits = "modus_operandi"
 

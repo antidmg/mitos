@@ -1,3 +1,5 @@
+# License: MIT (see licenses/solarized.license)
+
 "attribute" = { fg = "violet" }
 "keyword" = { fg = "green" }
 "keyword.directive" = { fg = "orange" }

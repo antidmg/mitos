@@ -1,4 +1,5 @@
 # Author: IwantHappiness <IwantHappiness95@gmail.com>
+# License: MIT (see licenses/vesper.LICENSE)
 
 tag = { fg = "beige" }
 type = { fg = "beige" }

@@ -6,7 +6,7 @@
 # Filename: colors/everforest.vim
 # Author: sainnhe
 # Email: sainnhe@gmail.com
-# License: MIT License
+# License: MIT (see licenses/everforest.LICENSE)
 
 "type" = "yellow"
 "constant" = "fg"

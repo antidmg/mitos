@@ -1,5 +1,6 @@
 # Author: Alexander Brevig <alexanderbrevig@gmail.com>, krfl <kr.fl@outlook.com>
 # Adopted from https://github.com/biletskyy/flatwhite-syntax
+# License: MIT (see licenses/flatwhite.license)
 
 "attribute" = { fg = "blue_text", bg = "blue_bg" }
 "comment" = { fg = "base2", bg = "base6" }

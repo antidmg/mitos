@@ -1,5 +1,6 @@
 # Kanagawa-lotus
 # Author: vmanolop
+# License: MIT (see licenses/kanagawa.license)
 
 # A light variant of the Kanagawa theme, based on the original dark Kanagawa theme
 # and inspired by the lotus variant of https://github.com/rebelot/kanagawa.nvim
@@ -153,4 +154,3 @@ lotusSuperViolet  = "#43098A"
 lotusSuperOrange  = "#A34100"
 lotusSuperPink    = "#861657"
 lotusSuperBlue    = "#0D267D"
-

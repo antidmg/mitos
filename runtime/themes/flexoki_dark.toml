@@ -1,4 +1,5 @@
 inherits = "flexoki_light"
+# License: MIT (see licenses/flexoki.license)
 
 [palette]
 tx = "#CECDC3"
