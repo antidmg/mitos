@@ -3691,6 +3691,44 @@ fn changed_file_picker(cx: &mut Context) {
     cx.push_layer(Box::new(overlaid(picker)));
 }
 
+struct CommandPaletteData {
+    keymap: crate::keymap::ReverseKeymap,
+    command_style: Style,
+    binding_style: Style,
+}
+
+fn command_palette_name<'a>(item: &'a MappableCommand, data: &CommandPaletteData) -> Cell<'a> {
+    let name: Cow<'a, str> = match item {
+        MappableCommand::Typable { name, .. } => format!(":{name}").into(),
+        MappableCommand::Static { name, .. } => (*name).into(),
+        MappableCommand::Macro { .. } => {
+            unreachable!("macros aren't included in the command palette")
+        }
+    };
+
+    Span::styled(name, data.command_style).into()
+}
+
+fn command_palette_bindings<'a>(item: &MappableCommand, data: &CommandPaletteData) -> Cell<'a> {
+    let bindings = data
+        .keymap
+        .get(item.name())
+        .map(|bindings| {
+            bindings.iter().fold(String::new(), |mut acc, bind| {
+                if !acc.is_empty() {
+                    acc.push(' ');
+                }
+                for key in bind {
+                    acc.push_str(&key.key_sequence_format());
+                }
+                acc
+            })
+        })
+        .unwrap_or_default();
+
+    Span::styled(bindings, data.binding_style).into()
+}
+
 pub fn command_palette(cx: &mut Context) {
     let register = cx.register;
     let count = cx.count;
@@ -3700,6 +3738,11 @@ pub fn command_palette(cx: &mut Context) {
             let keymap = compositor.find::<ui::EditorView>().unwrap().keymaps.map()
                 [&cx.editor.mode]
                 .reverse_map();
+            let data = CommandPaletteData {
+                keymap,
+                command_style: cx.editor.theme.get("constant"),
+                binding_style: cx.editor.theme.get("markup.raw.inline"),
+            };
 
             let commands = MappableCommand::STATIC_COMMAND_LIST.iter().cloned().chain(
                 typed::TYPABLE_COMMAND_LIST
@@ -3712,37 +3755,12 @@ pub fn command_palette(cx: &mut Context) {
             );
 
             let columns = [
-                ui::PickerColumn::new("name", |item, _| match item {
-                    MappableCommand::Typable { name, .. } => format!(":{name}").into(),
-                    MappableCommand::Static { name, .. } => (*name).into(),
-                    MappableCommand::Macro { .. } => {
-                        unreachable!("macros aren't included in the command palette")
-                    }
-                }),
-                ui::PickerColumn::new(
-                    "bindings",
-                    |item: &MappableCommand, keymap: &crate::keymap::ReverseKeymap| {
-                        keymap
-                            .get(item.name())
-                            .map(|bindings| {
-                                bindings.iter().fold(String::new(), |mut acc, bind| {
-                                    if !acc.is_empty() {
-                                        acc.push(' ');
-                                    }
-                                    for key in bind {
-                                        acc.push_str(&key.key_sequence_format());
-                                    }
-                                    acc
-                                })
-                            })
-                            .unwrap_or_default()
-                            .into()
-                    },
-                ),
+                ui::PickerColumn::new("name", command_palette_name),
+                ui::PickerColumn::new("bindings", command_palette_bindings),
                 ui::PickerColumn::new("doc", |item: &MappableCommand, _| item.doc().into()),
             ];
 
-            let picker = Picker::new(columns, 0, commands, keymap, move |cx, command, _action| {
+            let picker = Picker::new(columns, 0, commands, data, move |cx, command, _action| {
                 let mut ctx = Context {
                     register,
                     count,
@@ -7097,6 +7115,36 @@ fn lsp_or_syntax_workspace_symbol_picker(cx: &mut Context) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn command_palette_styles_names_and_bindings() {
+        let command_style = Style::default().fg(view::graphics::Color::Blue);
+        let binding_style = Style::default().fg(view::graphics::Color::Magenta);
+        let command = MappableCommand::Typable {
+            name: "write".into(),
+            args: String::new(),
+            doc: String::new(),
+        };
+        let keys = vec![
+            "space".parse::<KeyEvent>().unwrap(),
+            "?".parse::<KeyEvent>().unwrap(),
+        ];
+        let data = CommandPaletteData {
+            keymap: HashMap::from([("write".into(), vec![keys])]),
+            command_style,
+            binding_style,
+        };
+
+        let name = command_palette_name(&command, &data);
+        let name = &name.content.lines[0].spans[0];
+        assert_eq!(name.content, ":write");
+        assert_eq!(name.style, tui::style::Style::from(command_style));
+
+        let bindings = command_palette_bindings(&command, &data);
+        let bindings = &bindings.content.lines[0].spans[0];
+        assert_eq!(bindings.content, "<space>?");
+        assert_eq!(bindings.style, tui::style::Style::from(binding_style));
+    }
 
     #[test]
     fn global_search_match_selection_uses_match_range() {
