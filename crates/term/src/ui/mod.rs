@@ -334,7 +334,7 @@ pub fn file_picker(editor: &Editor, root: PathBuf) -> FilePicker {
 type FileExplorer = Picker<(PathBuf, bool), (PathBuf, Arc<Theme>, bool)>;
 
 pub fn file_explorer(root: PathBuf, editor: &Editor) -> Result<FileExplorer, std::io::Error> {
-    let directory_content = directory_content(&root, editor)?;
+    let options = directory_content(&root, editor)?;
 
     let columns = [PickerColumn::new(
         "path",
@@ -373,25 +373,31 @@ pub fn file_explorer(root: PathBuf, editor: &Editor) -> Result<FileExplorer, std
             }
         },
     )];
-    let picker = Picker::new(
+    let picker = Picker::new_with_callback_result(
         columns,
         0,
-        directory_content,
+        options,
         (root, Arc::new(editor.theme.clone()), editor.config().icons),
         move |cx, (path, is_dir): &(PathBuf, bool), action| {
             if *is_dir {
                 let new_root = stdx::path::normalize(path);
-                let callback = Box::pin(async move {
-                    let call: Callback =
-                        Callback::EditorCompositor(Box::new(move |editor, compositor| {
-                            if let Ok(picker) = file_explorer(new_root, editor) {
-                                compositor.push(Box::new(overlay::overlaid(picker)));
-                            }
-                        }));
-                    Ok(call)
-                });
-                cx.jobs.callback(callback);
-            } else if let Err(err) = cx.editor.open(path, action) {
+                return match directory_content(&new_root, cx.editor) {
+                    Ok(options) => picker::PickerCallbackResult::Replace {
+                        options,
+                        editor_data: (
+                            new_root,
+                            Arc::new(cx.editor.theme.clone()),
+                            cx.editor.config().icons,
+                        ),
+                    },
+                    Err(err) => {
+                        cx.editor.set_error(|| err.to_string());
+                        picker::PickerCallbackResult::KeepOpen
+                    }
+                };
+            }
+
+            if let Err(err) = cx.editor.open(path, action) {
                 cx.editor.set_error(|| {
                     if let Some(err) = err.source() {
                         format!("{}", err)
@@ -400,6 +406,7 @@ pub fn file_explorer(root: PathBuf, editor: &Editor) -> Result<FileExplorer, std
                     }
                 });
             }
+            picker::PickerCallbackResult::Close
         },
     )
     .with_preview(|_editor, (path, _is_dir)| Some((path.as_path().into(), None)));

@@ -271,7 +271,7 @@ pub struct Picker<T: 'static + Send + Sync, D: 'static> {
     /// Constraints for tabular formatting
     widths: Vec<Constraint>,
 
-    callback_fn: PickerCallback<T>,
+    callback_fn: PickerCallback<T, D>,
     default_action: Action,
 
     pub truncate_start: bool,
@@ -322,6 +322,30 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
         O: IntoIterator<Item = T>,
         F: Fn(&mut Context, &T, Action) + 'static,
     {
+        Self::new_with_callback_result(
+            columns,
+            primary_column,
+            options,
+            editor_data,
+            move |cx, item, action| {
+                callback_fn(cx, item, action);
+                PickerCallbackResult::Close
+            },
+        )
+    }
+
+    pub(super) fn new_with_callback_result<C, O, F>(
+        columns: C,
+        primary_column: usize,
+        options: O,
+        editor_data: D,
+        callback_fn: F,
+    ) -> Self
+    where
+        C: IntoIterator<Item = Column<T, D>>,
+        O: IntoIterator<Item = T>,
+        F: Fn(&mut Context, &T, Action) -> PickerCallbackResult<T, D> + 'static,
+    {
         let columns: Arc<[_]> = columns.into_iter().collect();
         let matcher_columns = columns
             .iter()
@@ -360,7 +384,10 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
             primary_column,
             injector.editor_data,
             injector.picker_version,
-            callback_fn,
+            move |cx, item, action| {
+                callback_fn(cx, item, action);
+                PickerCallbackResult::Close
+            },
         )
     }
 
@@ -370,7 +397,7 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
         default_column: usize,
         editor_data: Arc<D>,
         version: Arc<AtomicUsize>,
-        callback_fn: impl Fn(&mut Context, &T, Action) + 'static,
+        callback_fn: impl Fn(&mut Context, &T, Action) -> PickerCallbackResult<T, D> + 'static,
     ) -> Self {
         assert!(!columns.is_empty());
 
@@ -517,6 +544,47 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
             .snapshot()
             .get_matched_item(self.cursor)
             .map(|item| item.data)
+    }
+
+    fn apply_callback_result(
+        &mut self,
+        result: PickerCallbackResult<T, D>,
+        editor: &Editor,
+    ) -> bool {
+        match result {
+            PickerCallbackResult::Close => true,
+            PickerCallbackResult::KeepOpen => false,
+            PickerCallbackResult::Replace {
+                options,
+                editor_data,
+            } => {
+                self.replace_options(options, editor_data, editor);
+                false
+            }
+        }
+    }
+
+    fn replace_options(&mut self, options: Vec<T>, editor_data: D, editor: &Editor) {
+        // Cancel existing injectors before replacing the matcher contents.
+        self.version.fetch_add(1, atomic::Ordering::Relaxed);
+        self.matcher.restart(true);
+        self.editor_data = Arc::new(editor_data);
+
+        self.cursor = 0;
+        self.prompt.clear(editor);
+        self.handle_prompt_change(false);
+        self.widths = self
+            .columns
+            .iter()
+            .map(|column| Constraint::Length(column.name.chars().count() as u16))
+            .collect();
+        self.preview_cache.clear();
+        self.read_buffer.clear();
+
+        let injector = self.matcher.injector();
+        for item in options {
+            inject_nucleo_item(&injector, &self.columns, item, &self.editor_data);
+        }
     }
 
     fn primary_query(&self) -> Arc<str> {
@@ -1125,7 +1193,8 @@ impl<I: 'static + Send + Sync, D: 'static + Send + Sync> Component for Picker<I,
             key!(Esc) | ctrl!('c') => return close_fn(self),
             alt!(Enter) => {
                 if let Some(option) = self.selection() {
-                    (self.callback_fn)(ctx, option, self.default_action);
+                    let result = (self.callback_fn)(ctx, option, self.default_action);
+                    self.apply_callback_result(result, ctx.editor);
                 }
             }
             key!(Enter) => {
@@ -1148,9 +1217,11 @@ impl<I: 'static + Send + Sync, D: 'static + Send + Sync> Component for Picker<I,
                     // Inserting from the history register is a paste.
                     self.handle_prompt_change(true);
                 } else {
-                    if let Some(option) = self.selection() {
-                        (self.callback_fn)(ctx, option, self.default_action);
-                    }
+                    let callback_result = self
+                        .selection()
+                        .map_or(PickerCallbackResult::Close, |option| {
+                            (self.callback_fn)(ctx, option, self.default_action)
+                        });
                     if let Some(history_register) = self.prompt.history_register()
                         && let Err(err) = ctx
                             .editor
@@ -1159,20 +1230,30 @@ impl<I: 'static + Send + Sync, D: 'static + Send + Sync> Component for Picker<I,
                     {
                         ctx.editor.set_error(|| err.to_string());
                     }
-                    return close_fn(self);
+                    if self.apply_callback_result(callback_result, ctx.editor) {
+                        return close_fn(self);
+                    }
                 }
             }
             ctrl!('s') => {
-                if let Some(option) = self.selection() {
-                    (self.callback_fn)(ctx, option, Action::HorizontalSplit);
+                let callback_result = self
+                    .selection()
+                    .map_or(PickerCallbackResult::Close, |option| {
+                        (self.callback_fn)(ctx, option, Action::HorizontalSplit)
+                    });
+                if self.apply_callback_result(callback_result, ctx.editor) {
+                    return close_fn(self);
                 }
-                return close_fn(self);
             }
             ctrl!('v') => {
-                if let Some(option) = self.selection() {
-                    (self.callback_fn)(ctx, option, Action::VerticalSplit);
+                let callback_result = self
+                    .selection()
+                    .map_or(PickerCallbackResult::Close, |option| {
+                        (self.callback_fn)(ctx, option, Action::VerticalSplit)
+                    });
+                if self.apply_callback_result(callback_result, ctx.editor) {
+                    return close_fn(self);
                 }
-                return close_fn(self);
             }
             ctrl!('t') => {
                 self.toggle_preview();
@@ -1213,7 +1294,13 @@ impl<T: 'static + Send + Sync, D> Drop for Picker<T, D> {
     }
 }
 
-type PickerCallback<T> = Box<dyn Fn(&mut Context, &T, Action)>;
+pub(super) enum PickerCallbackResult<T, D> {
+    Close,
+    KeepOpen,
+    Replace { options: Vec<T>, editor_data: D },
+}
+
+type PickerCallback<T, D> = Box<dyn Fn(&mut Context, &T, Action) -> PickerCallbackResult<T, D>>;
 
 #[cfg(test)]
 mod tests {
