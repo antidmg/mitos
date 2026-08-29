@@ -11,7 +11,7 @@ use lsp_client::{
 use tokio_stream::StreamExt;
 use tui::{
     text::{Line, Span},
-    widgets::Row,
+    widgets::{Cell, Row},
 };
 
 use super::{align_view, push_jump, Align, Context, Editor};
@@ -27,7 +27,7 @@ use view::{
     editor::Action,
     handlers::lsp::SignatureHelpInvoked,
     icons::ICONS,
-    theme::Style,
+    theme::{symbol_kind_scope, Style, Theme},
     Document, DocumentId, View,
 };
 
@@ -94,6 +94,12 @@ fn lsp_location_to_location(
 struct SymbolInformationItem {
     location: Location,
     symbol: lsp::SymbolInformation,
+    tree_prefix: String,
+}
+
+struct SymbolPickerData {
+    show_icons: bool,
+    theme: Theme,
 }
 
 struct DiagnosticStyles {
@@ -198,6 +204,223 @@ fn display_symbol_kind(kind: lsp::SymbolKind) -> &'static str {
             log::warn!("Unknown symbol kind: {:?}", kind);
             ""
         }
+    }
+}
+
+fn symbol_kind_cell<'a>(item: &'a SymbolInformationItem, data: &'a SymbolPickerData) -> Cell<'a> {
+    let mut spans = Vec::with_capacity(2);
+    if data.show_icons {
+        let icons = ICONS.load();
+        if let Some(icon) = icons.kind().get(item.symbol.kind.as_str()) {
+            spans.push(Span::from(icon));
+        }
+    }
+    spans.push(Span::styled(
+        display_symbol_kind(item.symbol.kind),
+        data.theme.get("ui.text.inactive"),
+    ));
+    Line::from(spans).into()
+}
+
+fn symbol_name_cell<'a>(item: &'a SymbolInformationItem, data: &'a SymbolPickerData) -> Cell<'a> {
+    let mut spans = Vec::with_capacity(2);
+    if !item.tree_prefix.is_empty() {
+        spans.push(Span::styled(
+            item.tree_prefix.as_str(),
+            data.theme.get("ui.text.inactive"),
+        ));
+    }
+    spans.push(Span::styled(
+        item.symbol.name.as_str(),
+        data.theme.get(symbol_kind_scope(item.symbol.kind)),
+    ));
+    Line::from(spans).into()
+}
+
+fn symbol_container_cell<'a>(
+    item: &'a SymbolInformationItem,
+    data: &'a SymbolPickerData,
+) -> Cell<'a> {
+    Span::styled(
+        item.symbol.container_name.as_deref().unwrap_or_default(),
+        data.theme.get("ui.text.inactive"),
+    )
+    .into()
+}
+
+fn symbol_path_cell<'a>(item: &'a SymbolInformationItem, data: &'a SymbolPickerData) -> Cell<'a> {
+    let path = if let Some(path) = item.location.uri.as_path() {
+        path::get_relative_path(path).to_string_lossy().to_string()
+    } else {
+        item.symbol.location.uri.to_string()
+    };
+    Span::styled(path, data.theme.get("ui.text.directory")).into()
+}
+
+fn nested_symbol_to_flat(
+    list: &mut Vec<SymbolInformationItem>,
+    file: &lsp::TextDocumentIdentifier,
+    uri: &Uri,
+    symbol: lsp::DocumentSymbol,
+    offset_encoding: OffsetEncoding,
+    ancestor_prefix: &str,
+    is_last_child: Option<bool>,
+) {
+    let tree_prefix = match is_last_child {
+        Some(true) => format!("{ancestor_prefix}└─ "),
+        Some(false) => format!("{ancestor_prefix}├─ "),
+        None => String::new(),
+    };
+    let child_ancestor_prefix = match is_last_child {
+        Some(true) => format!("{ancestor_prefix}   "),
+        Some(false) => format!("{ancestor_prefix}│  "),
+        None => ancestor_prefix.to_owned(),
+    };
+    let children = symbol.children.unwrap_or_default();
+
+    #[allow(deprecated)]
+    list.push(SymbolInformationItem {
+        symbol: lsp::SymbolInformation {
+            name: symbol.name,
+            kind: symbol.kind,
+            tags: symbol.tags,
+            deprecated: symbol.deprecated,
+            location: lsp::Location::new(file.uri.clone(), symbol.selection_range),
+            container_name: None,
+        },
+        location: Location {
+            uri: uri.clone(),
+            range: symbol.selection_range,
+            offset_encoding,
+        },
+        tree_prefix,
+    });
+
+    let last_child = children.len().saturating_sub(1);
+    for (index, child) in children.into_iter().enumerate() {
+        nested_symbol_to_flat(
+            list,
+            file,
+            uri,
+            child,
+            offset_encoding,
+            &child_ancestor_prefix,
+            Some(index == last_child),
+        );
+    }
+}
+
+#[cfg(test)]
+mod symbol_picker_tests {
+    use super::*;
+    use view::theme::DEFAULT_THEME;
+
+    fn symbol_information_item() -> SymbolInformationItem {
+        let uri = lsp::Url::parse("file:///tmp/main.rs").unwrap();
+        #[allow(deprecated)]
+        let symbol = lsp::SymbolInformation {
+            name: "main".into(),
+            kind: lsp::SymbolKind::FUNCTION,
+            tags: None,
+            deprecated: None,
+            location: lsp::Location::new(uri.clone(), lsp::Range::default()),
+            container_name: Some("crate".into()),
+        };
+        SymbolInformationItem {
+            location: Location {
+                uri: Uri::try_from(&uri).unwrap(),
+                range: lsp::Range::default(),
+                offset_encoding: OffsetEncoding::Utf16,
+            },
+            symbol,
+            tree_prefix: String::new(),
+        }
+    }
+
+    fn document_symbol(
+        name: &str,
+        children: impl IntoIterator<Item = lsp::DocumentSymbol>,
+    ) -> lsp::DocumentSymbol {
+        let children = children.into_iter().collect::<Vec<_>>();
+        #[allow(deprecated)]
+        lsp::DocumentSymbol {
+            name: name.into(),
+            detail: None,
+            kind: lsp::SymbolKind::FUNCTION,
+            tags: None,
+            deprecated: None,
+            range: lsp::Range::default(),
+            selection_range: lsp::Range::default(),
+            children: (!children.is_empty()).then_some(children),
+        }
+    }
+
+    #[test]
+    fn cells_use_semantic_theme_styles() {
+        let item = symbol_information_item();
+        let data = SymbolPickerData {
+            show_icons: false,
+            theme: DEFAULT_THEME.clone(),
+        };
+
+        let kind = symbol_kind_cell(&item, &data);
+        let name = symbol_name_cell(&item, &data);
+        let container = symbol_container_cell(&item, &data);
+        let path = symbol_path_cell(&item, &data);
+
+        assert_eq!(
+            kind.content.lines[0].spans[0].style,
+            DEFAULT_THEME.get("ui.text.inactive").into()
+        );
+        assert_eq!(
+            name.content.lines[0].spans[0].style,
+            DEFAULT_THEME.get("function").into()
+        );
+        assert_eq!(
+            container.content.lines[0].spans[0].style,
+            DEFAULT_THEME.get("ui.text.inactive").into()
+        );
+        assert_eq!(
+            path.content.lines[0].spans[0].style,
+            DEFAULT_THEME.get("ui.text.directory").into()
+        );
+    }
+
+    #[test]
+    fn nested_symbols_are_fully_expanded_with_tree_prefixes() {
+        let uri = lsp::Url::parse("file:///tmp/main.rs").unwrap();
+        let file = lsp::TextDocumentIdentifier::new(uri.clone());
+        let root = document_symbol(
+            "root",
+            [
+                document_symbol("branch", [document_symbol("nested", [])]),
+                document_symbol("leaf", []),
+            ],
+        );
+        let mut symbols = Vec::new();
+
+        nested_symbol_to_flat(
+            &mut symbols,
+            &file,
+            &Uri::try_from(&uri).unwrap(),
+            root,
+            OffsetEncoding::Utf16,
+            "",
+            None,
+        );
+
+        assert_eq!(
+            symbols
+                .iter()
+                .map(|item| (item.tree_prefix.as_str(), item.symbol.name.as_str()))
+                .collect::<Vec<_>>(),
+            [
+                ("", "root"),
+                ("├─ ", "branch"),
+                ("│  └─ ", "nested"),
+                ("└─ ", "leaf"),
+            ]
+        );
     }
 }
 
@@ -347,34 +570,10 @@ fn diag_picker(
 }
 
 pub fn symbol_picker(cx: &mut Context) {
-    let show_icons = cx.editor.config().icons;
-    fn nested_to_flat(
-        list: &mut Vec<SymbolInformationItem>,
-        file: &lsp::TextDocumentIdentifier,
-        uri: &Uri,
-        symbol: lsp::DocumentSymbol,
-        offset_encoding: OffsetEncoding,
-    ) {
-        #[allow(deprecated)]
-        list.push(SymbolInformationItem {
-            symbol: lsp::SymbolInformation {
-                name: symbol.name,
-                kind: symbol.kind,
-                tags: symbol.tags,
-                deprecated: symbol.deprecated,
-                location: lsp::Location::new(file.uri.clone(), symbol.selection_range),
-                container_name: None,
-            },
-            location: Location {
-                uri: uri.clone(),
-                range: symbol.selection_range,
-                offset_encoding,
-            },
-        });
-        for child in symbol.children.into_iter().flatten() {
-            nested_to_flat(list, file, uri, child, offset_encoding);
-        }
-    }
+    let picker_data = SymbolPickerData {
+        show_icons: cx.editor.config().icons,
+        theme: cx.editor.theme.clone(),
+    };
     let doc = doc!(cx.editor);
 
     let mut seen_language_servers = HashSet::new();
@@ -407,17 +606,20 @@ pub fn symbol_picker(cx: &mut Context) {
                                 offset_encoding,
                             },
                             symbol,
+                            tree_prefix: String::new(),
                         })
                         .collect(),
                     lsp::DocumentSymbolResponse::Nested(symbols) => {
                         let mut flat_symbols = Vec::new();
                         for symbol in symbols {
-                            nested_to_flat(
+                            nested_symbol_to_flat(
                                 &mut flat_symbols,
                                 &doc_id,
                                 &doc_uri,
                                 symbol,
                                 offset_encoding,
+                                "",
+                                None,
                             )
                         }
                         flat_symbols
@@ -444,36 +646,18 @@ pub fn symbol_picker(cx: &mut Context) {
         }
         let call = move |_editor: &mut Editor, compositor: &mut Compositor| {
             let columns = [
-                ui::PickerColumn::new("kind", |item: &SymbolInformationItem, show_icons: &bool| {
-                    let label = display_symbol_kind(item.symbol.kind);
-                    if *show_icons {
-                        let icons = ICONS.load();
-                        if let Some(icon) = icons.kind().get(item.symbol.kind.as_str()) {
-                            return Line::from(vec![Span::from(icon), Span::raw(label)]).into();
-                        }
-                    }
-                    label.into()
-                }),
-                // Some symbols in the document symbol picker may have a URI that isn't
-                // the current file. It should be rare though, so we concatenate that
-                // URI in with the symbol name in this picker.
-                ui::PickerColumn::new("name", |item: &SymbolInformationItem, _| {
-                    item.symbol.name.as_str().into()
-                }),
-                ui::PickerColumn::new("container", |item: &SymbolInformationItem, _| {
-                    item.symbol
-                        .container_name
-                        .as_deref()
-                        .unwrap_or_default()
-                        .into()
-                }),
+                ui::PickerColumn::new("kind", symbol_kind_cell),
+                // Nested document symbols include their fully expanded tree guide in
+                // the name column. Legacy flat responses remain unprefixed.
+                ui::PickerColumn::new("name", symbol_name_cell),
+                ui::PickerColumn::new("container", symbol_container_cell),
             ];
 
             let picker = Picker::new(
                 columns,
                 1, // name column
                 symbols,
-                show_icons,
+                picker_data,
                 move |cx, item, action| {
                     jump_to_location(cx.editor, &item.location, action);
                 },
@@ -539,6 +723,7 @@ pub fn workspace_symbol_picker(cx: &mut Context) {
                                     offset_encoding,
                                 },
                                 symbol,
+                                tree_prefix: String::new(),
                             })
                         })
                         .collect();
@@ -569,44 +754,22 @@ pub fn workspace_symbol_picker(cx: &mut Context) {
         .boxed()
     };
     let columns = [
-        ui::PickerColumn::new("kind", |item: &SymbolInformationItem, show_icons: &bool| {
-            let label = display_symbol_kind(item.symbol.kind);
-            if *show_icons {
-                let icons = ICONS.load();
-                if let Some(icon) = icons.kind().get(item.symbol.kind.as_str()) {
-                    return Line::from(vec![Span::from(icon), Span::raw(label)]).into();
-                }
-            }
-            label.into()
-        }),
-        ui::PickerColumn::new("name", |item: &SymbolInformationItem, _| {
-            item.symbol.name.as_str().into()
-        })
-        .without_filtering(),
-        ui::PickerColumn::new("container", |item: &SymbolInformationItem, _| {
-            item.symbol
-                .container_name
-                .as_deref()
-                .unwrap_or_default()
-                .into()
-        }),
-        ui::PickerColumn::new("path", |item: &SymbolInformationItem, _| {
-            if let Some(path) = item.location.uri.as_path() {
-                path::get_relative_path(path)
-                    .to_string_lossy()
-                    .to_string()
-                    .into()
-            } else {
-                item.symbol.location.uri.to_string().into()
-            }
-        }),
+        ui::PickerColumn::new("kind", symbol_kind_cell),
+        ui::PickerColumn::new("name", symbol_name_cell).without_filtering(),
+        ui::PickerColumn::new("container", symbol_container_cell),
+        ui::PickerColumn::new("path", symbol_path_cell),
     ];
+
+    let picker_data = SymbolPickerData {
+        show_icons: cx.editor.config().icons,
+        theme: cx.editor.theme.clone(),
+    };
 
     let picker = Picker::new(
         columns,
         1, // name column
         [],
-        cx.editor.config().icons,
+        picker_data,
         move |cx, item, action| {
             jump_to_location(cx.editor, &item.location, action);
         },

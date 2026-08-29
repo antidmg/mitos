@@ -24,7 +24,6 @@ use editor_core::{
     visual_offset_from_block, Change, Position, Range, Selection, Transaction,
 };
 use loader::VERSION_AND_GIT_HASH;
-use lsp_client::lsp::SymbolKind;
 use std::{mem::take, num::NonZeroUsize, ops, path::PathBuf, rc::Rc, sync::LazyLock};
 use view::{
     annotations::diagnostics::DiagnosticFilter,
@@ -992,38 +991,9 @@ impl EditorView {
                     draw_separator = true;
                 }
 
-                let style = match symbol.kind {
-                    SymbolKind::MODULE
-                    | SymbolKind::NAMESPACE
-                    | SymbolKind::PACKAGE => editor.theme.get("namespace"),
-
-                    SymbolKind::OBJECT // impl Block
-                    | SymbolKind::STRUCT
-                    | SymbolKind::INTERFACE
-                    | SymbolKind::CLASS => editor.theme.get("type"),
-
-                    SymbolKind::METHOD => editor.theme.get("function.method"),
-                    SymbolKind::FUNCTION => editor.theme.get("function"),
-
-                    SymbolKind::ENUM => editor.theme.get("type.enum"),
-                    SymbolKind::ENUM_MEMBER => editor.theme.get("type.enum.variant"),
-
-                   SymbolKind::FIELD | SymbolKind::PROPERTY => {
-                        editor.theme.get("variable.other.member")
-                    }
-
-                    SymbolKind::VARIABLE => editor.theme.get("variable"),
-                    SymbolKind::CONSTANT => editor.theme.get("constant"),
-                    SymbolKind::CONSTRUCTOR => editor.theme.get("constructor"),
-                    SymbolKind::STRING => editor.theme.get("string"),
-                    SymbolKind::NUMBER => editor.theme.get("constant.numeric"),
-                    SymbolKind::BOOLEAN => editor.theme.get("constant.builtin.boolean"),
-                    SymbolKind::ARRAY => editor.theme.get("punctuation.bracket"),
-                    SymbolKind::KEY => editor.theme.get("label"),
-                    SymbolKind::NULL => editor.theme.get("constant.builtin"),
-                    SymbolKind::TYPE_PARAMETER => editor.theme.get("type.parameter"),
-                    _ => style,
-                };
+                let style = editor
+                    .theme
+                    .get(view::theme::symbol_kind_scope(symbol.kind));
 
                 x = draw_element(surface, viewport, x, symbol.name.as_ref(), style);
             }
