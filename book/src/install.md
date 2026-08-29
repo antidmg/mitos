@@ -1,4 +1,4 @@
-# Installing Mitos
+# Installation
 
 Build Mitos from source using the instructions in the
 [building guide](./building-from-source.md).
@@ -12,7 +12,7 @@ Note that:
 
 ## Pre-built binaries
 
-Download pre-built binaries from the [GitHub Releases page](https://github.com/matoous/mitos/releases).
+Download pre-built binaries from the [GitHub Releases page](https://github.com/mitos-editor/mitos/releases).
 The tarball contents include an `ms` binary and a `runtime` directory.
 To set up Mitos:
 

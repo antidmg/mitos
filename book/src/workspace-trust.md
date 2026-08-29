@@ -50,7 +50,7 @@ When you trust a workspace, Mitos records a hash of every file under
 inadvertent rebase, etc.) Mitos detects the mismatch on the next open and
 reports the workspace as *stale*:
 
-```
+```text
 Workspace `.mitos/` config changed since `:workspace-trust`. Local config
 not loaded. Run `:workspace-trust` to re-allow.
 ```
@@ -66,7 +66,7 @@ Trust grants live in `data_dir()/workspace_trust/`, one small file per
 workspace. The filename is the SHA-256 of the workspace's absolute path;
 the contents look like:
 
-```
+```text
 path = /home/user/proj1
 hash = sha256:abc123...
 excluded = false

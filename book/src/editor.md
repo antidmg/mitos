@@ -1,4 +1,4 @@
-## Editor
+# Editor
 
 - [`[editor]` Section](#editor-section)
 - [`[editor.breadcrumb]` Section](#editorbreadcrumb-section)

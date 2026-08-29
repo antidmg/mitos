@@ -1,4 +1,4 @@
-## Building from source
+# Building from source
 
 - [Configuring Mitos's runtime files](#configuring-mitoss-runtime-files)
   - [Linux and macOS](#linux-and-macos)
@@ -28,7 +28,7 @@ RUSTFLAGS="-C target-feature=-crt-static"
 1. Clone the repository:
 
    ```sh
-   git clone https://github.com/matoous/mitos
+   git clone https://github.com/mitos-editor/mitos
    cd mitos
    ```
 
@@ -195,7 +195,7 @@ cargo deb -- --locked
 > As long as you leave a `target/release/ms` file, it will get packaged with `cargo deb --no-build`
 
 > 💡 Don't worry about the following:
-> ```
+> ```text
 > warning: Failed to find dependency specification
 > ```
 > Cargo deb just reports which packaged files it didn't derive dependencies for. But

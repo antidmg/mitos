@@ -1,4 +1,4 @@
-## Adding indent queries
+# Adding indent queries
 
 Mitos uses tree-sitter to correctly indent new lines. This requires a
 tree-sitter grammar and an `indent.scm` query file placed in
@@ -33,7 +33,7 @@ a new line will be inserted.
 For `o`, the inserted line is the line below the cursor, so that starting
 position of the query is the end of the current line.
 
-```rust
+```rust,ignore
 fn need_hero(some_hero: Hero, life: Life) -> {
     matches!(some_hero, Hero { // ←─────────────────╮
         strong: true,//←╮  ↑  ↑                     │
@@ -50,7 +50,7 @@ fn need_hero(some_hero: Hero, life: Life) -> {
 For `O`, the newly inserted line is the *current* line, so the starting position
 of the query is the end of the line above the cursor.
 
-```rust
+```rust,ignore
 fn need_hero(some_hero: Hero, life: Life) -> { // ←─╮
     matches!(some_hero, Hero { // ←╮          ↑     │
         strong: true,//    ↑   ╭───╯          │     │
@@ -77,7 +77,7 @@ describe the adjustments.
   `@outdent` contributes nothing (its level is cancelled) — used e.g. for a
   nested `else if` that should not stack a second level.
   By default the scope opens at the node's own first line; see the
-  [`header`](#scope-header) scope to open it at the parent (header) line instead.
+  [`header`](#the-header-scope) scope to open it at the parent (header) line instead.
 - `@outdent`:
   Decrease by 1 the indent of the line on which this (usually a closing token
   like `}`/`)`/`]`, or a keyword like `else`) begins.
@@ -113,7 +113,7 @@ describe the adjustments.
 
 Consider this example:
 
-```rust
+```rust,ignore
 fn shout(things: Vec<Thing>) {
     //                       ↑
     //                       ├───────────────────────╮ indent level
@@ -154,7 +154,7 @@ Grammars typically nest a chain so each `.method()` link is a `call` inside a
 `member_expression` inside the previous link, and several of those nodes *begin*
 on the receiver's line:
 
-```rust
+```rust,ignore
 let x = thing       // ← chain opens here
     .foo()          // each link aligned one level in,
     .bar()          // not progressively deeper
@@ -297,7 +297,7 @@ To help, we need to signal an end to the extension. We can do this with
 A brace-less single-statement body — `if (cond)` with its statement on the next
 line and no `{}` — is a body the indent must wrap, but the body node's *own*
 first line is the line that needs the indent (there is no separate opening line).
-Capture the body and give it the [`header`](#scope-header) scope, which opens the
+Capture the body and give it the [`header`](#the-header-scope) scope, which opens the
 scope at the **header** (the captured node's parent) line instead of the body's
 own line, so the body line is contained:
 
@@ -401,7 +401,7 @@ The captures given by the 2 arguments must/must not start on the same line.
 - `#one-line?`/`#not-one-line?`:
 The captures given by the fist argument must/must span a total of one line.
 
-### <a name="scope-header"></a>The `header` scope
+### The `header` scope
 
 By default an `@indent` scope opens at the captured node's own first line, so the
 lines *inside* it are indented and its first line is not. Sometimes the node you

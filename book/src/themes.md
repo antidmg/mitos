@@ -1,4 +1,4 @@
-## Themes
+# Themes
 
 To use a theme add `theme = "<name>"` to the top of your [`config.toml`](./configuration.md) file, or select it during runtime using `:theme <name>`.
 
@@ -53,9 +53,9 @@ Color values must be either a [CSS hex RGB string](https://developer.mozilla.org
 > 💡 Note that Mitos doesn't support transparency (alpha channel).
 
 For inspiration, you can find the default `base16_terminal.toml`
-[here](https://github.com/matoous/mitos/blob/master/runtime/themes/base16_terminal.toml) and
+[here](https://github.com/mitos-editor/mitos/blob/main/runtime/themes/base16_terminal.toml) and
 user-submitted themes
-[here](https://github.com/matoous/mitos/blob/master/runtime/themes).
+[here](https://github.com/mitos-editor/mitos/blob/main/runtime/themes).
 
 
 ## The details of theme creation
@@ -387,5 +387,5 @@ These scopes are used for theming the editor interface:
 | `diagnostic.deprecated`           | Diagnostics with deprecated tag (editing area)                                                 |
 | `tabstop`                         | Snippet placeholder                                                                            |
 
-[editor-section]: ./configuration.md#editor-section
+[editor-section]: ./editor.md#editor-section
 [#2380]: https://github.com/helix-editor/helix/issues/2380

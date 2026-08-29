@@ -1,4 +1,4 @@
-## Language Support
+# Language support
 
 The following languages and Language Servers are supported. To use
 Language Server features, you must first [configure][lsp-config-wiki] the

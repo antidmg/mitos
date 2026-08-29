@@ -2,37 +2,56 @@
 
 [Mitos](./title-page.md)
 
+# Start here
+
+- [Basics](./basics.md)
 - [Installation](./install.md)
-  - [Package Managers](./package-managers.md)
-  - [Building from source](./building-from-source.md)
+- [Package managers](./package-managers.md)
+- [Building from source](./building-from-source.md)
+
+# Editing with Mitos
+
 - [Usage](./usage.md)
-  - [Registers](./registers.md)
-  - [Surround](./surround.md)
-  - [Textobjects](./textobjects.md)
-  - [Syntax aware motions](./syntax-aware-motions.md)
-  - [Pickers](./pickers.md)
-  - [Jumplist](./jumplist.md)
-  - [Keymap](./keymap.md)
-  - [Command line](./command-line.md)
-  - [Commands](./commands.md)
-  - [Language servers](./lsp.md)
-  - [Language support](./lang-support.md)
-  - [Workspace trust](./workspace-trust.md)
-- [Ecosystem](./ecosystem.md)
-  - [Migrating from Vim](./from-vim.md)
-  - [Mitos mode in other software](./other-software.md)
+- [Registers](./registers.md)
+- [Surround](./surround.md)
+- [Textobjects](./textobjects.md)
+- [Syntax-aware motions](./syntax-aware-motions.md)
+- [Pickers](./pickers.md)
+- [Jumplist](./jumplist.md)
+
+# Reference
+
+- [Keymap](./keymap.md)
+- [Command line](./command-line.md)
+- [Commands](./commands.md)
+- [Language servers](./lsp.md)
+- [Language support](./lang-support.md)
+- [Workspace trust](./workspace-trust.md)
+
+# Configuration
+
 - [Configuration](./configuration.md)
-  - [Editor](./editor.md)
-  - [Themes](./themes.md)
-  - [Key remapping](./remapping.md)
-  - [Custom commands](./custom-commands.md)
-  - [Languages](./languages.md)
+- [Editor](./editor.md)
+- [Themes](./themes.md)
+- [Key remapping](./remapping.md)
+- [Custom commands](./custom-commands.md)
+- [Languages](./languages.md)
+
+# Help and migration
+
+- [Troubleshooting](./troubleshooting.md)
+- [Ecosystem](./ecosystem.md)
+- [Migrating from Vim](./from-vim.md)
+- [Mitos mode in other software](./other-software.md)
+
+# Contributing
+
 - [Guides](./guides/README.md)
-  - [Adding languages](./guides/adding_languages.md)
-  - [Adding highlight queries](./guides/highlights.md)
-  - [Adding locals queries](./guides/locals.md)
-  - [Adding textobject queries](./guides/textobject.md)
-  - [Adding indent queries](./guides/indent.md)
-  - [Adding injection queries](./guides/injection.md)
-  - [Adding tags queries](./guides/tags.md)
-  - [Adding rainbow bracket queries](./guides/rainbow_bracket_queries.md)
+- [Adding languages](./guides/adding_languages.md)
+- [Adding highlight queries](./guides/highlights.md)
+- [Adding locals queries](./guides/locals.md)
+- [Adding textobject queries](./guides/textobject.md)
+- [Adding indent queries](./guides/indent.md)
+- [Adding injection queries](./guides/injection.md)
+- [Adding tags queries](./guides/tags.md)
+- [Adding rainbow bracket queries](./guides/rainbow_bracket_queries.md)

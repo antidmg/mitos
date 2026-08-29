@@ -1,3 +1,5 @@
+# Jumplist
+
 ## Using the jumplist
 
 To help with quick navigation, Mitos maintains a list of "jumps" called the jumplist.

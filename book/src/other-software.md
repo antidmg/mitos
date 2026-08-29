@@ -1,4 +1,6 @@
-# Compatible editing modes in other software
+# Mitos mode in other software
+
+## Compatible editing modes in other software
 
 Mitos inherits Helix's keymap and interaction model. Existing Helix-mode
 integrations may therefore be useful to Mitos users, although these external

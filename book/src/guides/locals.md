@@ -1,4 +1,4 @@
-## Adding Locals Queries
+# Adding locals queries
 
 `locals.scm` queries teach Mitos about variable scopes and definitions so that
 local variables can be highlighted distinctly from global ones. When a

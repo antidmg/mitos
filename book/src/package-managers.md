@@ -1,4 +1,6 @@
-# Installation
+# Package managers
+
+## Package manager installation
 
 Mitos is a new fork and is not yet published through third-party package
 managers. Build it from source until official release artifacts are available.
@@ -6,7 +8,7 @@ managers. Build it from source until official release artifacts are available.
 ## Build from source
 
 ```sh
-git clone https://github.com/matoous/mitos
+git clone https://github.com/mitos-editor/mitos
 cd mitos
 cargo build --release
 install -Dm755 target/release/ms "$HOME/.local/bin/ms"

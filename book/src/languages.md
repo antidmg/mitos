@@ -1,4 +1,4 @@
-## Languages
+# Languages
 
 Language-specific settings and settings for language servers are configured
 in `languages.toml` files.
@@ -8,7 +8,7 @@ in `languages.toml` files.
 There are three possible locations for a `languages.toml` file:
 
 1. In the Mitos source code, which lives in the
-   [Mitos repository](https://github.com/matoous/mitos/blob/master/languages.toml).
+   [Mitos repository](https://github.com/mitos-editor/mitos/blob/main/languages.toml).
    It provides the default configurations for languages and language servers.
 
 2. In your [configuration directory](./configuration.md). This overrides values

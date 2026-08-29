@@ -1,4 +1,4 @@
-## Adding tags queries
+# Adding tags queries
 
 See tree-sitter's documentation on [Code Navigation Systems] for more
 background on tags queries.

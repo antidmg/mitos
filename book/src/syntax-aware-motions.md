@@ -1,3 +1,5 @@
+# Syntax-aware motions
+
 ## Moving the selection with syntax-aware motions
 
 `Alt-p`, `Alt-o`, `Alt-i`, and `Alt-n` (or `Alt` and arrow keys) allow you to move the 

@@ -1,7 +1,7 @@
-# Using Mitos
+# Usage
 
 For a full interactive introduction to Mitos, refer to the
-[tutor](https://github.com/matoous/mitos/blob/master/runtime/tutor) which
+[tutor](https://github.com/mitos-editor/mitos/blob/main/runtime/tutor) which
 can be accessed via the command `ms --tutor` or `:tutor`.
 
 > 💡 Currently, not all functionality is fully documented, please refer to the

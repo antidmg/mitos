@@ -1,3 +1,5 @@
+# Textobjects
+
 ## Selecting and manipulating text with textobjects
 
 In Mitos, textobjects are a way to select, manipulate and operate on a piece of
@@ -45,4 +47,3 @@ documentation.
 
 > 💡 This feature relies on tree-sitter textobjects
 > and requires the corresponding query file to work properly.
-

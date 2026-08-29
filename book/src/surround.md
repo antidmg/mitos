@@ -1,4 +1,4 @@
-## Surround
+# Surround
 
 Mitos includes built-in functionality similar to [vim-surround](https://github.com/tpope/vim-surround).
 The keymappings have been inspired from [vim-sandwich](https://github.com/machakann/vim-sandwich):
@@ -21,4 +21,3 @@ Surround can also act on multiple selections. For example, to change every occur
 4. `mr([` to replace the parentheses with square brackets
 
 Multiple characters are currently not supported, but planned for future release.
-

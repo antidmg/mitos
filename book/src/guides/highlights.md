@@ -1,4 +1,4 @@
-## Adding highlight queries
+# Adding highlight queries
 
 `highlights.scm` queries assign a highlight scope (`@function`, `@type`,
 `@keyword`, ...) to nodes in the syntax tree; the theme then maps each scope to a

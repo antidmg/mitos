@@ -1,4 +1,4 @@
-## Registers
+# Registers
 
 - [User-defined registers](#user-defined-registers)
 - [Default registers](#default-registers)
@@ -51,4 +51,3 @@ When yanking multiple selections to the clipboard registers, the selections
 are joined with newlines. Pasting from these registers will paste multiple
 selections if the clipboard was last yanked to by the Mitos session. Otherwise
 the clipboard contents are pasted as one selection.
-

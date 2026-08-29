@@ -4,3 +4,4 @@ crates/term/rustfmt.toml
 result
 runtime/grammars
 .DS_Store
+website/
