@@ -57,6 +57,7 @@ anyhow.workspace = true
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "io-util", "io-std", "time", "process", "macros", "fs", "parking_lot"] }
 tui = { workspace = true, default-features = false, features = ["termina", "crossterm"] }
 ui-core = { workspace = true, features = ["term"] }
+tui-tree-widget.workspace = true
 termina = { workspace = true, features = ["event-stream"] }
 signal-hook.workspace = true
 tokio-stream.workspace = true
