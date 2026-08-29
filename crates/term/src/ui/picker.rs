@@ -143,6 +143,267 @@ impl Preview<'_, '_> {
     }
 }
 
+struct FilePreview {
+    preview_cache: HashMap<Arc<Path>, CachedPreview>,
+    read_buffer: Vec<u8>,
+}
+
+impl Default for FilePreview {
+    fn default() -> Self {
+        Self {
+            preview_cache: HashMap::new(),
+            read_buffer: Vec::with_capacity(1024),
+        }
+    }
+}
+
+impl FilePreview {
+    fn clear(&mut self) {
+        self.preview_cache.clear();
+        self.read_buffer.clear();
+    }
+
+    fn get<'preview, 'editor>(
+        &'preview mut self,
+        editor: &'editor Editor,
+        (path_or_id, range): FileLocation<'_>,
+        preview_highlight_handler: &Sender<Arc<Path>>,
+    ) -> Option<(Preview<'preview, 'editor>, Option<(usize, usize)>)> {
+        match path_or_id {
+            PathOrId::Path(path) => {
+                if let Some(doc) = editor.document_by_path(path) {
+                    return Some((Preview::EditorDocument(doc), range));
+                }
+
+                if self.preview_cache.contains_key(path) {
+                    let (path, preview) = self.preview_cache.get_key_value(path).unwrap();
+                    if matches!(preview, CachedPreview::Document(doc) if doc.syntax().is_none()) {
+                        event::send_blocking(preview_highlight_handler, path.clone());
+                    }
+                    return Some((Preview::Cached(preview), range));
+                }
+
+                let path: Arc<Path> = path.into();
+                let preview = std::fs::metadata(&path)
+                    .and_then(|metadata| {
+                        if metadata.is_dir() {
+                            let files = super::directory_content(&path, editor)?;
+                            Ok(CachedPreview::Directory(files))
+                        } else if metadata.is_file() {
+                            if metadata.len() > MAX_FILE_SIZE_FOR_PREVIEW {
+                                return Ok(CachedPreview::LargeFile);
+                            }
+                            let is_binary = std::fs::File::open(&path).and_then(|file| {
+                                let n = file.take(1024).read_to_end(&mut self.read_buffer)?;
+                                let is_binary = crate::is_binary(&self.read_buffer[..n]);
+                                self.read_buffer.clear();
+                                Ok(is_binary)
+                            })?;
+                            if is_binary {
+                                return Ok(CachedPreview::Binary);
+                            }
+                            let mut doc = Document::open(
+                                &path,
+                                None,
+                                false,
+                                editor.config.clone(),
+                                editor.syn_loader.clone(),
+                            )
+                            .or(Err(std::io::Error::new(
+                                std::io::ErrorKind::NotFound,
+                                "Cannot open document",
+                            )))?;
+                            let loader = editor.syn_loader.load();
+                            if let Some(language_config) = doc.detect_language_config(&loader) {
+                                doc.language = Some(language_config);
+                                event::send_blocking(preview_highlight_handler, path.clone());
+                            }
+                            Ok(CachedPreview::Document(Box::new(doc)))
+                        } else {
+                            Err(std::io::Error::new(
+                                std::io::ErrorKind::NotFound,
+                                "Neither a dir, nor a file",
+                            ))
+                        }
+                    })
+                    .unwrap_or(CachedPreview::NotFound);
+                self.preview_cache.insert(path.clone(), preview);
+                Some((Preview::Cached(&self.preview_cache[&path]), range))
+            }
+            PathOrId::Id(id) => {
+                let doc = editor.documents.get(&id).unwrap();
+                Some((Preview::EditorDocument(doc), range))
+            }
+        }
+    }
+}
+
+fn render_preview_content(
+    preview: Preview<'_, '_>,
+    range: Option<(usize, usize)>,
+    area: Rect,
+    inner: Rect,
+    surface: &mut Surface,
+    cx: &Context,
+) {
+    let text_style = cx.editor.theme.get("ui.text");
+    let directory_style = cx.editor.theme.get("ui.text.directory");
+    let doc = match preview.document() {
+        Some(doc)
+            if range.is_none_or(|(start, end)| start <= end && end <= doc.text().len_lines()) =>
+        {
+            doc
+        }
+        _ => {
+            if let Some(dir_content) = preview.dir_content() {
+                for (i, (path, is_dir)) in
+                    dir_content.iter().take(inner.height as usize).enumerate()
+                {
+                    let name = path
+                        .file_name()
+                        .map_or_else(|| Cow::Borrowed(".."), |name| name.to_string_lossy());
+
+                    if cx.editor.config().icons {
+                        let icons = ICONS.load();
+                        let icon = if *is_dir {
+                            icons.fs().directory().map(|directory_icons| {
+                                directory_icons.get_with_style_or_default(
+                                    &name,
+                                    path.file_name().is_none(),
+                                    &cx.editor.theme,
+                                    directory_style,
+                                )
+                            })
+                        } else {
+                            icons.fs().file().map(|file_icons| {
+                                file_icons.get_with_style_or_default(path, &cx.editor.theme)
+                            })
+                        };
+
+                        if let Some(icon) = icon {
+                            surface.set_stringn(
+                                inner.x,
+                                inner.y + i as u16,
+                                icon.glyph(),
+                                inner.width as usize,
+                                icon.style(),
+                            );
+                            let suffix = if *is_dir { "/" } else { "" };
+                            surface.set_stringn(
+                                inner.x + icon.width(),
+                                inner.y + i as u16,
+                                format!("{name}{suffix}"),
+                                inner.width.saturating_sub(icon.width()) as usize,
+                                if *is_dir { directory_style } else { text_style },
+                            );
+                            continue;
+                        }
+                    }
+
+                    let suffix = if *is_dir { "/" } else { "" };
+                    surface.set_stringn(
+                        inner.x,
+                        inner.y + i as u16,
+                        format!("{name}{suffix}"),
+                        inner.width as usize,
+                        if *is_dir { directory_style } else { text_style },
+                    );
+                }
+                return;
+            }
+
+            let alt_text = preview.placeholder();
+            let x = inner.x + inner.width.saturating_sub(alt_text.len() as u16) / 2;
+            let y = inner.y + inner.height / 2;
+            surface.set_stringn(x, y, alt_text, inner.width as usize, text_style);
+            return;
+        }
+    };
+
+    let mut offset = ViewPosition::default();
+    if let Some((start_line, end_line)) = range {
+        let height = end_line - start_line;
+        let text = doc.text().slice(..);
+        let start = text.line_to_char(start_line);
+        let middle = text.line_to_char(start_line + height / 2);
+        if height < inner.height as usize {
+            let text_fmt = doc.text_format(inner.width, None);
+            let annotations = TextAnnotations::default();
+            (offset.anchor, offset.vertical_offset) = char_idx_at_visual_offset(
+                text,
+                middle,
+                -(inner.height as isize / 2),
+                0,
+                &text_fmt,
+                &annotations,
+            );
+            if start < offset.anchor {
+                offset.anchor = start;
+                offset.vertical_offset = 0;
+            }
+        } else {
+            offset.anchor = start;
+        }
+    }
+
+    let loader = cx.editor.syn_loader.load();
+    let config = cx.editor.config();
+
+    let syntax_highlighter =
+        EditorView::doc_syntax_highlighter(doc, offset.anchor, area.height, &loader);
+    let mut overlay_highlights = Vec::new();
+    if doc
+        .language_config()
+        .and_then(|config| config.rainbow_brackets)
+        .unwrap_or(config.rainbow_brackets)
+        && let Some(overlay) = EditorView::doc_rainbow_highlights(
+            doc,
+            offset.anchor,
+            area.height,
+            &cx.editor.theme,
+            &loader,
+        )
+    {
+        overlay_highlights.push(overlay);
+    }
+
+    EditorView::doc_diagnostics_highlights_into(doc, &cx.editor.theme, &mut overlay_highlights);
+
+    let mut decorations = DecorationManager::default();
+
+    if let Some((start, end)) = range {
+        let style = cx
+            .editor
+            .theme
+            .try_get("ui.highlight")
+            .unwrap_or_else(|| cx.editor.theme.get("ui.selection"));
+        let draw_highlight = move |renderer: &mut TextRenderer, pos: LinePos| {
+            if (start..=end).contains(&pos.doc_line) {
+                let area = Rect::new(
+                    renderer.viewport.x,
+                    pos.visual_line,
+                    renderer.viewport.width,
+                    1,
+                );
+                renderer.set_style(area, style)
+            }
+        };
+        decorations.add_decoration(draw_highlight);
+    }
+
+    render_document(
+        surface,
+        inner,
+        doc,
+        offset,
+        &TextAnnotations::default(),
+        syntax_highlighter,
+        overlay_highlights,
+        &cx.editor.theme,
+        decorations,
+    );
+}
+
 fn inject_nucleo_item<T, D>(
     injector: &nucleo::Injector<T>,
     columns: &[Column<T, D>],
@@ -275,9 +536,7 @@ pub struct Picker<T: 'static + Send + Sync, D: 'static> {
     default_action: Action,
 
     pub truncate_start: bool,
-    /// Caches paths to documents
-    preview_cache: HashMap<Arc<Path>, CachedPreview>,
-    read_buffer: Vec<u8>,
+    preview: FilePreview,
     /// Given an item in the picker, return the file path and line number to display.
     file_fn: Option<FileCallback<T>>,
     /// An event handler for syntax highlighting the currently previewed file.
@@ -430,8 +689,7 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
             default_action: Action::Replace,
             completion_height: 0,
             widths,
-            preview_cache: HashMap::new(),
-            read_buffer: Vec::with_capacity(1024),
+            preview: FilePreview::default(),
             file_fn: None,
             preview_highlight_handler: PreviewHighlightHandler::<T, D>::default().spawn(),
             dynamic_query_handler: None,
@@ -578,8 +836,7 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
             .iter()
             .map(|column| Constraint::Length(column.name.chars().count() as u16))
             .collect();
-        self.preview_cache.clear();
-        self.read_buffer.clear();
+        self.preview.clear();
 
         let injector = self.matcher.injector();
         for item in options {
@@ -668,80 +925,11 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
         &'picker mut self,
         editor: &'editor Editor,
     ) -> Option<(Preview<'picker, 'editor>, Option<(usize, usize)>)> {
-        let current = self.selection()?;
-        let (path_or_id, range) = (self.file_fn.as_ref()?)(editor, current)?;
-
-        match path_or_id {
-            PathOrId::Path(path) => {
-                if let Some(doc) = editor.document_by_path(path) {
-                    return Some((Preview::EditorDocument(doc), range));
-                }
-
-                if self.preview_cache.contains_key(path) {
-                    // NOTE: we use `HashMap::get_key_value` here instead of indexing so we can
-                    // retrieve the `Arc<Path>` key. The `path` in scope here is a `&Path` and
-                    // we can cheaply clone the key for the preview highlight handler.
-                    let (path, preview) = self.preview_cache.get_key_value(path).unwrap();
-                    if matches!(preview, CachedPreview::Document(doc) if doc.syntax().is_none()) {
-                        event::send_blocking(&self.preview_highlight_handler, path.clone());
-                    }
-                    return Some((Preview::Cached(preview), range));
-                }
-
-                let path: Arc<Path> = path.into();
-                let preview = std::fs::metadata(&path)
-                    .and_then(|metadata| {
-                        if metadata.is_dir() {
-                            let files = super::directory_content(&path, editor)?;
-                            Ok(CachedPreview::Directory(files))
-                        } else if metadata.is_file() {
-                            if metadata.len() > MAX_FILE_SIZE_FOR_PREVIEW {
-                                return Ok(CachedPreview::LargeFile);
-                            }
-                            let is_binary = std::fs::File::open(&path).and_then(|file| {
-                                // Read up to 1kb to detect the content type
-                                let n = file.take(1024).read_to_end(&mut self.read_buffer)?;
-                                let is_binary = crate::is_binary(&self.read_buffer[..n]);
-                                self.read_buffer.clear();
-                                Ok(is_binary)
-                            })?;
-                            if is_binary {
-                                return Ok(CachedPreview::Binary);
-                            }
-                            let mut doc = Document::open(
-                                &path,
-                                None,
-                                false,
-                                editor.config.clone(),
-                                editor.syn_loader.clone(),
-                            )
-                            .or(Err(std::io::Error::new(
-                                std::io::ErrorKind::NotFound,
-                                "Cannot open document",
-                            )))?;
-                            let loader = editor.syn_loader.load();
-                            if let Some(language_config) = doc.detect_language_config(&loader) {
-                                doc.language = Some(language_config);
-                                // Asynchronously highlight the new document
-                                event::send_blocking(&self.preview_highlight_handler, path.clone());
-                            }
-                            Ok(CachedPreview::Document(Box::new(doc)))
-                        } else {
-                            Err(std::io::Error::new(
-                                std::io::ErrorKind::NotFound,
-                                "Neither a dir, nor a file",
-                            ))
-                        }
-                    })
-                    .unwrap_or(CachedPreview::NotFound);
-                self.preview_cache.insert(path.clone(), preview);
-                Some((Preview::Cached(&self.preview_cache[&path]), range))
-            }
-            PathOrId::Id(id) => {
-                let doc = editor.documents.get(&id).unwrap();
-                Some((Preview::EditorDocument(doc), range))
-            }
-        }
+        let snapshot = self.matcher.snapshot();
+        let current = snapshot.get_matched_item(self.cursor)?.data;
+        let location = (self.file_fn.as_ref()?)(editor, current)?;
+        self.preview
+            .get(editor, location, &self.preview_highlight_handler)
     }
 
     fn render_picker(&mut self, area: Rect, surface: &mut Surface, cx: &mut Context) {
@@ -937,11 +1125,7 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
     }
 
     fn render_preview(&mut self, area: Rect, surface: &mut Surface, cx: &mut Context) {
-        // -- Render the frame:
-        // clear area
         let background = cx.editor.theme.get("ui.background");
-        let text = cx.editor.theme.get("ui.text");
-        let directory = cx.editor.theme.get("ui.text.directory");
         surface.clear_with(area, background);
 
         let block = panel::horizontally_padded(&cx.editor.theme);
@@ -949,168 +1133,7 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
         block.render(area, surface);
 
         if let Some((preview, range)) = self.get_preview(cx.editor) {
-            let doc = match preview.document() {
-                Some(doc)
-                    if range.is_none_or(|(start, end)| {
-                        start <= end && end <= doc.text().len_lines()
-                    }) =>
-                {
-                    doc
-                }
-                _ => {
-                    if let Some(dir_content) = preview.dir_content() {
-                        for (i, (path, is_dir)) in
-                            dir_content.iter().take(inner.height as usize).enumerate()
-                        {
-                            let name = path
-                                .file_name()
-                                .map_or_else(|| Cow::Borrowed(".."), |name| name.to_string_lossy());
-
-                            if cx.editor.config().icons {
-                                let icons = ICONS.load();
-                                let icon = if *is_dir {
-                                    icons.fs().directory().map(|directory_icons| {
-                                        directory_icons.get_with_style_or_default(
-                                            &name,
-                                            path.file_name().is_none(),
-                                            &cx.editor.theme,
-                                            directory,
-                                        )
-                                    })
-                                } else {
-                                    icons.fs().file().map(|file_icons| {
-                                        file_icons.get_with_style_or_default(path, &cx.editor.theme)
-                                    })
-                                };
-
-                                if let Some(icon) = icon {
-                                    surface.set_stringn(
-                                        inner.x,
-                                        inner.y + i as u16,
-                                        icon.glyph(),
-                                        inner.width as usize,
-                                        icon.style(),
-                                    );
-                                    let suffix = if *is_dir { "/" } else { "" };
-                                    surface.set_stringn(
-                                        inner.x + icon.width(),
-                                        inner.y + i as u16,
-                                        format!("{name}{suffix}"),
-                                        inner.width.saturating_sub(icon.width()) as usize,
-                                        if *is_dir { directory } else { text },
-                                    );
-                                    continue;
-                                }
-                            }
-
-                            let suffix = if *is_dir { "/" } else { "" };
-                            surface.set_stringn(
-                                inner.x,
-                                inner.y + i as u16,
-                                format!("{name}{suffix}"),
-                                inner.width as usize,
-                                if *is_dir { directory } else { text },
-                            );
-                        }
-                        return;
-                    }
-
-                    let alt_text = preview.placeholder();
-                    let x = inner.x + inner.width.saturating_sub(alt_text.len() as u16) / 2;
-                    let y = inner.y + inner.height / 2;
-                    surface.set_stringn(x, y, alt_text, inner.width as usize, text);
-                    return;
-                }
-            };
-
-            let mut offset = ViewPosition::default();
-            if let Some((start_line, end_line)) = range {
-                let height = end_line - start_line;
-                let text = doc.text().slice(..);
-                let start = text.line_to_char(start_line);
-                let middle = text.line_to_char(start_line + height / 2);
-                if height < inner.height as usize {
-                    let text_fmt = doc.text_format(inner.width, None);
-                    let annotations = TextAnnotations::default();
-                    (offset.anchor, offset.vertical_offset) = char_idx_at_visual_offset(
-                        text,
-                        middle,
-                        // align to middle
-                        -(inner.height as isize / 2),
-                        0,
-                        &text_fmt,
-                        &annotations,
-                    );
-                    if start < offset.anchor {
-                        offset.anchor = start;
-                        offset.vertical_offset = 0;
-                    }
-                } else {
-                    offset.anchor = start;
-                }
-            }
-
-            let loader = cx.editor.syn_loader.load();
-            let config = cx.editor.config();
-
-            let syntax_highlighter =
-                EditorView::doc_syntax_highlighter(doc, offset.anchor, area.height, &loader);
-            let mut overlay_highlights = Vec::new();
-            if doc
-                .language_config()
-                .and_then(|config| config.rainbow_brackets)
-                .unwrap_or(config.rainbow_brackets)
-                && let Some(overlay) = EditorView::doc_rainbow_highlights(
-                    doc,
-                    offset.anchor,
-                    area.height,
-                    &cx.editor.theme,
-                    &loader,
-                )
-            {
-                overlay_highlights.push(overlay);
-            }
-
-            EditorView::doc_diagnostics_highlights_into(
-                doc,
-                &cx.editor.theme,
-                &mut overlay_highlights,
-            );
-
-            let mut decorations = DecorationManager::default();
-
-            if let Some((start, end)) = range {
-                let style = cx
-                    .editor
-                    .theme
-                    .try_get("ui.highlight")
-                    .unwrap_or_else(|| cx.editor.theme.get("ui.selection"));
-                let draw_highlight = move |renderer: &mut TextRenderer, pos: LinePos| {
-                    if (start..=end).contains(&pos.doc_line) {
-                        let area = Rect::new(
-                            renderer.viewport.x,
-                            pos.visual_line,
-                            renderer.viewport.width,
-                            1,
-                        );
-                        renderer.set_style(area, style)
-                    }
-                };
-                decorations.add_decoration(draw_highlight);
-            }
-
-            render_document(
-                surface,
-                inner,
-                doc,
-                offset,
-                // TODO: compute text annotations asynchronously here (like inlay hints)
-                &TextAnnotations::default(),
-                syntax_highlighter,
-                overlay_highlights,
-                &cx.editor.theme,
-                decorations,
-            );
+            render_preview_content(preview, range, area, inner, surface, cx);
         }
     }
 }
