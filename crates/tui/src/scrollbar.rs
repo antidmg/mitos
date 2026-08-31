@@ -1,12 +1,9 @@
-use tui::{
+use crate::{
     buffer::Buffer,
-    style::Style as TuiStyle,
+    style::Style as RatatuiStyle,
     widgets::{Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget},
 };
-use view::{
-    graphics::{Rect, Style},
-    theme::Color,
-};
+use ui_core::graphics::{Color, Rect, Style};
 
 pub fn render(
     surface: &mut Buffer,
@@ -24,9 +21,9 @@ pub fn render(
         .begin_symbol(None)
         .end_symbol(None)
         .thumb_symbol(symbol)
-        .thumb_style(TuiStyle::default().fg(thumb.into()))
+        .thumb_style(RatatuiStyle::default().fg(thumb.into()))
         .track_symbol((!bordered).then_some(symbol))
-        .track_style(TuiStyle::default().fg(track.into()));
+        .track_style(RatatuiStyle::default().fg(track.into()));
     let mut state = ScrollbarState::new(content_height)
         .position(position)
         .viewport_content_length(viewport_height as usize);

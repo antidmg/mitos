@@ -1,4 +1,6 @@
 pub mod backend;
+pub mod panel;
+pub mod scrollbar;
 mod surface;
 mod table;
 pub mod terminal;

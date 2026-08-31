@@ -2,10 +2,10 @@ use crate::{
     commands::Open,
     compositor::{Callback, Component, Context, Event, EventResult},
     ctrl, key,
-    ui::{panel, scrollbar},
+    ui::panel,
 };
 use tui::buffer::BufferExt as _;
-use tui::{buffer::Buffer as Surface, widgets::Widget};
+use tui::{buffer::Buffer as Surface, scrollbar, widgets::Widget};
 
 use editor_core::Position;
 use ui_core::input::{MouseEvent, MouseEventKind};

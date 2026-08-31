@@ -1,9 +1,8 @@
 use crate::{
     compositor::{Callback, Component, Compositor, Context, Event, EventResult},
     ctrl, key, shift,
-    ui::scrollbar,
 };
-use tui::{buffer::Buffer as Surface, widgets::Table};
+use tui::{buffer::Buffer as Surface, scrollbar, widgets::Table};
 
 pub use tui::widgets::{Cell, Row};
 
