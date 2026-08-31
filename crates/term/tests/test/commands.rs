@@ -347,6 +347,32 @@ async fn test_picker_quicklist_navigation() -> anyhow::Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn test_quicklist_navigation_from_empty_scratch_buffer() -> anyhow::Result<()> {
+    let file = tempfile::NamedTempFile::new()?;
+    std::fs::write(file.path(), "alpha\n")?;
+
+    let mut app = AppBuilder::new().build()?;
+    app.editor.replace_quicklist(vec![QuicklistEntry {
+        target: QuicklistTarget::Path(file.path().to_path_buf()),
+        position: QuicklistPosition::LineRange { start: 0, end: 0 },
+    }]);
+
+    test_key_sequence(
+        &mut app,
+        Some("]q"),
+        Some(&|app| {
+            let doc = doc!(app.editor);
+            let expected = path::normalize(file.path());
+            assert_eq!(doc.path(), Some(expected.as_path()));
+        }),
+        false,
+    )
+    .await?;
+
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn test_quicklist_motion_pushes_pre_jump_location_to_jumplist() -> anyhow::Result<()> {
     let dir = tempfile::tempdir()?;
     let file = dir.path().join("quicklist.rs");
