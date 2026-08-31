@@ -7,7 +7,7 @@ use crate::job::Job;
 use super::shell::{shell, shell_impl_async, ShellBehavior};
 use super::*;
 
-use editor_core::command_line::{Args, Flag, Signature, Token, TokenKind};
+use command_line::{Args, Flag, Signature, Token, TokenKind};
 use editor_core::fuzzy::fuzzy_match;
 use editor_core::indent::MAX_INDENT;
 use editor_core::line_ending;

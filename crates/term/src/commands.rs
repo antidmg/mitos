@@ -21,10 +21,10 @@ use tui::{
 pub use typed::*;
 use vcs::{FileChange, Hunk};
 
+use command_line::{self, Args};
 use editor_core::{
     char_idx_at_visual_offset,
     chars::char_is_word,
-    command_line::{self, Args},
     comment,
     doc_formatter::TextFormat,
     encoding, find_workspace,

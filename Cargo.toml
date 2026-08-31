@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
+  "crates/command-line",
   "crates/core",
   "crates/ui-core",
   "crates/view",
@@ -40,6 +41,7 @@ package.term.opt-level = 2
 
 [workspace.dependencies]
 # Workspace crates
+command-line = { path = "crates/command-line" }
 core = { path = "crates/core" }
 dap = { path = "crates/dap" }
 dap-types = { path = "crates/dap-types" }

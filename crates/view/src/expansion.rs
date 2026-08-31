@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use editor_core::command_line::{ExpansionKind, Token, TokenKind, Tokenizer};
+use command_line::{ExpansionKind, Token, TokenKind, Tokenizer};
 
 use anyhow::{anyhow, bail, ensure, Result};
 

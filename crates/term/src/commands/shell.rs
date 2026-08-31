@@ -1,8 +1,7 @@
 use std::{borrow::Cow, process::Stdio};
 
-use editor_core::{
-    command_line::Args, encoding, Range, Rope, Selection, SmallVec, Tendril, Transaction,
-};
+use command_line::Args;
+use editor_core::{encoding, Range, Rope, Selection, SmallVec, Tendril, Transaction};
 use stdx::rope::RopeSliceExt;
 use tokio::process::Command;
 

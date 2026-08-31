@@ -475,7 +475,7 @@ fn get_child_if_single_dir(path: &Path) -> Option<PathBuf> {
 pub mod completers {
     use super::Utf8PathBuf;
     use crate::ui::prompt::Completion;
-    use editor_core::command_line::{self, Tokenizer};
+    use command_line::{self, Tokenizer};
     use editor_core::fuzzy::fuzzy_match;
     use editor_core::syntax::config::LanguageServerFeature;
     use std::borrow::Cow;

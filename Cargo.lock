@@ -304,6 +304,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cbd0f76e066e64fdc5631e3bb46381254deab9ef1158292f27c8c57e3bf3fe59"
 
 [[package]]
+name = "command-line"
+version = "0.1.0"
+
+[[package]]
 name = "compact_str"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3397,6 +3401,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "arc-swap",
+ "command-line",
  "core",
  "crossterm 0.28.1",
  "dap",
@@ -3907,6 +3912,7 @@ dependencies = [
  "bitflags 2.13.0",
  "chardetng",
  "clipboard-win",
+ "command-line",
  "core",
  "criterion",
  "crossterm 0.28.1",

@@ -42,6 +42,7 @@ name = "ms"
 path = "src/main.rs"
 
 [dependencies]
+command-line.workspace = true
 stdx.workspace = true
 core.workspace = true
 event.workspace = true

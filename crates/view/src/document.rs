@@ -1,9 +1,9 @@
 use anyhow::{anyhow, bail, Error};
 use arc_swap::access::DynAccess;
 use arc_swap::ArcSwap;
+use command_line::Token;
 use editor_core::auto_pairs::AutoPairs;
 use editor_core::chars::char_is_word;
-use editor_core::command_line::Token;
 use editor_core::diagnostic::DiagnosticProvider;
 use editor_core::doc_formatter::TextFormat;
 use editor_core::encoding::Encoding;

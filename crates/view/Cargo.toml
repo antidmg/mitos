@@ -23,6 +23,7 @@ unicode-lines = []
 bench = []
 
 [dependencies]
+command-line.workspace = true
 ui-core.workspace = true
 stdx.workspace = true
 core.workspace = true
