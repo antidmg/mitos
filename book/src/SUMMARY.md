@@ -17,6 +17,7 @@
 - [Textobjects](./textobjects.md)
 - [Syntax-aware motions](./syntax-aware-motions.md)
 - [Pickers](./pickers.md)
+- [Quicklist](./quicklist.md)
 - [Jumplist](./jumplist.md)
 
 # Reference

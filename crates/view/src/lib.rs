@@ -14,11 +14,12 @@ pub mod gutter;
 pub mod handlers;
 pub mod icons;
 pub mod info;
-pub use ui_core::{input, keyboard};
+pub mod quicklist;
 pub mod register;
 pub mod theme;
 pub mod tree;
 pub mod view;
+pub use ui_core::{input, keyboard};
 
 use std::num::NonZeroUsize;
 

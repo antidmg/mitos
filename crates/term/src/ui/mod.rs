@@ -31,10 +31,13 @@ pub use select::Select;
 pub use spinner::{ProgressSpinners, Spinner};
 use stdx::rope;
 pub use text::Text;
-use view::{icons::ICONS, Theme};
+use view::{
+    icons::ICONS,
+    quicklist::{QuicklistEntry, QuicklistPosition, QuicklistTarget},
+    Editor, Theme,
+};
 
 use tui::text::{Line, Span};
-use view::Editor;
 
 use std::{borrow::Cow, path::Path, sync::Arc};
 use std::{error::Error, path::PathBuf};
@@ -408,7 +411,17 @@ pub fn file_explorer(root: PathBuf, editor: &Editor) -> Result<FileExplorer, std
             picker::PickerCallbackResult::Close
         },
     )
-    .with_preview(|_editor, (path, _is_dir)| Some((path.as_path().into(), None)));
+    .with_preview(|_editor, (path, _is_dir)| Some((path.as_path().into(), None)))
+    .with_quicklist(|_editor, (path, is_dir)| {
+        if *is_dir {
+            return None;
+        }
+
+        Some(QuicklistEntry {
+            target: QuicklistTarget::Path(path.clone()),
+            position: QuicklistPosition::None,
+        })
+    });
 
     Ok(picker)
 }

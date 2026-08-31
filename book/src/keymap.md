@@ -299,6 +299,7 @@ This layer is a kludge of mappings, mostly pickers.
 | `.`     | Open file explorer at current buffer's directory                        | `file_explorer_in_current_buffer_directory`|
 | `b`     | Open buffer picker                                                      | `buffer_picker`                            |
 | `j`     | Open jumplist picker                                                    | `jumplist_picker`                          |
+| `q`     | Open quicklist picker                                                   | `quicklist_picker`                         |
 | `g`     | Open changed file picker                                                | `changed_file_picker`                      |
 | `G`     | Debug (experimental)                                                    | N/A                                        |
 | `k`     | Show documentation for item under cursor in a [popup](#popup) (**LSP**) | `hover`                                    |
@@ -365,6 +366,10 @@ These mappings are in the style of [vim-unimpaired](https://github.com/tpope/vim
 | `[d`     | Go to previous diagnostic (**LSP**)          | `goto_prev_diag`        |
 | `]D`     | Go to last diagnostic in document (**LSP**)  | `goto_last_diag`        |
 | `[D`     | Go to first diagnostic in document (**LSP**) | `goto_first_diag`       |
+| `]q`     | Go to next quicklist entry                   | `goto_next_quicklist`   |
+| `[q`     | Go to previous quicklist entry               | `goto_prev_quicklist`   |
+| `]l`     | Go to next quicklist entry in current file   | `goto_next_file_quicklist` |
+| `[l`     | Go to previous quicklist entry in current file | `goto_prev_file_quicklist` |
 | `]f`     | Go to next function (**TS**)                 | `goto_next_function`    |
 | `[f`     | Go to previous function (**TS**)             | `goto_prev_function`    |
 | `]t`     | Go to next type definition (**TS**)          | `goto_next_class`       |
@@ -481,6 +486,7 @@ See the documentation page on [pickers](./pickers.md) for more info.
 | `Ctrl-s`                     | Open horizontally                                          |
 | `Ctrl-v`                     | Open vertically                                            |
 | `Ctrl-t`                     | Toggle preview                                             |
+| `Ctrl-q`                     | Replace the quicklist with the current matched entries     |
 | `Escape`, `Ctrl-c`           | Close picker                                               |
 
 ## Prompt

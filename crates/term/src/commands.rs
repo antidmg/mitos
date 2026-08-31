@@ -56,6 +56,7 @@ use view::{
     expansion,
     icons::ICONS,
     info::Info,
+    quicklist::{QuicklistEntry, QuicklistPosition, QuicklistTarget},
     theme::Style,
     tree,
     view::View,
@@ -419,6 +420,7 @@ impl MappableCommand {
         code_action, "Perform code action",
         buffer_picker, "Open buffer picker",
         jumplist_picker, "Open jumplist picker",
+        quicklist_picker, "Open quicklist picker",
         symbol_picker, "Open symbol picker",
         syntax_symbol_picker, "Open symbol picker from syntax information",
         lsp_or_syntax_symbol_picker, "Open symbol picker from LSP or syntax information",
@@ -464,6 +466,10 @@ impl MappableCommand {
         goto_last_diag, "Goto last diagnostic",
         goto_next_diag, "Goto next diagnostic",
         goto_prev_diag, "Goto previous diagnostic",
+        goto_next_quicklist, "Goto next quicklist entry",
+        goto_prev_quicklist, "Goto previous quicklist entry",
+        goto_next_file_quicklist, "Goto next quicklist entry in current file",
+        goto_prev_file_quicklist, "Goto previous quicklist entry in current file",
         goto_next_change, "Goto next change",
         goto_prev_change, "Goto previous change",
         goto_first_change, "Goto first change",
@@ -2590,10 +2596,10 @@ fn global_search(cx: &mut Context) {
         line_start: usize,
         /// 0 indexed line end
         line_end: usize,
-        /// Match start byte offset relative to `line_start`
-        match_start_byte: usize,
-        /// Match end byte offset relative to `line_start`
-        match_end_byte: usize,
+        /// Zero-based character column where the match starts.
+        match_start_col: usize,
+        /// Zero-based character column where the match ends.
+        match_end_col: usize,
     }
 
     impl FileResult<'_> {
@@ -2601,17 +2607,42 @@ fn global_search(cx: &mut Context) {
             path: &Path,
             line_start: usize,
             line_end: usize,
-            match_start_byte: usize,
-            match_end_byte: usize,
+            match_start_col: usize,
+            match_end_col: usize,
         ) -> Self {
             Self {
                 path: stdx::path::get_relative_path(path.to_path_buf()),
                 line_start,
                 line_end,
-                match_start_byte,
-                match_end_byte,
+                match_start_col,
+                match_end_col,
             }
         }
+    }
+
+    /// Converts the regex engine's byte match within `line_content` into
+    /// zero-based line and character-column bounds relative to `line_start`.
+    fn match_line_cols(
+        line_start: usize,
+        line_content: &str,
+        matcher: &grep_regex::RegexMatcher,
+    ) -> Option<(usize, usize, usize, usize)> {
+        let matched = matcher.find(line_content.as_bytes()).ok().flatten()?;
+        let prefix = &line_content[..matched.start()];
+        let matched_text = &line_content[..matched.end()];
+
+        let start_line = line_start + prefix.matches('\n').count();
+        let start_col = prefix.rsplit('\n').next().unwrap_or(prefix).chars().count();
+
+        let end_line = line_start + matched_text.matches('\n').count();
+        let end_col = matched_text
+            .rsplit('\n')
+            .next()
+            .unwrap_or(matched_text)
+            .chars()
+            .count();
+
+        Some((start_line, start_col, end_line, end_col))
     }
 
     struct GlobalSearchConfig {
@@ -2715,23 +2746,22 @@ fn global_search(cx: &mut Context) {
                         let mut stop = false;
                         let sink = sinks::UTF8(|line_start, line_content| {
                             let line_start = line_start as usize - 1;
-                            let line_end = line_start + line_content.lines().count() - 1;
-                            // PERF: UTF8 sink callbacks do not expose the match range, so the
-                            // matched line must be scanned once more. A custom sink could avoid
-                            // this second scan if global search becomes measurable.
-                            let Some(match_range) = matcher
-                                .find(line_content.as_bytes())
-                                .map_err(|err| std::io::Error::other(err.to_string()))?
+                            let Some((
+                                match_start_line,
+                                match_start_col,
+                                match_end_line,
+                                match_end_col,
+                            )) = match_line_cols(line_start, line_content, &matcher)
                             else {
                                 return Ok(true);
                             };
                             stop = injector
                                 .push(FileResult::new(
                                     entry.path(),
-                                    line_start,
-                                    line_end,
-                                    match_range.start(),
-                                    match_range.end(),
+                                    match_start_line,
+                                    match_end_line,
+                                    match_start_col,
+                                    match_end_col,
                                 ))
                                 .is_err();
 
@@ -2790,8 +2820,9 @@ fn global_search(cx: &mut Context) {
               FileResult {
                   path,
                   line_start,
-                  match_start_byte,
-                  match_end_byte,
+                  line_end,
+                  match_start_col,
+                  match_end_col,
                   ..
               },
               action| {
@@ -2805,25 +2836,20 @@ fn global_search(cx: &mut Context) {
             };
 
             let line_start = *line_start;
+            let line_end = *line_end;
             let view = view_mut!(cx.editor);
             let text = doc.text();
-            if line_start >= text.len_lines() {
-                cx.editor.set_error(|| {
-                    "The line you jumped to does not exist anymore because the file has changed."
-                });
-                return;
-            }
             let Some(selection) = selection_for_global_search_match(
                 text.slice(..),
                 line_start,
-                *match_start_byte,
-                *match_end_byte,
+                *match_start_col,
+                line_end,
+                *match_end_col,
             ) else {
                 cx.editor
                     .set_error(|| "The match you jumped to does not exist anymore.");
                 return;
             };
-
             doc.set_selection(view.id, selection);
             if action.align_view(view, doc.id()) {
                 align_view(doc, view, Align::Center);
@@ -2839,6 +2865,17 @@ fn global_search(cx: &mut Context) {
              ..
          }| { Some((path.as_ref().into(), Some((*line_start, *line_end)))) },
     )
+    .with_quicklist(|_editor, item| {
+        Some(QuicklistEntry {
+            target: QuicklistTarget::Path(item.path.clone().into_owned()),
+            position: QuicklistPosition::LineColRange {
+                start_line: item.line_start,
+                start_col: item.match_start_col,
+                end_line: item.line_end,
+                end_col: item.match_end_col,
+            },
+        })
+    })
     .with_history_register(Some(reg))
     .with_dynamic_query(get_files, Some(275));
 
@@ -2847,25 +2884,23 @@ fn global_search(cx: &mut Context) {
 
 fn selection_for_global_search_match(
     text: RopeSlice,
-    line_start: usize,
-    match_start_byte: usize,
-    match_end_byte: usize,
+    start_line: usize,
+    start_col: usize,
+    end_line: usize,
+    end_col: usize,
 ) -> Option<Selection> {
-    if line_start >= text.len_lines() || match_start_byte > match_end_byte {
+    if start_line > end_line || end_line >= text.len_lines() {
         return None;
     }
 
-    let line_start_byte = text.line_to_byte(line_start);
-    let start_byte = line_start_byte.checked_add(match_start_byte)?;
-    let end_byte = line_start_byte.checked_add(match_end_byte)?;
-    if end_byte > text.len_bytes() {
+    let start = text.line_to_char(start_line).checked_add(start_col)?;
+    let end = text.line_to_char(end_line).checked_add(end_col)?;
+    if start > line_end_char_index(&text, start_line) || end > line_end_char_index(&text, end_line)
+    {
         return None;
     }
 
-    Some(Selection::single(
-        text.byte_to_char(start_byte),
-        text.byte_to_char(end_byte),
-    ))
+    Some(Selection::single(start, end).ensure_invariants(text))
 }
 
 enum Extend {
@@ -3567,7 +3602,114 @@ fn jumplist_picker(cx: &mut Context) {
         let doc = &editor.documents.get(&meta.id)?;
         let line = meta.selection.primary().cursor_line(doc.text().slice(..));
         Some((meta.id.into(), Some((line, line))))
+    })
+    .with_quicklist(|_editor, meta| {
+        Some(QuicklistEntry {
+            target: QuicklistTarget::Document(meta.id),
+            position: QuicklistPosition::Selection(meta.selection.clone()),
+        })
     });
+    cx.push_layer(Box::new(overlaid(picker)));
+}
+
+fn quicklist_entry_line_range(editor: &Editor, entry: &QuicklistEntry) -> Option<(usize, usize)> {
+    let text = match &entry.target {
+        QuicklistTarget::Path(path) => editor
+            .document_by_path(path)
+            .map(|doc| doc.text().slice(..)),
+        QuicklistTarget::Document(id) => editor.documents.get(id).map(|doc| doc.text().slice(..)),
+    };
+
+    entry.position.line_range(text)
+}
+
+fn quicklist_picker(cx: &mut Context) {
+    #[derive(Clone)]
+    struct QuicklistMeta {
+        index: usize,
+        entry: QuicklistEntry,
+        label: String,
+        line: Option<usize>,
+        is_current: bool,
+    }
+
+    let entries = cx.editor.quicklist.entries();
+    if entries.is_empty() {
+        cx.editor.set_error(|| "No quicklist entries available");
+        return;
+    }
+
+    let items = entries
+        .iter()
+        .cloned()
+        .enumerate()
+        .map(|(index, entry)| {
+            let label = match &entry.target {
+                QuicklistTarget::Path(path) => stdx::path::get_relative_path(path)
+                    .to_string_lossy()
+                    .to_string(),
+                QuicklistTarget::Document(id) => {
+                    let path = cx
+                        .editor
+                        .documents
+                        .get(id)
+                        .and_then(|doc| doc.path())
+                        .map(Path::to_path_buf);
+                    let label = path
+                        .as_deref()
+                        .map(stdx::path::get_relative_path)
+                        .map(|path| path.to_string_lossy().to_string())
+                        .unwrap_or_else(|| format!("{SCRATCH_BUFFER_NAME} ({id})"));
+                    label
+                }
+            };
+
+            QuicklistMeta {
+                index,
+                label,
+                line: quicklist_entry_line_range(cx.editor, &entry).map(|(start, _)| start + 1),
+                is_current: cx.editor.quicklist.current() == Some(index),
+                entry,
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let columns = [
+        ui::PickerColumn::new("path", |item: &QuicklistMeta, _| item.label.as_str().into()),
+        ui::PickerColumn::new("line", |item: &QuicklistMeta, _| {
+            item.line
+                .map_or_else(String::new, |line| line.to_string())
+                .into()
+        }),
+        ui::PickerColumn::new("flags", |item: &QuicklistMeta, _| {
+            if item.is_current {
+                " (*)".into()
+            } else {
+                "".into()
+            }
+        }),
+    ];
+
+    let initial_cursor = cx.editor.quicklist.current().unwrap_or(0) as u32;
+
+    let picker = Picker::new(columns, 0, items, (), |cx, meta, action| {
+        let view_id = cx.editor.tree.focus;
+        if cx
+            .editor
+            .activate_quicklist_entry(view_id, &meta.entry, action)
+        {
+            cx.editor.quicklist.set_current(Some(meta.index));
+        }
+    })
+    .with_initial_cursor(initial_cursor)
+    .with_preview(|editor, meta| {
+        let path_or_id = match &meta.entry.target {
+            QuicklistTarget::Path(path) => path.as_path().into(),
+            QuicklistTarget::Document(id) => (*id).into(),
+        };
+        Some((path_or_id, quicklist_entry_line_range(editor, &meta.entry)))
+    });
+
     cx.push_layer(Box::new(overlaid(picker)));
 }
 
@@ -4366,6 +4508,43 @@ fn goto_prev_diag(cx: &mut Context) {
             .immediately_show_diagnostic(doc, view.id);
     };
     cx.editor.apply_motion(motion)
+}
+
+fn goto_next_quicklist(cx: &mut Context) {
+    goto_quicklist_impl(cx, Direction::Forward, false);
+}
+
+fn goto_prev_quicklist(cx: &mut Context) {
+    goto_quicklist_impl(cx, Direction::Backward, false);
+}
+
+fn goto_next_file_quicklist(cx: &mut Context) {
+    goto_quicklist_impl(cx, Direction::Forward, true);
+}
+
+fn goto_prev_file_quicklist(cx: &mut Context) {
+    goto_quicklist_impl(cx, Direction::Backward, true);
+}
+
+fn goto_quicklist_impl(cx: &mut Context, direction: Direction, same_file: bool) {
+    let view_id = cx.editor.tree.focus;
+    let jumped = match direction {
+        Direction::Forward => cx
+            .editor
+            .jump_next_quicklist(view_id, cx.count(), same_file),
+        Direction::Backward => cx
+            .editor
+            .jump_prev_quicklist(view_id, cx.count(), same_file),
+    };
+
+    if !jumped {
+        let message = if same_file {
+            "No quicklist entries available in the current file"
+        } else {
+            "No quicklist entries available"
+        };
+        cx.editor.set_error(|| message);
+    }
 }
 
 fn goto_first_change(cx: &mut Context) {
@@ -7412,13 +7591,11 @@ mod tests {
     #[test]
     fn global_search_match_selection_uses_match_range() {
         let text = Rope::from("héllo search term world\n");
-        let line = text.line(0).to_string();
-        let match_start_byte = line.find("search").unwrap();
-        let match_end_byte = line.find(" term").unwrap();
+        let start_col = "héllo ".chars().count();
+        let end_col = "héllo search".chars().count();
 
         let selection =
-            selection_for_global_search_match(text.slice(..), 0, match_start_byte, match_end_byte)
-                .unwrap();
+            selection_for_global_search_match(text.slice(..), 0, start_col, 0, end_col).unwrap();
 
         assert_eq!(selection.primary().fragment(text.slice(..)), "search");
     }
