@@ -3628,6 +3628,7 @@ fn quicklist_picker(cx: &mut Context) {
     struct QuicklistMeta {
         index: usize,
         entry: QuicklistEntry,
+        path: Option<PathBuf>,
         label: String,
         line: Option<usize>,
         is_current: bool,
@@ -3644,28 +3645,29 @@ fn quicklist_picker(cx: &mut Context) {
         .cloned()
         .enumerate()
         .map(|(index, entry)| {
-            let label = match &entry.target {
-                QuicklistTarget::Path(path) => stdx::path::get_relative_path(path)
-                    .to_string_lossy()
-                    .to_string(),
-                QuicklistTarget::Document(id) => {
-                    let path = cx
-                        .editor
-                        .documents
-                        .get(id)
-                        .and_then(|doc| doc.path())
-                        .map(Path::to_path_buf);
-                    let label = path
-                        .as_deref()
-                        .map(stdx::path::get_relative_path)
-                        .map(|path| path.to_string_lossy().to_string())
-                        .unwrap_or_else(|| format!("{SCRATCH_BUFFER_NAME} ({id})"));
-                    label
+            let path = match &entry.target {
+                QuicklistTarget::Path(path) => {
+                    Some(stdx::path::get_relative_path(path).into_owned())
                 }
+                QuicklistTarget::Document(id) => cx
+                    .editor
+                    .documents
+                    .get(id)
+                    .and_then(|doc| doc.path())
+                    .map(stdx::path::get_relative_path)
+                    .map(Cow::into_owned),
             };
+            let label = path
+                .as_deref()
+                .map(|path| path.to_string_lossy().to_string())
+                .unwrap_or_else(|| match &entry.target {
+                    QuicklistTarget::Document(id) => format!("{SCRATCH_BUFFER_NAME} ({id})"),
+                    QuicklistTarget::Path(_) => unreachable!(),
+                });
 
             QuicklistMeta {
                 index,
+                path,
                 label,
                 line: quicklist_entry_line_range(cx.editor, &entry).map(|(start, _)| start + 1),
                 is_current: cx.editor.quicklist.current() == Some(index),
@@ -3675,7 +3677,12 @@ fn quicklist_picker(cx: &mut Context) {
         .collect::<Vec<_>>();
 
     let columns = [
-        ui::PickerColumn::new("path", |item: &QuicklistMeta, _| item.label.as_str().into()),
+        ui::PickerColumn::new("path", |item: &QuicklistMeta, config: &PathStyleConfig| {
+            item.path.as_deref().map_or_else(
+                || item.label.as_str().into(),
+                |path| config.stylize(Some(path), None),
+            )
+        }),
         ui::PickerColumn::new("line", |item: &QuicklistMeta, _| {
             item.line
                 .map_or_else(String::new, |line| line.to_string())
@@ -3692,15 +3699,21 @@ fn quicklist_picker(cx: &mut Context) {
 
     let initial_cursor = cx.editor.quicklist.current().unwrap_or(0) as u32;
 
-    let picker = Picker::new(columns, 0, items, (), |cx, meta, action| {
-        let view_id = cx.editor.tree.focus;
-        if cx
-            .editor
-            .activate_quicklist_entry(view_id, &meta.entry, action)
-        {
-            cx.editor.quicklist.set_current(Some(meta.index));
-        }
-    })
+    let picker = Picker::new(
+        columns,
+        0,
+        items,
+        PathStyleConfig::new(cx.editor),
+        |cx, meta, action| {
+            let view_id = cx.editor.tree.focus;
+            if cx
+                .editor
+                .activate_quicklist_entry(view_id, &meta.entry, action)
+            {
+                cx.editor.quicklist.set_current(Some(meta.index));
+            }
+        },
+    )
     .with_initial_cursor(initial_cursor)
     .with_preview(|editor, meta| {
         let path_or_id = match &meta.entry.target {
