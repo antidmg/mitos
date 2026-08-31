@@ -46,14 +46,16 @@ use editor_core::{
     visual_offset_from_block, Deletion, LineEnding, Position, Range, Rope, RopeReader, RopeSlice,
     Selection, SmallVec, Syntax, Tendril, Transaction,
 };
+use ui_core::{
+    input::{self, KeyEvent},
+    keyboard::KeyCode,
+};
 use view::{
     document::{FormatterError, Mode, SCRATCH_BUFFER_NAME},
     editor::{Action, Motion},
     expansion,
     icons::ICONS,
     info::Info,
-    input::KeyEvent,
-    keyboard::KeyCode,
     theme::Style,
     tree,
     view::View,
@@ -678,7 +680,7 @@ impl std::str::FromStr for MappableCommand {
                 })
                 .ok_or_else(|| anyhow!("No TypableCommand named '{}'", s))
         } else if let Some(suffix) = s.strip_prefix('@') {
-            view::input::parse_macro(suffix).map(|keys| Self::Macro {
+            input::parse_macro(suffix).map(|keys| Self::Macro {
                 name: s.to_string(),
                 keys,
             })
@@ -7113,7 +7115,7 @@ fn replay_macro(cx: &mut Context) {
         .filter(|values| values.len() == 1)
         .map(|mut values| values.next().unwrap())
     {
-        match view::input::parse_macro(&keys) {
+        match input::parse_macro(&keys) {
             Ok(keys) => keys,
             Err(err) => {
                 cx.editor.set_error(|| format!("Invalid macro: {}", err));

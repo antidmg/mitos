@@ -1,15 +1,15 @@
 #[macro_export]
 macro_rules! key {
     ($key:ident) => {
-        ::view::input::KeyEvent {
-            code: ::view::keyboard::KeyCode::$key,
-            modifiers: ::view::keyboard::KeyModifiers::NONE,
+        ::ui_core::input::KeyEvent {
+            code: ::ui_core::keyboard::KeyCode::$key,
+            modifiers: ::ui_core::keyboard::KeyModifiers::NONE,
         }
     };
     ($($ch:tt)*) => {
-        ::view::input::KeyEvent {
-            code: ::view::keyboard::KeyCode::Char($($ch)*),
-            modifiers: ::view::keyboard::KeyModifiers::NONE,
+        ::ui_core::input::KeyEvent {
+            code: ::ui_core::keyboard::KeyCode::Char($($ch)*),
+            modifiers: ::ui_core::keyboard::KeyModifiers::NONE,
         }
     };
 }
@@ -17,15 +17,15 @@ macro_rules! key {
 #[macro_export]
 macro_rules! shift {
     ($key:ident) => {
-        ::view::input::KeyEvent {
-            code: ::view::keyboard::KeyCode::$key,
-            modifiers: ::view::keyboard::KeyModifiers::SHIFT,
+        ::ui_core::input::KeyEvent {
+            code: ::ui_core::keyboard::KeyCode::$key,
+            modifiers: ::ui_core::keyboard::KeyModifiers::SHIFT,
         }
     };
     ($($ch:tt)*) => {
-        ::view::input::KeyEvent {
-            code: ::view::keyboard::KeyCode::Char($($ch)*),
-            modifiers: ::view::keyboard::KeyModifiers::SHIFT,
+        ::ui_core::input::KeyEvent {
+            code: ::ui_core::keyboard::KeyCode::Char($($ch)*),
+            modifiers: ::ui_core::keyboard::KeyModifiers::SHIFT,
         }
     };
 }
@@ -33,15 +33,15 @@ macro_rules! shift {
 #[macro_export]
 macro_rules! ctrl {
     ($key:ident) => {
-        ::view::input::KeyEvent {
-            code: ::view::keyboard::KeyCode::$key,
-            modifiers: ::view::keyboard::KeyModifiers::CONTROL,
+        ::ui_core::input::KeyEvent {
+            code: ::ui_core::keyboard::KeyCode::$key,
+            modifiers: ::ui_core::keyboard::KeyModifiers::CONTROL,
         }
     };
     ($($ch:tt)*) => {
-        ::view::input::KeyEvent {
-            code: ::view::keyboard::KeyCode::Char($($ch)*),
-            modifiers: ::view::keyboard::KeyModifiers::CONTROL,
+        ::ui_core::input::KeyEvent {
+            code: ::ui_core::keyboard::KeyCode::Char($($ch)*),
+            modifiers: ::ui_core::keyboard::KeyModifiers::CONTROL,
         }
     };
 }
@@ -49,15 +49,15 @@ macro_rules! ctrl {
 #[macro_export]
 macro_rules! alt {
     ($key:ident) => {
-        ::view::input::KeyEvent {
-            code: ::view::keyboard::KeyCode::$key,
-            modifiers: ::view::keyboard::KeyModifiers::ALT,
+        ::ui_core::input::KeyEvent {
+            code: ::ui_core::keyboard::KeyCode::$key,
+            modifiers: ::ui_core::keyboard::KeyModifiers::ALT,
         }
     };
     ($($ch:tt)*) => {
-        ::view::input::KeyEvent {
-            code: ::view::keyboard::KeyCode::Char($($ch)*),
-            modifiers: ::view::keyboard::KeyModifiers::ALT,
+        ::ui_core::input::KeyEvent {
+            code: ::ui_core::keyboard::KeyCode::Char($($ch)*),
+            modifiers: ::ui_core::keyboard::KeyModifiers::ALT,
         }
     };
 }
@@ -102,7 +102,7 @@ macro_rules! keymap {
             let mut _map = ::indexmap::IndexMap::with_capacity(_cap);
             $(
                 $(
-                    let _key = $key.parse::<::view::input::KeyEvent>().unwrap();
+                    let _key = $key.parse::<::ui_core::input::KeyEvent>().unwrap();
                     let _duplicate = _map.insert(
                         _key,
                         keymap!(@trie $value)

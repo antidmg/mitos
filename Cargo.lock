@@ -3451,6 +3451,7 @@ dependencies = [
  "tokio-stream",
  "toml",
  "tui",
+ "ui-core",
  "vcs",
  "view",
 ]
@@ -3785,11 +3786,14 @@ checksum = "2896d95c02a80c6d6a5d6e953d479f5ddf2dfdb6a244441010e373ac0fb88971"
 name = "ui-core"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bitflags 2.13.0",
  "crossterm 0.28.1",
  "ratatui",
  "serde",
  "termina",
+ "unicode-segmentation",
+ "unicode-width 0.1.12",
 ]
 
 [[package]]
@@ -3925,13 +3929,11 @@ dependencies = [
  "anyhow",
  "arc-swap",
  "arrayvec",
- "bitflags 2.13.0",
  "chardetng",
  "clipboard-win",
  "command-line",
  "core",
  "criterion",
- "crossterm 0.28.1",
  "dap",
  "event",
  "foldhash 0.2.0",

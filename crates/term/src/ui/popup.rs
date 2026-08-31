@@ -8,11 +8,8 @@ use tui::buffer::BufferExt as _;
 use tui::{buffer::Buffer as Surface, widgets::Widget};
 
 use editor_core::Position;
-use view::{
-    graphics::Rect,
-    input::{MouseEvent, MouseEventKind},
-    Editor,
-};
+use ui_core::input::{MouseEvent, MouseEventKind};
+use view::{graphics::Rect, Editor};
 
 const MIN_HEIGHT: u16 = 6;
 const MAX_HEIGHT: u16 = 26;

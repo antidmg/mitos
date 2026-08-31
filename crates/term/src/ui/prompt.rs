@@ -8,9 +8,9 @@ use tui::buffer::Buffer as Surface;
 use tui::layout::Constraint;
 use tui::text::Span;
 use tui::widgets::{Row, Table, TableState, Widget};
+use ui_core::input::KeyEvent;
+use ui_core::keyboard::KeyCode;
 use view::document::Mode;
-use view::input::KeyEvent;
-use view::keyboard::KeyCode;
 
 use editor_core::{
     unicode::segmentation::{GraphemeCursor, UnicodeSegmentation},

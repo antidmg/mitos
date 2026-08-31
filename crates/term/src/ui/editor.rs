@@ -25,14 +25,16 @@ use editor_core::{
 };
 use loader::VERSION_AND_GIT_HASH;
 use std::{mem::take, num::NonZeroUsize, ops, path::PathBuf, rc::Rc, sync::LazyLock};
+use ui_core::{
+    input::{KeyEvent, MouseButton, MouseEvent, MouseEventKind},
+    keyboard::{KeyCode, KeyModifiers},
+};
 use view::{
     annotations::diagnostics::DiagnosticFilter,
     document::{Mode, SCRATCH_BUFFER_NAME},
     editor::{BufferLine, CompleteAction, CursorShapeConfig},
     graphics::{Color, CursorKind, Modifier, Rect, Style},
     icons::ICONS,
-    input::{KeyEvent, MouseButton, MouseEvent, MouseEventKind},
-    keyboard::{KeyCode, KeyModifiers},
     Document, Editor, Theme, View,
 };
 

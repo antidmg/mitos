@@ -17,7 +17,7 @@ bench = false
 
 [features]
 default = []
-term = ["termina", "crossterm", "ui-core/term"]
+term = ["termina", "ui-core/term"]
 unicode-lines = []
 # Exposes internals. Should not be enabled except for benchmarking.
 bench = []
@@ -35,7 +35,6 @@ dap.workspace = true
 vcs.workspace = true
 ratatui.workspace = true
 
-bitflags.workspace = true
 foldhash.workspace = true
 anyhow.workspace = true
 termina = { workspace = true, optional = true }
@@ -65,7 +64,6 @@ arrayvec.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 clipboard-win = { workspace = true, features = ["std"] }
-crossterm = { workspace = true, optional = true }
 
 [target.'cfg(unix)'.dependencies]
 libc.workspace = true

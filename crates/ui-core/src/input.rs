@@ -1,8 +1,9 @@
 //! Input event handling, currently backed by termina.
 use anyhow::{anyhow, Error};
-use editor_core::unicode::{segmentation::UnicodeSegmentation, width::UnicodeWidthStr};
 use serde::de::{self, Deserialize, Deserializer};
 use std::fmt;
+use unicode_segmentation::UnicodeSegmentation;
+use unicode_width::UnicodeWidthStr;
 
 pub use crate::keyboard::{KeyCode, KeyModifiers, MediaKeyCode, ModifierKeyCode};
 
@@ -82,7 +83,7 @@ impl KeyEvent {
     ///
     /// ```
     /// # use std::str::FromStr;
-    /// # use view::input::KeyEvent;
+    /// # use ui_core::input::KeyEvent;
     ///
     /// let k = KeyEvent::from_str("w").unwrap().key_sequence_format();
     /// assert_eq!(k, "w");
@@ -251,7 +252,7 @@ impl fmt::Display for KeyEvent {
 
 impl UnicodeWidthStr for KeyEvent {
     fn width(&self) -> usize {
-        use editor_core::unicode::width::UnicodeWidthChar;
+        use unicode_width::UnicodeWidthChar;
         let mut width = match self.code {
             KeyCode::Backspace => keys::BACKSPACE.len(),
             KeyCode::Enter => keys::ENTER.len(),

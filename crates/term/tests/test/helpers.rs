@@ -11,10 +11,10 @@ use loader::workspace_trust::WorkspaceTrust;
 use tempfile::NamedTempFile;
 use term::{application::Application, args::Args, config::Config, keymap::merge_keys};
 use tokio_stream::wrappers::UnboundedReceiverStream;
+use ui_core::input::parse_macro;
 use view::{
     current_ref, doc,
     editor::{ImplicitTrustLevelConfig, LspConfig, WordCompletion, WorkspaceTrustConfig},
-    input::parse_macro,
     Editor,
 };
 

@@ -17,7 +17,8 @@ use std::{
     ops::{Deref, DerefMut},
     sync::Arc,
 };
-use view::{document::Mode, info::Info, input::KeyEvent};
+use ui_core::input::KeyEvent;
+use view::{document::Mode, info::Info};
 
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct KeyTrieNode {
@@ -381,7 +382,7 @@ mod tests {
     use arc_swap::access::Constant;
     use editor_core::hashmap;
     use indexmap::indexmap;
-    use view::input::{KeyCode, KeyEvent, KeyModifiers};
+    use ui_core::input::{KeyCode, KeyEvent, KeyModifiers};
 
     #[test]
     #[should_panic]

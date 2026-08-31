@@ -6,8 +6,8 @@ use tui::buffer::Buffer;
 use tui::layout::{Alignment, Constraint, Layout};
 use tui::text::Text;
 use tui::widgets::{Paragraph, Widget, Wrap};
+use ui_core::input::Event;
 use view::graphics::Rect;
-use view::input::Event;
 
 use crate::compositor::{Component, Compositor, Context, EventResult};
 

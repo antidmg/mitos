@@ -6,8 +6,8 @@ use lsp_client::lsp;
 use tui::buffer::Buffer;
 use tui::layout::{Constraint, Layout};
 use tui::widgets::{Paragraph, Widget, Wrap};
+use ui_core::input::Event;
 use view::graphics::Rect;
-use view::input::Event;
 
 use crate::compositor::{Component, Context, EventResult};
 

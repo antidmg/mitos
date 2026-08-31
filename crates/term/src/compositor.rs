@@ -19,7 +19,7 @@ use crate::job::Jobs;
 use crate::ui::picker;
 use view::Editor;
 
-pub use view::input::Event;
+pub use ui_core::input::Event;
 
 pub struct Context<'a> {
     pub editor: &'a mut Editor,

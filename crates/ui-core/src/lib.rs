@@ -5,6 +5,8 @@
 //! LSP, DAP, and VCS dependency graph.
 
 pub mod graphics;
+pub mod input;
+pub mod keyboard;
 
 pub mod theme {
     pub use crate::graphics::{Color, Modifier, Style};
