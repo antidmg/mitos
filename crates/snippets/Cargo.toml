@@ -1,0 +1,24 @@
+[package]
+name = "snippets"
+description = "LSP-style snippet parsing, rendering, and editing for Mitos"
+include = ["src/**/*", "README.md", "LICENSE"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+categories.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+core.workspace = true
+parsec.workspace = true
+stdx.workspace = true
+
+anyhow.workspace = true
+foldhash.workspace = true
+log.workspace = true
+regex-cursor.workspace = true
+ropey.workspace = true
+smallvec.workspace = true

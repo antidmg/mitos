@@ -21,7 +21,6 @@ integration = []
 [dependencies]
 stdx.workspace = true
 loader.workspace = true
-parsec.workspace = true
 dap-types.workspace = true
 
 ropey.workspace = true

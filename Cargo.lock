@@ -352,7 +352,6 @@ dependencies = [
  "log",
  "nucleo",
  "parking_lot",
- "parsec",
  "quickcheck",
  "regex",
  "regex-cursor",
@@ -2176,6 +2175,7 @@ dependencies = [
  "serde",
  "serde_json",
  "slotmap",
+ "snippets",
  "sonic-rs",
  "stdx",
  "thiserror 2.0.18",
@@ -3236,6 +3236,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7c388c1b5e93756d0c740965c41e8822f866621d41acbdf6336a6a168f8840c"
 
 [[package]]
+name = "snippets"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "core",
+ "foldhash 0.2.0",
+ "log",
+ "parsec",
+ "regex-cursor",
+ "ropey",
+ "smallvec",
+ "stdx",
+]
+
+[[package]]
 name = "socket2"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3426,6 +3441,7 @@ dependencies = [
  "serde_json",
  "signal-hook 0.4.4",
  "signal-hook-tokio",
+ "snippets",
  "stdx",
  "tempfile",
  "termina",
@@ -3931,6 +3947,7 @@ dependencies = [
  "serde",
  "serde_json",
  "slotmap",
+ "snippets",
  "stdx",
  "tempfile",
  "termina",

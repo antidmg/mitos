@@ -6,12 +6,12 @@ use ropey::{Rope, RopeSlice};
 use smallvec::SmallVec;
 use stdx::Range;
 
-use crate::indent::{normalize_indentation, IndentStyle};
-use crate::movement::Direction;
-use crate::snippets::elaborate;
-use crate::snippets::TabstopIdx;
-use crate::snippets::{Snippet, SnippetElement, Transform};
-use crate::{selection, Selection, Tendril, Transaction};
+use crate::elaborate;
+use crate::TabstopIdx;
+use crate::{Snippet, SnippetElement, Transform};
+use editor_core::indent::{normalize_indentation, IndentStyle};
+use editor_core::movement::Direction;
+use editor_core::{selection, Selection, Tendril, Transaction};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TabstopKind {
@@ -297,8 +297,8 @@ impl SnippetRender<'_> {
 mod tests {
     use stdx::Range;
 
-    use crate::snippets::render::Tabstop;
-    use crate::snippets::{Snippet, SnippetRenderCtx};
+    use crate::render::Tabstop;
+    use crate::{Snippet, SnippetRenderCtx};
 
     use super::TabstopKind;
 

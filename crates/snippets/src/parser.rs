@@ -25,7 +25,7 @@ else        ::= text
 ```
 */
 
-use crate::Tendril;
+use editor_core::Tendril;
 use parsec::*;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -339,7 +339,7 @@ fn snippet<'a>() -> impl Parser<'a, Output = Vec<SnippetElement>> {
 
 #[cfg(test)]
 mod test {
-    use crate::snippets::{Snippet, SnippetRenderCtx};
+    use crate::{Snippet, SnippetRenderCtx};
 
     use super::SnippetElement::*;
     use super::*;

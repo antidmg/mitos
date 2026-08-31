@@ -80,9 +80,9 @@ pub enum OffsetEncoding {
 pub mod util {
     use super::*;
     use editor_core::line_ending::{line_end_byte_index, line_end_char_index};
-    use editor_core::snippets::{RenderedSnippet, Snippet, SnippetRenderCtx};
     use editor_core::{chars, RopeSlice};
     use editor_core::{diagnostic::NumberOrString, Range, Rope, Selection, Tendril, Transaction};
+    use snippets::{RenderedSnippet, Snippet, SnippetRenderCtx};
 
     /// Converts a diagnostic in the document to [`lsp::Diagnostic`].
     ///

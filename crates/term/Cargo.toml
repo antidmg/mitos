@@ -48,6 +48,7 @@ core.workspace = true
 event.workspace = true
 view = { workspace = true, features = ["term"] }
 lsp.workspace = true
+snippets.workspace = true
 dap.workspace = true
 vcs.workspace = true
 loader.workspace = true

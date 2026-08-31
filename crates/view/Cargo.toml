@@ -30,6 +30,7 @@ core.workspace = true
 event.workspace = true
 loader.workspace = true
 lsp.workspace = true
+snippets.workspace = true
 dap.workspace = true
 vcs.workspace = true
 ratatui.workspace = true

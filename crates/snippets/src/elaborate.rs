@@ -10,12 +10,12 @@ use ropey::RopeSlice;
 use stdx::rope::RopeSliceExt;
 use stdx::Range;
 
-use crate::case_conversion::to_lower_case_with;
-use crate::case_conversion::to_upper_case_with;
-use crate::case_conversion::{to_camel_case_with, to_pascal_case_with};
-use crate::snippets::parser::{self, CaseChange, FormatItem};
-use crate::snippets::{TabstopIdx, LAST_TABSTOP_IDX};
-use crate::Tendril;
+use crate::parser::{self, CaseChange, FormatItem};
+use crate::{TabstopIdx, LAST_TABSTOP_IDX};
+use editor_core::case_conversion::to_lower_case_with;
+use editor_core::case_conversion::to_upper_case_with;
+use editor_core::case_conversion::{to_camel_case_with, to_pascal_case_with};
+use editor_core::Tendril;
 
 #[derive(Debug)]
 pub struct Snippet {

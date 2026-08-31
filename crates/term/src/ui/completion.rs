@@ -6,13 +6,13 @@ use crate::{
         trigger_auto_completion, CompletionItem, CompletionResponse, ResolveHandler,
     },
 };
-use editor_core::snippets::{ActiveSnippet, RenderedSnippet, Snippet};
 use editor_core::{self as core, chars, fuzzy::MATCHER, Change, Transaction};
 use lsp_client::{lsp, util, OffsetEncoding};
 use nucleo::{
     pattern::{Atom, AtomKind, CaseMatching, Normalization},
     Config, Utf32Str,
 };
+use snippets::{ActiveSnippet, RenderedSnippet, Snippet};
 use tui::text::Line;
 use tui::{buffer::Buffer as Surface, text::Span};
 use view::{

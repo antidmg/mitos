@@ -5,10 +5,10 @@ use ropey::Rope;
 use stdx::range::{is_exact_subset, is_subset};
 use stdx::Range;
 
-use crate::movement::Direction;
-use crate::snippets::render::{RenderedSnippet, Tabstop};
-use crate::snippets::TabstopIdx;
-use crate::{Assoc, ChangeSet, Selection, Transaction};
+use crate::render::{RenderedSnippet, Tabstop};
+use crate::TabstopIdx;
+use editor_core::movement::Direction;
+use editor_core::{Assoc, ChangeSet, Selection, Transaction};
 
 pub struct ActiveSnippet {
     ranges: Vec<Range>,
@@ -229,8 +229,8 @@ mod tests {
 
     use ropey::Rope;
 
-    use crate::snippets::{ActiveSnippet, Snippet, SnippetRenderCtx};
-    use crate::{Selection, Transaction};
+    use crate::{ActiveSnippet, Snippet, SnippetRenderCtx};
+    use editor_core::{Selection, Transaction};
 
     #[test]
     fn fully_remove() {
