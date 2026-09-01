@@ -510,6 +510,14 @@ impl<T, D> Column<T, D> {
     }
 }
 
+fn visible_column_widths<T, D>(columns: &[Column<T, D>]) -> Vec<Constraint> {
+    columns
+        .iter()
+        .filter(|column| !column.hidden)
+        .map(|column| Constraint::Length(column.name.chars().count() as u16))
+        .collect()
+}
+
 /// Returns a new list of options to replace the contents of the picker
 /// when called with the current picker query,
 type DynQueryCallback<T, D> =
@@ -671,10 +679,7 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
             |_editor: &mut Context, _pattern: &str, _event: PromptEvent| {},
         );
 
-        let widths = columns
-            .iter()
-            .map(|column| Constraint::Length(column.name.chars().count() as u16))
-            .collect();
+        let widths = visible_column_widths(&columns);
 
         let query = PickerQuery::new(columns.iter().map(|col| &col.name).cloned(), default_column);
 
@@ -845,11 +850,7 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
         self.cursor = 0;
         self.prompt.clear(editor);
         self.handle_prompt_change(false);
-        self.widths = self
-            .columns
-            .iter()
-            .map(|column| Constraint::Length(column.name.chars().count() as u16))
-            .collect();
+        self.widths = visible_column_widths(&self.columns);
         self.preview.clear();
 
         let injector = self.matcher.injector();
@@ -1064,9 +1065,9 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
             let mut widths = self.widths.iter_mut();
             let mut matcher_index = 0;
 
-            Row::new(self.columns.iter().map(|column| {
+            Row::new(self.columns.iter().filter_map(|column| {
                 if column.hidden {
-                    return Cell::default();
+                    return None;
                 }
 
                 let Some(Constraint::Length(max_width)) = widths.next() else {
@@ -1136,7 +1137,7 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
                     *max_width = width as u16;
                 }
 
-                cell
+                Some(cell)
             }))
         });
 
@@ -1154,19 +1155,19 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
             let header_column_style = cx.editor.theme.get("ui.picker.header.column");
 
             table = table.header(
-                Row::new(self.columns.iter().map(|column| {
+                Row::new(self.columns.iter().filter_map(|column| {
                     if column.hidden {
-                        Cell::default()
-                    } else {
-                        let style =
-                            if active_column.is_some_and(|name| Arc::ptr_eq(name, &column.name)) {
-                                cx.editor.theme.get("ui.picker.header.column.active")
-                            } else {
-                                header_column_style
-                            };
-
-                        Cell::from(Span::styled(Cow::from(&*column.name), style))
+                        return None;
                     }
+
+                    let style = if active_column.is_some_and(|name| Arc::ptr_eq(name, &column.name))
+                    {
+                        cx.editor.theme.get("ui.picker.header.column.active")
+                    } else {
+                        header_column_style
+                    };
+
+                    Some(Cell::from(Span::styled(Cow::from(&*column.name), style)))
                 }))
                 .style(header_style),
             );
@@ -1397,7 +1398,8 @@ type PickerCallback<T, D> = Box<dyn Fn(&mut Context, &T, Action) -> PickerCallba
 
 #[cfg(test)]
 mod tests {
-    use super::split_picker_area;
+    use super::{split_picker_area, visible_column_widths, Column};
+    use tui::layout::Constraint;
     use view::graphics::Rect;
 
     #[test]
@@ -1408,5 +1410,15 @@ mod tests {
         assert_eq!(Rect::new(3, 5, 40, 24), picker);
         assert_eq!(Some(Rect::new(43, 5, 41, 24)), preview);
         assert_eq!((area, None), split_picker_area(area, false));
+    }
+
+    #[test]
+    fn hidden_columns_do_not_consume_rendered_width() {
+        let columns: [Column<(), ()>; 2] = [
+            Column::new("path", |_, _| "".into()),
+            Column::hidden("contents"),
+        ];
+
+        assert_eq!(visible_column_widths(&columns), [Constraint::Length(4)]);
     }
 }

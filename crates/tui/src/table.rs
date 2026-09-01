@@ -1,6 +1,6 @@
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Rect},
+    layout::{Constraint, Flex, Rect},
     style::Style,
     text::{Span, Text},
     widgets::{
@@ -128,7 +128,8 @@ impl<'a> Table<'a> {
         let mut table = RatatuiTable::new(rows, self.widths)
             .style(self.style)
             .row_highlight_style(self.highlight_style)
-            .column_spacing(self.column_spacing);
+            .column_spacing(self.column_spacing)
+            .flex(Flex::Legacy);
         if let Some(symbol) = self.highlight_symbol {
             table = table.highlight_symbol(symbol);
         }
@@ -197,5 +198,19 @@ mod tests {
 
         let rendered: String = buffer.content.iter().map(|cell| cell.symbol()).collect();
         assert_eq!(rendered, "…cdef");
+    }
+
+    #[test]
+    fn last_column_fills_remaining_width() {
+        let mut buffer = Buffer::empty(Rect::new(0, 0, 5, 1));
+        let mut state = TableState::default();
+        let table = Table::new([Row::new(["a", "bcde"])])
+            .widths(&[Constraint::Length(1), Constraint::Length(1)])
+            .column_spacing(0);
+
+        table.render_table(buffer.area, &mut buffer, &mut state, false);
+
+        let rendered: String = buffer.content.iter().map(|cell| cell.symbol()).collect();
+        assert_eq!(rendered, "abcde");
     }
 }
