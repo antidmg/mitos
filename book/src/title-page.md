@@ -94,16 +94,3 @@ while developing as a separate project.
 
 The editor is open source under the Mozilla Public License 2.0. Mitos is not
 endorsed by or affiliated with the Helix project or its maintainers.
-
-## Documentation versions
-
-<div class="version-tiles">
-  <a class="version-tile" href="/">
-    <strong>Stable</strong>
-    <span class="version-tile-sub">Documentation for the latest tagged release.</span>
-  </a>
-  <a class="version-tile" href="/main/">
-    <strong>Latest (main)</strong>
-    <span class="version-tile-sub">Bleeding-edge docs built from the <code>main</code> branch.</span>
-  </a>
-</div>

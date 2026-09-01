@@ -734,63 +734,6 @@ pre>.buttons button {
   margin-left: auto;
 }
 
-#mitos-version-banner {
-  margin: 0 0 2rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--quote-border);
-  border-left: 4px solid var(--blockquote-warning-color);
-  border-radius: 4px;
-  background-color: var(--quote-bg);
-  font-size: 1.35rem;
-  line-height: 1.55;
-}
-
-#mitos-version-banner.archived {
-  border-left-color: var(--blockquote-note-color);
-}
-
-.version-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  margin: 2rem 0 2.4rem;
-}
-
-.version-tiles .version-tile,
-.version-tiles .version-tile:hover {
-  text-decoration: none;
-}
-
-.version-tiles .version-tile {
-  --tile-accent: var(--title-color);
-  display: block;
-  padding: 1.2rem 1.3rem;
-  border: 1px solid var(--table-border-line);
-  border-radius: 6px;
-  background-color: var(--table-alternate-bg);
-  color: inherit;
-  transition: border-color .15s ease, background-color .15s ease;
-}
-
-.version-tiles .version-tile:hover,
-.version-tiles .version-tile.current {
-  border-color: var(--tile-accent);
-  background-color: color-mix(in srgb, var(--tile-accent) 9%, var(--bg));
-}
-
-.version-tiles .version-tile strong {
-  display: block;
-  margin-bottom: .25rem;
-  color: var(--full-contrast);
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.version-tiles .version-tile-sub {
-  font-size: 1.3rem;
-  opacity: .82;
-}
-
 /* Monochrome syntax palette */
 :where(.colibri) .hljs {
   color: #d6d6d6;

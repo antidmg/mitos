@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Page not found — Mitos</title>
+    <script>
+      (function () {
+        var parts = window.location.pathname.split("/").filter(Boolean);
+        var channel = parts[0];
+        var docsIndex = channel === "main" || /^\d+\.\d+/.test(channel || "") ? 1 : 0;
+
+        if (parts[docsIndex] !== "docs") {
+          parts.splice(docsIndex, 0, "docs");
+          window.location.replace(
+            "/" + parts.join("/") + window.location.search + window.location.hash
+          );
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="/landing.css">
+  </head>
+  <body>
+    <main class="hero">
+      <p class="eyebrow">404</p>
+      <h1>Page not found.</h1>
+      <p class="lede">The page may have moved into the documentation.</p>
+      <div class="actions">
+        <a class="button primary" href="/docs/">Open the documentation</a>
+        <a class="button" href="/">Go home</a>
+      </div>
+    </main>
+  </body>
+</html>
