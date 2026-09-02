@@ -67,7 +67,7 @@ impl DiffProviderRegistry {
         self,
         cwd: PathBuf,
         trust_full: bool,
-        f: impl Fn(Result<FileChange>) -> bool + Send + 'static,
+        f: impl Fn(&Path, Result<FileChange>) -> bool + Send + 'static,
     ) {
         tokio::task::spawn_blocking(move || {
             if self
@@ -76,7 +76,7 @@ impl DiffProviderRegistry {
                 .find_map(|provider| provider.for_each_changed_file(&cwd, trust_full, &f).ok())
                 .is_none()
             {
-                f(Err(anyhow!("no diff provider returns success")));
+                f(&cwd, Err(anyhow!("no diff provider returns success")));
             }
         });
     }
@@ -131,7 +131,7 @@ impl DiffProvider {
         &self,
         cwd: &Path,
         trust_full: bool,
-        f: impl Fn(Result<FileChange>) -> bool,
+        f: impl Fn(&Path, Result<FileChange>) -> bool,
     ) -> Result<()> {
         match self {
             #[cfg(feature = "git")]

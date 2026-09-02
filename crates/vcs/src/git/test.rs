@@ -1,4 +1,4 @@
-use std::{fs::File, io::Write, path::Path, process::Command};
+use std::{cell::RefCell, fs::File, io::Write, path::Path, process::Command};
 
 use tempfile::TempDir;
 
@@ -83,6 +83,35 @@ fn modified_file() {
         git::get_diff_base(&file, true).unwrap(),
         Vec::from(contents)
     );
+}
+
+#[test]
+fn changed_files_include_the_worktree_root_when_started_in_a_subdirectory() {
+    let temp_git = empty_git_repo();
+    let file = temp_git.path().join("file.txt");
+    File::create(&file).unwrap().write_all(b"before").unwrap();
+    create_commit(temp_git.path(), true);
+    File::create(&file).unwrap().write_all(b"after").unwrap();
+
+    let subdirectory = temp_git.path().join("nested");
+    std::fs::create_dir(&subdirectory).unwrap();
+    let changes = RefCell::new(Vec::new());
+
+    git::for_each_changed_file(&subdirectory, true, |worktree_root, change| {
+        changes
+            .borrow_mut()
+            .push((worktree_root.to_path_buf(), change.unwrap()));
+        true
+    })
+    .unwrap();
+
+    let changes = changes.into_inner();
+    let (worktree_root, changed) = changes
+        .iter()
+        .find(|(_, change)| change.path() == file)
+        .expect("modified root file should be reported");
+    assert_eq!(worktree_root, temp_git.path());
+    assert!(matches!(changed, crate::FileChange::Modified { .. }));
 }
 
 /// Test that `get_file_head` does not return content for a directory.

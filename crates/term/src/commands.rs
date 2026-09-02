@@ -3729,14 +3729,82 @@ fn quicklist_picker(cx: &mut Context) {
 }
 
 fn changed_file_picker(cx: &mut Context) {
+    struct ChangedFileEntry {
+        change: FileChange,
+        display_path: String,
+    }
+
     pub struct FileChangeData {
-        cwd: PathBuf,
         icons: bool,
         style_untracked: Style,
         style_modified: Style,
         style_conflict: Style,
         style_deleted: Style,
         style_renamed: Style,
+    }
+
+    fn display_path(change: &FileChange, worktree_root: &Path) -> String {
+        let display_path = |path: &Path| {
+            stdx::path::get_relative_path_from(path, worktree_root)
+                .display()
+                .to_string()
+        };
+
+        match change {
+            FileChange::Untracked { path }
+            | FileChange::Modified { path }
+            | FileChange::Conflict { path }
+            | FileChange::Deleted { path } => display_path(path),
+            FileChange::Renamed { from_path, to_path } => {
+                format!("{} -> {}", display_path(from_path), display_path(to_path))
+            }
+        }
+    }
+
+    fn change_column<'a>(entry: &'a ChangedFileEntry, data: &FileChangeData) -> Cell<'a> {
+        let icons = ICONS.load();
+        let (plain, icon, label, style) = match &entry.change {
+            FileChange::Untracked { .. } => (
+                "+ untracked",
+                icons.vcs().added(),
+                "untracked",
+                data.style_untracked,
+            ),
+            FileChange::Modified { .. } => (
+                "~ modified",
+                icons.vcs().modified(),
+                "modified",
+                data.style_modified,
+            ),
+            FileChange::Conflict { .. } => (
+                "x conflict",
+                icons.vcs().conflict(),
+                "conflict",
+                data.style_conflict,
+            ),
+            FileChange::Deleted { .. } => (
+                "- deleted",
+                icons.vcs().removed(),
+                "deleted",
+                data.style_deleted,
+            ),
+            FileChange::Renamed { .. } => (
+                "> renamed",
+                icons.vcs().renamed(),
+                "renamed",
+                data.style_renamed,
+            ),
+        };
+        let content = if data.icons {
+            icon.map_or_else(|| label.to_string(), |icon| format!("{icon}{label}"))
+        } else {
+            plain.to_string()
+        };
+        Span::styled(content, style).into()
+    }
+
+    fn path_column<'a>(entry: &'a ChangedFileEntry, _data: &FileChangeData) -> Cell<'a> {
+        entry.display_path.as_str().into()
     }
 
     let cwd = stdx::env::current_working_dir();
@@ -3753,65 +3821,8 @@ fn changed_file_picker(cx: &mut Context) {
     let renamed = cx.editor.theme.get("diff.delta.moved");
 
     let columns = [
-        PickerColumn::new("change", |change: &FileChange, data: &FileChangeData| {
-            let icons = ICONS.load();
-            let (plain, icon, label, style) = match change {
-                FileChange::Untracked { .. } => (
-                    "+ untracked",
-                    icons.vcs().added(),
-                    "untracked",
-                    data.style_untracked,
-                ),
-                FileChange::Modified { .. } => (
-                    "~ modified",
-                    icons.vcs().modified(),
-                    "modified",
-                    data.style_modified,
-                ),
-                FileChange::Conflict { .. } => (
-                    "x conflict",
-                    icons.vcs().conflict(),
-                    "conflict",
-                    data.style_conflict,
-                ),
-                FileChange::Deleted { .. } => (
-                    "- deleted",
-                    icons.vcs().removed(),
-                    "deleted",
-                    data.style_deleted,
-                ),
-                FileChange::Renamed { .. } => (
-                    "> renamed",
-                    icons.vcs().renamed(),
-                    "renamed",
-                    data.style_renamed,
-                ),
-            };
-            let content = if data.icons {
-                icon.map_or_else(|| label.to_string(), |icon| format!("{icon}{label}"))
-            } else {
-                plain.to_string()
-            };
-            Span::styled(content, style).into()
-        }),
-        PickerColumn::new("path", |change: &FileChange, data: &FileChangeData| {
-            let display_path = |path: &PathBuf| {
-                path.strip_prefix(&data.cwd)
-                    .unwrap_or(path)
-                    .display()
-                    .to_string()
-            };
-            match change {
-                FileChange::Untracked { path } => display_path(path),
-                FileChange::Modified { path } => display_path(path),
-                FileChange::Conflict { path } => display_path(path),
-                FileChange::Deleted { path } => display_path(path),
-                FileChange::Renamed { from_path, to_path } => {
-                    format!("{} -> {}", display_path(from_path), display_path(to_path))
-                }
-            }
-            .into()
-        }),
+        PickerColumn::new("change", change_column),
+        PickerColumn::new("path", path_column),
     ];
 
     let picker = Picker::new(
@@ -3819,7 +3830,6 @@ fn changed_file_picker(cx: &mut Context) {
         1, // path
         [],
         FileChangeData {
-            cwd: cwd.clone(),
             icons: cx.editor.config().icons,
             style_untracked: added,
             style_modified: modified,
@@ -3827,8 +3837,8 @@ fn changed_file_picker(cx: &mut Context) {
             style_deleted: deleted,
             style_renamed: renamed,
         },
-        |cx, meta: &FileChange, action| {
-            let path_to_open = meta.path();
+        |cx, entry: &ChangedFileEntry, action| {
+            let path_to_open = entry.change.path();
             if let Err(err) = cx.editor.open(path_to_open, action) {
                 cx.editor.set_error(|| {
                     if let Some(err) = err.source() {
@@ -3840,7 +3850,7 @@ fn changed_file_picker(cx: &mut Context) {
             }
         },
     )
-    .with_preview(|_editor, meta| Some((meta.path().into(), None)));
+    .with_preview(|_editor, entry| Some((entry.change.path().into(), None)));
     let injector = picker.injector();
 
     let trust_full = cx
@@ -3851,16 +3861,22 @@ fn changed_file_picker(cx: &mut Context) {
             loader::workspace_trust::TrustQuery::Git,
         )
         .is_trusted();
-    cx.editor
-        .diff_providers
-        .clone()
-        .for_each_changed_file(cwd, trust_full, move |change| match change {
-            Ok(change) => injector.push(change).is_ok(),
+    cx.editor.diff_providers.clone().for_each_changed_file(
+        cwd,
+        trust_full,
+        move |worktree_root, change| match change {
+            Ok(change) => injector
+                .push(ChangedFileEntry {
+                    display_path: display_path(&change, worktree_root),
+                    change,
+                })
+                .is_ok(),
             Err(err) => {
                 status::report_blocking(err);
                 true
             }
-        });
+        },
+    );
     cx.push_layer(Box::new(overlaid(picker)));
 }
 

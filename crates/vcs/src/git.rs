@@ -88,7 +88,7 @@ pub fn get_current_head_name(file: &Path, trust_full: bool) -> Result<Arc<ArcSwa
 pub fn for_each_changed_file(
     cwd: &Path,
     trust_full: bool,
-    f: impl Fn(Result<FileChange>) -> bool,
+    f: impl Fn(&Path, Result<FileChange>) -> bool,
 ) -> Result<()> {
     status(&open_repo(cwd, trust_full)?.to_thread_local(), f)
 }
@@ -145,7 +145,7 @@ fn open_repo(path: &Path, trust_full: bool) -> Result<ThreadSafeRepository> {
 }
 
 /// Emulates the result of running `git status` from the command line.
-fn status(repo: &Repository, f: impl Fn(Result<FileChange>) -> bool) -> Result<()> {
+fn status(repo: &Repository, f: impl Fn(&Path, Result<FileChange>) -> bool) -> Result<()> {
     let work_dir = repo
         .workdir()
         .ok_or_else(|| anyhow::anyhow!("working tree not found"))?
@@ -172,7 +172,7 @@ fn status(repo: &Repository, f: impl Fn(Result<FileChange>) -> bool) -> Result<(
     let status_iter = status_platform.into_index_worktree_iter(empty_patterns)?;
 
     for item in status_iter {
-        let Ok(item) = item.map_err(|err| f(Err(err.into()))) else {
+        let Ok(item) = item.map_err(|err| f(&work_dir, Err(err.into()))) else {
             continue;
         };
         let change = match item {
@@ -211,7 +211,7 @@ fn status(repo: &Repository, f: impl Fn(Result<FileChange>) -> bool) -> Result<(
             },
             _ => continue,
         };
-        if !f(Ok(change)) {
+        if !f(&work_dir, Ok(change)) {
             break;
         }
     }
