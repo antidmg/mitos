@@ -29,7 +29,8 @@ pub enum ChangedFileScope {
 }
 
 impl ChangedFileScope {
-    fn path(&self) -> &Path {
+    /// Returns the path used to discover the repository for this query.
+    pub fn path(&self) -> &Path {
         match self {
             Self::Directory(path) | Self::Repository(path) => path,
         }

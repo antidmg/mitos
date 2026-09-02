@@ -424,7 +424,8 @@ impl MappableCommand {
         symbol_picker, "Open symbol picker",
         syntax_symbol_picker, "Open symbol picker from syntax information",
         lsp_or_syntax_symbol_picker, "Open symbol picker from LSP or syntax information",
-        changed_file_picker, "Open changed file picker",
+        changed_file_picker, "Open changed file picker in workspace",
+        changed_file_picker_in_repository, "Open changed file picker in repository",
         select_references_to_symbol_under_cursor, "Select symbol references",
         workspace_symbol_picker, "Open workspace symbol picker",
         syntax_workspace_symbol_picker, "Open workspace symbol picker from syntax information",
@@ -3729,6 +3730,20 @@ fn quicklist_picker(cx: &mut Context) {
 }
 
 fn changed_file_picker(cx: &mut Context) {
+    changed_file_picker_for_scope(
+        cx,
+        vcs::ChangedFileScope::Directory(loader::find_workspace().0),
+    );
+}
+
+fn changed_file_picker_in_repository(cx: &mut Context) {
+    changed_file_picker_for_scope(
+        cx,
+        vcs::ChangedFileScope::Repository(stdx::env::current_working_dir()),
+    );
+}
+
+fn changed_file_picker_for_scope(cx: &mut Context, scope: vcs::ChangedFileScope) {
     struct ChangedFileEntry {
         change: FileChange,
         display_path: String,
@@ -3807,13 +3822,16 @@ fn changed_file_picker(cx: &mut Context) {
         entry.display_path.as_str().into()
     }
 
-    let cwd = stdx::env::current_working_dir();
-    if !cwd.exists() {
-        cx.editor
-            .set_error(|| "Current working directory does not exist");
+    if !scope.path().exists() {
+        cx.editor.set_error(|| "Changed file scope does not exist");
         return;
     }
-    let workspace_root = loader::find_workspace_in(&cwd).0;
+
+    let workspace_root = loader::find_workspace_in(scope.path()).0;
+    let display_root = match &scope {
+        vcs::ChangedFileScope::Directory(path) => Some(path.clone()),
+        vcs::ChangedFileScope::Repository(_) => None,
+    };
 
     let added = cx.editor.theme.get("diff.plus");
     let modified = cx.editor.theme.get("diff.delta");
@@ -3859,14 +3877,16 @@ fn changed_file_picker(cx: &mut Context) {
         .workspace_trust
         .query(&workspace_root, loader::workspace_trust::TrustQuery::Git)
         .is_trusted();
-    let display_root = workspace_root.clone();
     cx.editor.diff_providers.clone().for_each_changed_file(
-        vcs::ChangedFileScope::Directory(workspace_root),
+        scope,
         trust_full,
-        move |_worktree_root, change| match change {
+        move |worktree_root, change| match change {
             Ok(change) => injector
                 .push(ChangedFileEntry {
-                    display_path: display_path(&change, &display_root),
+                    display_path: display_path(
+                        &change,
+                        display_root.as_deref().unwrap_or(worktree_root),
+                    ),
                     change,
                 })
                 .is_ok(),
