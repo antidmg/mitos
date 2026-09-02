@@ -2,7 +2,7 @@ use std::{cell::RefCell, fs::File, io::Write, path::Path, process::Command};
 
 use tempfile::TempDir;
 
-use crate::git;
+use crate::{git, ChangedFileScope};
 
 fn exec_git_cmd(args: &str, git_dir: &Path) {
     let res = Command::new("git")
@@ -97,12 +97,16 @@ fn changed_files_include_the_worktree_root_when_started_in_a_subdirectory() {
     std::fs::create_dir(&subdirectory).unwrap();
     let changes = RefCell::new(Vec::new());
 
-    git::for_each_changed_file(&subdirectory, true, |worktree_root, change| {
-        changes
-            .borrow_mut()
-            .push((worktree_root.to_path_buf(), change.unwrap()));
-        true
-    })
+    git::for_each_changed_file(
+        &ChangedFileScope::Repository(subdirectory),
+        true,
+        |worktree_root, change| {
+            changes
+                .borrow_mut()
+                .push((worktree_root.to_path_buf(), change.unwrap()));
+            true
+        },
+    )
     .unwrap();
 
     let changes = changes.into_inner();
@@ -112,6 +116,47 @@ fn changed_files_include_the_worktree_root_when_started_in_a_subdirectory() {
         .expect("modified root file should be reported");
     assert_eq!(worktree_root, temp_git.path());
     assert!(matches!(changed, crate::FileChange::Modified { .. }));
+}
+
+#[test]
+fn changed_files_can_be_scoped_to_a_directory() {
+    let temp_git = empty_git_repo();
+    let project = temp_git.path().join("project");
+    std::fs::create_dir(&project).unwrap();
+    let project_file = project.join("project.txt");
+    let sibling_file = temp_git.path().join("sibling.txt");
+    File::create(&project_file)
+        .unwrap()
+        .write_all(b"before")
+        .unwrap();
+    File::create(&sibling_file)
+        .unwrap()
+        .write_all(b"before")
+        .unwrap();
+    create_commit(temp_git.path(), true);
+    File::create(&project_file)
+        .unwrap()
+        .write_all(b"after")
+        .unwrap();
+    File::create(&sibling_file)
+        .unwrap()
+        .write_all(b"after")
+        .unwrap();
+
+    let changes = RefCell::new(Vec::new());
+    git::for_each_changed_file(
+        &ChangedFileScope::Directory(project),
+        true,
+        |_worktree_root, change| {
+            changes.borrow_mut().push(change.unwrap());
+            true
+        },
+    )
+    .unwrap();
+
+    let changes = changes.into_inner();
+    assert_eq!(changes.len(), 1);
+    assert_eq!(changes[0].path(), project_file);
 }
 
 /// Test that `get_file_head` does not return content for a directory.

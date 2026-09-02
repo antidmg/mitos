@@ -3813,6 +3813,7 @@ fn changed_file_picker(cx: &mut Context) {
             .set_error(|| "Current working directory does not exist");
         return;
     }
+    let workspace_root = loader::find_workspace_in(&cwd).0;
 
     let added = cx.editor.theme.get("diff.plus");
     let modified = cx.editor.theme.get("diff.delta");
@@ -3856,18 +3857,16 @@ fn changed_file_picker(cx: &mut Context) {
     let trust_full = cx
         .editor
         .workspace_trust
-        .query(
-            &loader::find_workspace_in(&cwd).0,
-            loader::workspace_trust::TrustQuery::Git,
-        )
+        .query(&workspace_root, loader::workspace_trust::TrustQuery::Git)
         .is_trusted();
+    let display_root = workspace_root.clone();
     cx.editor.diff_providers.clone().for_each_changed_file(
-        cwd,
+        vcs::ChangedFileScope::Directory(workspace_root),
         trust_full,
-        move |worktree_root, change| match change {
+        move |_worktree_root, change| match change {
             Ok(change) => injector
                 .push(ChangedFileEntry {
-                    display_path: display_path(&change, worktree_root),
+                    display_path: display_path(&change, &display_root),
                     change,
                 })
                 .is_ok(),

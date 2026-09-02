@@ -20,6 +20,22 @@ mod status;
 
 pub use status::FileChange;
 
+/// Selects which changed files a status query should return.
+pub enum ChangedFileScope {
+    /// Return only changes beneath this directory.
+    Directory(PathBuf),
+    /// Return every change in the repository containing this path.
+    Repository(PathBuf),
+}
+
+impl ChangedFileScope {
+    fn path(&self) -> &Path {
+        match self {
+            Self::Directory(path) | Self::Repository(path) => path,
+        }
+    }
+}
+
 /// Contains all active diff providers. Diff providers are compiled in via features. Currently
 /// only `git` is supported.
 #[derive(Clone)]
@@ -65,7 +81,7 @@ impl DiffProviderRegistry {
     /// iteration until `on_change` returns `false`.
     pub fn for_each_changed_file(
         self,
-        cwd: PathBuf,
+        scope: ChangedFileScope,
         trust_full: bool,
         f: impl Fn(&Path, Result<FileChange>) -> bool + Send + 'static,
     ) {
@@ -73,10 +89,13 @@ impl DiffProviderRegistry {
             if self
                 .providers
                 .iter()
-                .find_map(|provider| provider.for_each_changed_file(&cwd, trust_full, &f).ok())
+                .find_map(|provider| provider.for_each_changed_file(&scope, trust_full, &f).ok())
                 .is_none()
             {
-                f(&cwd, Err(anyhow!("no diff provider returns success")));
+                f(
+                    scope.path(),
+                    Err(anyhow!("no diff provider returns success")),
+                );
             }
         });
     }
@@ -129,13 +148,13 @@ impl DiffProvider {
 
     fn for_each_changed_file(
         &self,
-        cwd: &Path,
+        scope: &ChangedFileScope,
         trust_full: bool,
         f: impl Fn(&Path, Result<FileChange>) -> bool,
     ) -> Result<()> {
         match self {
             #[cfg(feature = "git")]
-            Self::Git => git::for_each_changed_file(cwd, trust_full, f),
+            Self::Git => git::for_each_changed_file(scope, trust_full, f),
             Self::None => bail!("No diff support compiled in"),
         }
     }

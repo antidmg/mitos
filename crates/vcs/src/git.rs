@@ -17,7 +17,7 @@ use gix::status::{
 };
 use gix::{Commit, ObjectId, Repository, ThreadSafeRepository};
 
-use crate::FileChange;
+use crate::{ChangedFileScope, FileChange};
 
 #[cfg(test)]
 mod test;
@@ -86,11 +86,15 @@ pub fn get_current_head_name(file: &Path, trust_full: bool) -> Result<Arc<ArcSwa
 }
 
 pub fn for_each_changed_file(
-    cwd: &Path,
+    scope: &ChangedFileScope,
     trust_full: bool,
     f: impl Fn(&Path, Result<FileChange>) -> bool,
 ) -> Result<()> {
-    status(&open_repo(cwd, trust_full)?.to_thread_local(), f)
+    status(
+        &open_repo(scope.path(), trust_full)?.to_thread_local(),
+        scope,
+        f,
+    )
 }
 
 fn open_repo(path: &Path, trust_full: bool) -> Result<ThreadSafeRepository> {
@@ -145,7 +149,11 @@ fn open_repo(path: &Path, trust_full: bool) -> Result<ThreadSafeRepository> {
 }
 
 /// Emulates the result of running `git status` from the command line.
-fn status(repo: &Repository, f: impl Fn(&Path, Result<FileChange>) -> bool) -> Result<()> {
+fn status(
+    repo: &Repository,
+    scope: &ChangedFileScope,
+    f: impl Fn(&Path, Result<FileChange>) -> bool,
+) -> Result<()> {
     let work_dir = repo
         .workdir()
         .ok_or_else(|| anyhow::anyhow!("working tree not found"))?
@@ -166,10 +174,25 @@ fn status(repo: &Repository, f: impl Fn(&Path, Result<FileChange>) -> bool) -> R
             ..Default::default()
         }));
 
-    // No filtering based on path
-    let empty_patterns = vec![];
+    let patterns = match scope {
+        ChangedFileScope::Directory(directory) => {
+            let directory = gix::path::realpath(directory).context("resolve change scope")?;
+            let canonical_work_dir =
+                gix::path::realpath(&work_dir).context("resolve repository worktree")?;
+            let relative = directory
+                .strip_prefix(canonical_work_dir)
+                .context("change scope is outside the repository worktree")?;
+            if relative.as_os_str().is_empty() {
+                Vec::new()
+            } else {
+                let relative = gix::path::try_into_bstr(relative)?;
+                vec![gix::path::to_unix_separators_on_windows(relative).into_owned()]
+            }
+        }
+        ChangedFileScope::Repository(_) => Vec::new(),
+    };
 
-    let status_iter = status_platform.into_index_worktree_iter(empty_patterns)?;
+    let status_iter = status_platform.into_index_worktree_iter(patterns)?;
 
     for item in status_iter {
         let Ok(item) = item.map_err(|err| f(&work_dir, Err(err.into()))) else {
