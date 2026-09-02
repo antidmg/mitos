@@ -13,7 +13,7 @@ use view::{
 use crate::ui::ProgressSpinners;
 
 use tui::buffer::Buffer as Surface;
-use tui::layout::{Alignment, Constraint, Layout};
+use tui::layout::Alignment;
 use tui::text::{Line, Span};
 use tui::widgets::{Paragraph, Widget};
 use view::editor::StatusLineElement as StatusLineElementID;
@@ -84,13 +84,12 @@ pub fn render(context: &mut RenderContext, viewport: Rect, surface: &mut Surface
         })
     }
 
-    let edge_width = context.parts.left.width().max(context.parts.right.width()) as u16;
-    let [left_area, center_area, right_area] = Layout::horizontal([
-        Constraint::Length(edge_width.saturating_add(1)),
-        Constraint::Min(0),
-        Constraint::Length(edge_width.saturating_add(1)),
-    ])
-    .areas(viewport);
+    let [left_area, center_area, right_area] = statusline_areas(
+        viewport,
+        context.parts.left.width() as u16,
+        context.parts.center.width() as u16,
+        context.parts.right.width() as u16,
+    );
 
     Paragraph::new(std::mem::take(&mut context.parts.left)).render(left_area, surface);
     Paragraph::new(std::mem::take(&mut context.parts.center))
@@ -99,6 +98,39 @@ pub fn render(context: &mut RenderContext, viewport: Rect, surface: &mut Surface
     Paragraph::new(std::mem::take(&mut context.parts.right))
         .alignment(Alignment::Right)
         .render(right_area, surface);
+}
+
+fn statusline_areas(
+    viewport: Rect,
+    left_width: u16,
+    center_width: u16,
+    right_width: u16,
+) -> [Rect; 3] {
+    let right_width = right_width.min(viewport.width);
+    let left_width = left_width.min(viewport.width.saturating_sub(right_width));
+    let edge_width = left_width.max(right_width);
+    let center_width = center_width.min(
+        viewport
+            .width
+            .saturating_sub(edge_width.saturating_add(1).saturating_mul(2)),
+    );
+
+    [
+        Rect {
+            width: left_width,
+            ..viewport
+        },
+        Rect {
+            x: viewport.x + viewport.width.saturating_sub(center_width) / 2,
+            width: center_width,
+            ..viewport
+        },
+        Rect {
+            x: viewport.x + viewport.width.saturating_sub(right_width),
+            width: right_width,
+            ..viewport
+        },
+    ]
 }
 
 fn append<'a>(buffer: &mut Line<'a>, mut span: Span<'a>, base_style: Style) {
@@ -662,4 +694,32 @@ where
         write(context, " ⋮ ".into())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn long_left_section_uses_space_not_needed_by_the_right_section() {
+        let viewport = Rect::new(0, 0, 80, 1);
+
+        let [left, center, right] = statusline_areas(viewport, 50, 0, 12);
+
+        assert_eq!(left, Rect::new(0, 0, 50, 1));
+        assert_eq!(center, Rect::new(40, 0, 0, 1));
+        assert_eq!(right, Rect::new(68, 0, 12, 1));
+    }
+
+    #[test]
+    fn right_section_keeps_priority_when_both_sides_exceed_the_viewport() {
+        let viewport = Rect::new(4, 2, 60, 1);
+
+        let [left, center, right] = statusline_areas(viewport, 80, 10, 12);
+
+        assert_eq!(left, Rect::new(4, 2, 48, 1));
+        assert_eq!(center, Rect::new(34, 2, 0, 1));
+        assert_eq!(right, Rect::new(52, 2, 12, 1));
+    }
+}
+
 use view::graphics::RectExt as _;
