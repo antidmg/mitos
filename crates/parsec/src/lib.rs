@@ -2,6 +2,12 @@
 //!
 //! This module provides parsers and parser combinators which can be used
 //! together to build parsers by functional composition.
+//!
+//! Parsers return the unconsumed suffix alongside their output. Combinators are
+//! transactional: when a composed parser fails, it returns the input passed to
+//! that combinator rather than a partially consumed suffix. This simple
+//! backtracking model is suitable for the small command and snippet grammars in
+//! this workspace, but does not retain rich error locations.
 
 // This module implements parser combinators following https://bodil.lol/parser-combinators/.
 // `sym` (trait implementation for `&'static str`), `map`, `pred` (filter), `one_or_more`,

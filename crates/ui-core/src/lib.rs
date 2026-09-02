@@ -12,8 +12,11 @@ pub mod theme {
     pub use crate::graphics::{Color, Modifier, Style};
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    /// Coarse terminal appearance reported by supported backends.
     pub enum Mode {
+        /// A dark terminal background.
         Dark,
+        /// A light terminal background.
         Light,
     }
 
@@ -35,10 +38,14 @@ pub mod terminal {
         Debug, Default, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize, Clone, Copy,
     )]
     #[serde(rename_all = "kebab-case")]
+    /// Policy for enabling the Kitty keyboard protocol.
     pub enum KittyKeyboardProtocolConfig {
+        /// Enable the protocol only when terminal capability detection supports it.
         #[default]
         Auto,
+        /// Never enable the protocol.
         Disabled,
+        /// Enable the protocol even when it was not detected automatically.
         Enabled,
     }
 }

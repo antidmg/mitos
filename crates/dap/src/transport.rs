@@ -14,7 +14,9 @@ use tokio::{
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+/// DAP request envelope sent in either direction.
 pub struct Request {
+    /// Local response channel; skipped during serialization.
     #[serde(skip)]
     pub back_ch: Option<Sender<Result<Response>>>,
     pub seq: u64,
@@ -23,6 +25,7 @@ pub struct Request {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
+/// DAP response envelope.
 pub struct Response {
     // seq is omitted as unused and is not sent by some implementations
     pub request_seq: u64,
@@ -33,6 +36,7 @@ pub struct Response {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
+/// DAP event envelope.
 pub struct Event {
     pub event: String,
     pub body: Option<Value>,
@@ -40,6 +44,7 @@ pub struct Event {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
+/// Message exchanged between a [`Transport`] and its client-facing owner.
 pub enum Payload {
     // type = "event"
     Event(Event),
@@ -50,6 +55,11 @@ pub enum Payload {
 }
 
 #[derive(Debug)]
+/// Content-Length framed DAP transport over asynchronous byte streams.
+///
+/// Responses to outgoing requests are delivered to their private response
+/// channels. Events, reverse requests, and unmatched responses are forwarded
+/// on the receiver returned by [`Self::start`].
 pub struct Transport {
     #[allow(unused)]
     id: DebugAdapterId,
@@ -57,6 +67,11 @@ pub struct Transport {
 }
 
 impl Transport {
+    /// Starts background receive, send, and optional stderr-forwarding tasks.
+    ///
+    /// The returned tuple is `(incoming, outgoing)`. Dropping the outgoing
+    /// sender eventually stops the send task; dropping the incoming receiver
+    /// means forwarded adapter messages can no longer be consumed.
     pub fn start(
         server_stdout: Box<dyn AsyncBufRead + Unpin + Send>,
         server_stdin: Box<dyn AsyncWrite + Unpin + Send>,

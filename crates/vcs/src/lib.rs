@@ -1,6 +1,16 @@
-//! `vcs` provides types for working with diffs from a Version Control System (VCS).
-//! Currently `git` is the only supported provider for diffs, but this architecture allows
-//! for other providers to be added in the future.
+//! Version-control status and asynchronous document diffs.
+//!
+//! [`DiffProviderRegistry`] is deliberately best-effort: callers are editing
+//! files, so an unavailable repository or provider should remove VCS decoration
+//! rather than prevent the document from opening. Provider failures from
+//! [`DiffProviderRegistry::get_diff_base`] and
+//! [`DiffProviderRegistry::get_current_head_name`] are logged and returned as
+//! `None`. Changed-file enumeration reports a terminal error through its
+//! callback when no provider can serve the query.
+//!
+//! Git is currently the only compiled provider. The `trust_full` argument on
+//! registry operations controls whether repository-local configuration and the
+//! features it enables may be trusted; preserve it when adding new entry points.
 
 use anyhow::{anyhow, bail, Result};
 use arc_swap::ArcSwap;
@@ -45,8 +55,10 @@ pub struct DiffProviderRegistry {
 }
 
 impl DiffProviderRegistry {
-    /// Get the given file from the VCS. This provides the unedited document as a "base"
-    /// for a diff to be created.
+    /// Reads the unedited version of `file` used as the base of a document diff.
+    ///
+    /// Providers are tried in registry order. Errors are logged and suppressed;
+    /// `None` means no provider produced a base.
     pub fn get_diff_base(&self, file: &Path, trust_full: bool) -> Option<Vec<u8>> {
         self.providers
             .iter()
@@ -60,7 +72,10 @@ impl DiffProviderRegistry {
             })
     }
 
-    /// Get the current name of the current [HEAD](https://stackoverflow.com/questions/2304087/what-is-head-in-git).
+    /// Returns a live, shareable value containing the current repository head name.
+    ///
+    /// The inner [`ArcSwap`] may be updated by the provider after branch changes.
+    /// Provider errors are logged and suppressed.
     pub fn get_current_head_name(
         &self,
         file: &Path,
@@ -78,8 +93,11 @@ impl DiffProviderRegistry {
         })
     }
 
-    /// Fire-and-forget changed file iteration. Runs everything in a background task. Keeps
-    /// iteration until `on_change` returns `false`.
+    /// Starts changed-file enumeration on a blocking worker thread.
+    ///
+    /// The callback may run repeatedly on that worker and returning `false`
+    /// stops iteration. If no provider succeeds, it is called once with an error
+    /// and [`ChangedFileScope::path`] as the path.
     pub fn for_each_changed_file(
         self,
         scope: ChangedFileScope,

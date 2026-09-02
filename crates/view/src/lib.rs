@@ -1,3 +1,15 @@
+//! Backend-independent editor state and behavior.
+//!
+//! [`Editor`] owns open [`Document`]s, visible [`View`]s, split layout, registers,
+//! themes, and protocol clients. A document may be displayed by multiple views;
+//! selections and scroll offsets are therefore keyed by [`ViewId`] and belong to
+//! the document/view relationship rather than to either object alone.
+//!
+//! This crate may depend on editing primitives and protocol clients, but not on
+//! a concrete terminal renderer. User-interface crates should invoke editor
+//! operations here and render the resulting state instead of duplicating model
+//! state in widgets.
+
 #[macro_use]
 pub mod macros;
 
@@ -23,7 +35,10 @@ pub use ui_core::{input, keyboard};
 
 use std::num::NonZeroUsize;
 
-// uses NonZeroUsize so Option<DocumentId> use a byte rather than two
+/// Stable identifier assigned to a document owned by an [`Editor`].
+///
+/// The non-zero representation preserves Rust's niche optimization so
+/// `Option<DocumentId>` occupies the same space as `DocumentId`.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct DocumentId(NonZeroUsize);
 
@@ -49,15 +64,24 @@ impl std::fmt::Display for DocumentId {
 }
 
 slotmap::new_key_type! {
+    /// Generational identifier for a view in the editor's split tree.
     pub struct ViewId;
 }
 
+/// Vertical placement used when scrolling a cursor into a view.
 pub enum Align {
+    /// Place the cursor on the first visual row.
     Top,
+    /// Place the cursor near the middle visual row.
     Center,
+    /// Place the cursor on the last visual row.
     Bottom,
 }
 
+/// Scrolls `view` so its primary cursor appears at `align`.
+///
+/// Alignment is measured in soft-wrapped visual rows, not document lines. The
+/// bottom row is reduced by one to account for zero-based visual offsets.
 pub fn align_view(doc: &mut Document, view: &View, align: Align) {
     let doc_text = doc.text().slice(..);
     let cursor = doc.selection(view.id).primary().cursor(doc_text);

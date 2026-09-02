@@ -6,9 +6,11 @@ use slotmap::SlotMap;
 use std::fmt;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
-/// The resgistry is a struct that manages and owns multiple debugger clients
-/// This holds the responsibility of managing the lifecycle of each client
-/// plus showing the heirarcihical nature betweeen them
+/// Owns debug-adapter clients and merges their incoming message streams.
+///
+/// A registry may contain several sessions, but editor commands currently act
+/// on at most one active client. Removing a client drops its process handle and
+/// invalidates its generational [`DebugAdapterId`].
 pub struct Registry {
     inner: SlotMap<DebugAdapterId, Client>,
     /// The active debugger client
@@ -21,7 +23,7 @@ pub struct Registry {
 }
 
 impl Registry {
-    /// Creates a new DebuggerService instance
+    /// Creates an empty registry with no active client.
     pub fn new() -> Self {
         Self {
             inner: SlotMap::with_key(),
@@ -30,6 +32,11 @@ impl Registry {
         }
     }
 
+    /// Starts and initializes a client from configuration.
+    ///
+    /// This method blocks the current thread while async startup and DAP
+    /// initialization complete. It is intended for the editor's synchronous
+    /// command boundary, not an async task.
     pub fn start_client(
         &mut self,
         socket: Option<std::net::SocketAddr>,
@@ -58,27 +65,33 @@ impl Registry {
         })
     }
 
+    /// Removes a client if its identifier is still valid.
     pub fn remove_client(&mut self, id: DebugAdapterId) {
         self.inner.remove(id);
     }
 
+    /// Returns a client by its generational identifier.
     pub fn get_client(&self, id: DebugAdapterId) -> Option<&Client> {
         self.inner.get(id)
     }
 
+    /// Returns a mutable client by its generational identifier.
     pub fn get_client_mut(&mut self, id: DebugAdapterId) -> Option<&mut Client> {
         self.inner.get_mut(id)
     }
 
+    /// Returns the client selected for editor commands.
     pub fn get_active_client(&self) -> Option<&Client> {
         self.current_client_id.and_then(|id| self.get_client(id))
     }
 
+    /// Returns the active client mutably.
     pub fn get_active_client_mut(&mut self) -> Option<&mut Client> {
         self.current_client_id
             .and_then(|id| self.get_client_mut(id))
     }
 
+    /// Selects `id`, or clears the active client when it is stale or unknown.
     pub fn set_active_client(&mut self, id: DebugAdapterId) {
         if self.get_client(id).is_some() {
             self.current_client_id = Some(id);
@@ -87,10 +100,12 @@ impl Registry {
         }
     }
 
+    /// Clears the active-client selection without removing the client.
     pub fn unset_active_client(&mut self) {
         self.current_client_id = None;
     }
 
+    /// Returns the selected stack frame of the active client, if any.
     pub fn current_stack_frame(&self) -> Option<&StackFrame> {
         self.get_active_client()
             .and_then(|debugger| debugger.current_stack_frame())
@@ -104,6 +119,7 @@ impl Default for Registry {
 }
 
 slotmap::new_key_type! {
+    /// Generational identifier for a debug adapter owned by [`Registry`].
     pub struct DebugAdapterId;
 }
 

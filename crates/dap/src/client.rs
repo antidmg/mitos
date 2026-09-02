@@ -26,6 +26,11 @@ use tokio::{
 };
 
 #[derive(Debug)]
+/// One running debug-adapter session and the editor state derived from it.
+///
+/// Construction returns a separate receiver for adapter events and reverse
+/// requests. Callers must continue polling that receiver while awaiting typed
+/// requests or an adapter can deadlock waiting for a reverse-request reply.
 pub struct Client {
     id: DebugAdapterId,
     _process: Option<Child>,
@@ -49,8 +54,11 @@ pub struct Client {
 }
 
 impl Client {
-    // Spawn a process and communicate with it by either TCP or stdio
-    // The returned stream includes the Client ID so consumers can differentiate between multiple clients
+    /// Spawns an adapter and communicates over its configured transport.
+    ///
+    /// The receiver tags every payload with `id`, allowing a registry to merge
+    /// streams from multiple clients. TCP process transport requires
+    /// `port_arg`; stdio ignores it.
     pub async fn process(
         transport: &str,
         command: &str,
@@ -68,6 +76,11 @@ impl Client {
         }
     }
 
+    /// Builds a client around already-open asynchronous streams.
+    ///
+    /// This is the common constructor for TCP, stdio, and test transports. If
+    /// `process` is present, its handle remains owned by the client for the
+    /// session lifetime; termination behavior is chosen by the constructor.
     pub fn streams(
         rx: Box<dyn AsyncBufRead + Unpin + Send>,
         tx: Box<dyn AsyncWrite + Unpin + Send>,
@@ -101,6 +114,7 @@ impl Client {
         Ok((client, client_rx))
     }
 
+    /// Connects to an already-running TCP debug adapter.
     pub async fn tcp(
         addr: std::net::SocketAddr,
         id: DebugAdapterId,
@@ -110,6 +124,7 @@ impl Client {
         Self::streams(Box::new(BufReader::new(rx)), Box::new(tx), None, id, None)
     }
 
+    /// Spawns a debug adapter whose stdin/stdout carry DAP messages.
     pub fn stdio(
         cmd: &str,
         args: Vec<&str>,
@@ -157,10 +172,18 @@ impl Client {
         )
     }
 
+    /// Returns the arguments used by the most recent launch or attach request.
+    ///
+    /// They are retained so adapters supporting restart can receive the same
+    /// session configuration.
     pub fn starting_request_args(&self) -> Option<&Value> {
         self.starting_request_args.as_ref()
     }
 
+    /// Spawns an adapter that listens on an ephemeral loopback TCP port.
+    ///
+    /// Every `{}` in `port_format` is replaced with the selected port. The
+    /// resulting string is split on spaces and appended to `args`.
     pub async fn tcp_process(
         cmd: &str,
         args: Vec<&str>,
@@ -223,10 +246,12 @@ impl Client {
         }
     }
 
+    /// Returns this client's registry identifier.
     pub fn id(&self) -> DebugAdapterId {
         self.id
     }
 
+    /// Returns whether this session was started by launch or attach.
     pub fn connection_type(&self) -> Option<ConnectionType> {
         self.connection_type
     }
@@ -239,7 +264,10 @@ impl Client {
         self.request_counter.fetch_add(1, Ordering::Relaxed) + 1
     }
 
-    // Internal, called by specific DAP commands when resuming
+    /// Clears stack-frame state after execution resumes.
+    ///
+    /// Command handlers should call this after a successful continue or step so
+    /// paused-state UI is not rendered from stale frames.
     pub fn resume_application(&mut self) {
         if let Some(thread_id) = self.thread_id {
             self.thread_states.insert(thread_id, "running".to_string());
@@ -249,7 +277,10 @@ impl Client {
         self.thread_id = None;
     }
 
-    /// Execute a RPC request on the debugger.
+    /// Executes a typed request and returns its untyped JSON body.
+    ///
+    /// Requests use monotonically increasing DAP sequence numbers and time out
+    /// after 20 seconds. Prefer [`Self::request`] when the typed result is known.
     pub fn call<R: dap_types::Request>(
         &self,
         arguments: R::Arguments,
@@ -297,6 +328,7 @@ impl Client {
         }
     }
 
+    /// Executes a typed request and deserializes its declared result type.
     pub async fn request<R: dap_types::Request>(&self, params: R::Arguments) -> Result<R::Result>
     where
         R::Arguments: serde::Serialize,
@@ -307,6 +339,7 @@ impl Client {
         Ok(response)
     }
 
+    /// Replies to a reverse request initiated by the debug adapter.
     pub fn reply(
         &self,
         request_seq: u64,
@@ -342,6 +375,11 @@ impl Client {
         }
     }
 
+    /// Returns the negotiated capabilities.
+    ///
+    /// # Panics
+    ///
+    /// Panics if [`Self::initialize`] has not completed successfully.
     pub fn capabilities(&self) -> &DebuggerCapabilities {
         self.caps.as_ref().expect("debugger not yet initialized!")
     }

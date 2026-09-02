@@ -1,3 +1,9 @@
+//! Table wrapper for editor-specific truncation behavior.
+//!
+//! Ratatui's table is still used for layout and rendering. This wrapper keeps
+//! the historical Mitos API and can truncate fixed-width cells from the start,
+//! preserving filenames and other useful suffixes.
+
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Flex, Rect},
@@ -11,7 +17,9 @@ use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
+/// Styled text stored in one table cell.
 pub struct Cell<'a> {
+    /// Cell contents; line height is determined by Ratatui during rendering.
     pub content: Text<'a>,
 }
 
@@ -27,12 +35,15 @@ where
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
+/// A row of cells with a shared base style.
 pub struct Row<'a> {
+    /// Cells rendered from left to right.
     pub cells: Vec<Cell<'a>>,
     style: Style,
 }
 
 impl<'a> Row<'a> {
+    /// Builds a row from values convertible to [`Cell`].
     pub fn new<T>(cells: T) -> Self
     where
         T: IntoIterator,
@@ -44,6 +55,7 @@ impl<'a> Row<'a> {
         }
     }
 
+    /// Applies a base style to every cell in this row.
     pub fn style<S: Into<Style>>(mut self, style: S) -> Self {
         self.style = style.into();
         self
@@ -57,6 +69,7 @@ impl<'a, T: Into<Cell<'a>>> From<T> for Row<'a> {
 }
 
 #[derive(Debug, Clone)]
+/// Builder for a stateful Ratatui table with optional start truncation.
 pub struct Table<'a> {
     rows: Vec<Row<'a>>,
     widths: Vec<Constraint>,
@@ -68,6 +81,7 @@ pub struct Table<'a> {
 }
 
 impl<'a> Table<'a> {
+    /// Builds a table from its body rows.
     pub fn new<T>(rows: T) -> Self
     where
         T: IntoIterator<Item = Row<'a>>,
@@ -83,36 +97,48 @@ impl<'a> Table<'a> {
         }
     }
 
+    /// Sets the Ratatui constraints used to lay out columns.
     pub fn widths(mut self, widths: &[Constraint]) -> Self {
         self.widths = widths.to_vec();
         self
     }
 
+    /// Applies the table's base style.
     pub fn style<S: Into<Style>>(mut self, style: S) -> Self {
         self.style = style.into();
         self
     }
 
+    /// Sets the style for the row selected in [`TableState`].
     pub fn highlight_style<S: Into<Style>>(mut self, style: S) -> Self {
         self.highlight_style = style.into();
         self
     }
 
+    /// Sets the marker rendered beside the selected row.
     pub fn highlight_symbol(mut self, symbol: &'a str) -> Self {
         self.highlight_symbol = Some(symbol);
         self
     }
 
+    /// Sets the number of cells between columns.
     pub fn column_spacing(mut self, spacing: u16) -> Self {
         self.column_spacing = spacing;
         self
     }
 
+    /// Adds a non-selectable header row.
     pub fn header(mut self, header: Row<'a>) -> Self {
         self.header = Some(header);
         self
     }
 
+    /// Renders the table and updates `state` through Ratatui.
+    ///
+    /// When `truncate_start` is true, cells whose columns use
+    /// [`Constraint::Length`] keep their suffix and receive a leading ellipsis.
+    /// Other constraint kinds are left to Ratatui unchanged because their final
+    /// width is not known here.
     pub fn render_table(
         self,
         area: Rect,

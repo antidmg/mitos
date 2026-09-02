@@ -27,11 +27,11 @@ pub use ratatui::backend::Backend;
 pub trait BackendExt {
     /// Claims the terminal for TUI use.
     fn claim(&mut self) -> Result<(), io::Error>;
-    /// Update terminal configuration.
+    /// Updates terminal configuration while the backend owns the terminal.
     fn reconfigure(&mut self, config: Config) -> Result<(), io::Error>;
-    /// Restores the terminal to a normal state, undoes `claim`
+    /// Restores the terminal to its normal state, undoing [`Self::claim`].
     fn restore(&mut self) -> Result<(), io::Error>;
-    /// Sets the cursor to the given shape
+    /// Sets the cursor to the given shape.
     fn show_cursor_kind(&mut self, kind: CursorKind) -> Result<(), io::Error>;
     /// Begins a synchronized-output frame (if the terminal supports it), so the
     /// draw and cursor updates between `start_sync` and `end_sync` present as one
@@ -39,7 +39,10 @@ pub trait BackendExt {
     fn start_sync(&mut self) -> Result<(), io::Error>;
     /// Ends the synchronized-output frame opened by `start_sync`.
     fn end_sync(&mut self) -> Result<(), io::Error>;
+    /// Returns whether the backend can emit 24-bit foreground/background color.
     fn supports_true_color(&self) -> bool;
+    /// Returns the terminal-reported light/dark theme, when supported.
     fn get_theme_mode(&self) -> Option<Mode>;
+    /// Changes the terminal's default background color for the session.
     fn set_background_color(&mut self, color: Option<Color>) -> io::Result<()>;
 }

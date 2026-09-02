@@ -53,6 +53,11 @@ fn workspace_for_uri(uri: lsp::Url) -> WorkspaceFolder {
 }
 
 #[derive(Debug)]
+/// One language-server process and its negotiated workspace state.
+///
+/// Construction returns a receiver for server-originated calls. The client
+/// handles responses to its own requests internally, but the editor event loop
+/// must keep polling server requests and notifications.
 pub struct Client {
     id: LanguageServerId,
     name: String,
@@ -73,6 +78,12 @@ pub struct Client {
 }
 
 impl Client {
+    /// Determines whether this client can serve a document and, when supported,
+    /// adds a newly discovered workspace folder.
+    ///
+    /// Before initialization completes, the capability decision is deferred to
+    /// a background task. A `true` return means the caller may associate the
+    /// document with this client immediately.
     pub fn try_add_doc(
         self: &Arc<Self>,
         root_markers: &RootMarkers,
@@ -208,6 +219,12 @@ impl Client {
     }
 
     #[allow(clippy::type_complexity, clippy::too_many_arguments)]
+    /// Spawns a language server and starts its JSON-RPC transport.
+    ///
+    /// The caller must subsequently send the LSP initialize request. The
+    /// returned receiver carries server-originated calls. The returned notifier
+    /// must be signaled after initialization succeeds; until then the transport
+    /// queues requests and discards ordinary notifications.
     pub fn start(
         cmd: &str,
         args: &[String],
@@ -775,16 +792,20 @@ impl Client {
         self.call::<lsp::request::Initialize>(params).await
     }
 
+    /// Requests graceful shutdown without sending `exit`.
     pub async fn shutdown(&self) -> Result<()> {
         self.call::<lsp::request::Shutdown>(()).await
     }
 
+    /// Queues the terminal LSP `exit` notification.
     pub fn exit(&self) {
         self.notify::<lsp::notification::Exit>(())
     }
 
-    /// Tries to shut down the language server but returns
-    /// early if server responds with an error.
+    /// Requests graceful shutdown and then sends `exit`.
+    ///
+    /// Returns early without sending `exit` when the server rejects or fails
+    /// the shutdown request.
     pub async fn shutdown_and_exit(&self) -> Result<()> {
         self.shutdown().await?;
         self.exit();

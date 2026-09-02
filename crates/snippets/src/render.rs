@@ -14,6 +14,7 @@ use editor_core::movement::Direction;
 use editor_core::{selection, Selection, Tendril, Transaction};
 
 #[derive(Debug, Clone, PartialEq)]
+/// Render-time tabstop behavior.
 pub enum TabstopKind {
     Choice { choices: Arc<[Tendril]> },
     Placeholder,
@@ -22,13 +23,19 @@ pub enum TabstopKind {
 }
 
 #[derive(Debug, PartialEq)]
+/// All rendered document ranges belonging to one logical tabstop.
 pub struct Tabstop {
+    /// Ranges are grouped by rendered snippet instance and stored in document
+    /// character indices.
     pub ranges: SmallVec<[Range; 1]>,
+    /// Parent tabstop for a nested placeholder.
     pub parent: Option<TabstopIdx>,
+    /// Editing behavior of the tabstop.
     pub kind: TabstopKind,
 }
 
 impl Tabstop {
+    /// Returns whether entering the tabstop should initially select its text.
     pub fn has_placeholder(&self) -> bool {
         matches!(
             self.kind,
@@ -36,6 +43,10 @@ impl Tabstop {
         )
     }
 
+    /// Builds the multi-selection for this tabstop.
+    ///
+    /// `primary_idx` identifies the primary rendered snippet instance, not a
+    /// raw range within this tabstop.
     pub fn selection(
         &self,
         direction: Direction,
@@ -59,12 +70,16 @@ impl Tabstop {
 }
 
 #[derive(Debug, Default, PartialEq)]
+/// Output metadata accumulated while inserting a snippet at one or more cursors.
 pub struct RenderedSnippet {
+    /// Tabstops in navigation order, including the final stop.
     pub tabstops: Vec<Tabstop>,
+    /// Outer range of each rendered snippet instance.
     pub ranges: Vec<Range>,
 }
 
 impl RenderedSnippet {
+    /// Selects the first navigable tabstop after insertion.
     pub fn first_selection(&self, direction: Direction, primary_idx: usize) -> Selection {
         self.tabstops[0].selection(direction, primary_idx, self.ranges.len())
     }
@@ -84,6 +99,7 @@ impl IndexMut<TabstopIdx> for RenderedSnippet {
 }
 
 impl Snippet {
+    /// Allocates empty render metadata matching this snippet's tabstop model.
     pub fn prepare_render(&self) -> RenderedSnippet {
         let tabstops =
             self.tabstops()
@@ -110,6 +126,10 @@ impl Snippet {
         }
     }
 
+    /// Renders one snippet instance at a document character position.
+    ///
+    /// Returns the inserted text and its length in characters. `indent` is the
+    /// existing line indentation copied after embedded newlines.
     pub fn render_at(
         &self,
         snippet: &mut RenderedSnippet,
@@ -134,6 +154,10 @@ impl Snippet {
         (text, end - pos)
     }
 
+    /// Renders the snippet for each selected range.
+    ///
+    /// Returns, in order, the document transaction, post-change selection, and
+    /// metadata needed to begin an [`crate::ActiveSnippet`] session.
     pub fn render(
         &self,
         doc: &Rope,
@@ -172,11 +196,19 @@ impl Snippet {
     }
 }
 
+/// Callback used to resolve an LSP snippet variable by name.
+///
+/// Returning `None` causes the variable's default value, if any, to render.
 pub type VariableResolver = dyn FnMut(&str) -> Option<Cow<str>>;
+/// Document-specific settings needed while rendering a snippet.
 pub struct SnippetRenderCtx {
+    /// Resolver for editor and protocol variables such as `TM_FILENAME`.
     pub resolve_var: Box<VariableResolver>,
+    /// Display width used when normalizing indentation.
     pub tab_width: usize,
+    /// Indentation style of the destination document.
     pub indent_style: IndentStyle,
+    /// Line-ending sequence of the destination document.
     pub line_ending: &'static str,
 }
 

@@ -1,3 +1,9 @@
+//! Repository-maintenance commands for Mitos contributors.
+//!
+//! Run commands from the workspace root with `cargo xtask <command>`. Tasks in
+//! this crate may rewrite checked-in runtime or documentation artifacts; they
+//! are development tooling and are not linked into the editor executable.
+
 mod docgen;
 mod helpers;
 mod path;

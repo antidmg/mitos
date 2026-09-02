@@ -10,6 +10,11 @@ use crate::TabstopIdx;
 use editor_core::movement::Direction;
 use editor_core::{Assoc, ChangeSet, Selection, Transaction};
 
+/// Interactive state for a snippet that has already been inserted.
+///
+/// The state maps tabstop ranges through subsequent [`ChangeSet`]s and builds
+/// selections for forward/backward tabstop navigation. One instance may cover
+/// multiple rendered snippets created by a multi-cursor insertion.
 pub struct ActiveSnippet {
     ranges: Vec<Range>,
     active_tabstops: HashSet<TabstopIdx>,
@@ -31,6 +36,10 @@ impl IndexMut<TabstopIdx> for ActiveSnippet {
 }
 
 impl ActiveSnippet {
+    /// Starts an interactive session for a rendered snippet.
+    ///
+    /// Returns `None` when the render contains only the final cursor stop and
+    /// therefore has nothing to navigate.
     pub fn new(snippet: RenderedSnippet) -> Option<Self> {
         let snippet = Self {
             ranges: snippet.ranges,
@@ -41,14 +50,17 @@ impl ActiveSnippet {
         (snippet.tabstops.len() != 1).then_some(snippet)
     }
 
+    /// Returns whether every selection range remains inside a snippet instance.
     pub fn is_valid(&self, new_selection: &Selection) -> bool {
         is_subset::<false>(self.ranges.iter().copied(), new_selection.range_bounds())
     }
 
+    /// Iterates over the current render-time tabstop metadata.
     pub fn tabstops(&self) -> impl Iterator<Item = &Tabstop> {
         self.tabstops.iter()
     }
 
+    /// Creates an edit that removes the current placeholder contents.
     pub fn delete_placeholder(&self, doc: &Rope) -> Transaction {
         Transaction::delete(
             doc,
@@ -59,7 +71,10 @@ impl ActiveSnippet {
         )
     }
 
-    /// maps the active snippets through a `ChangeSet` updating all tabstop ranges
+    /// Maps all snippet and tabstop ranges through a document change.
+    ///
+    /// Returns `true` once every outer snippet range has collapsed or inverted,
+    /// which tells the caller that the interactive session can be discarded.
     pub fn map(&mut self, changes: &ChangeSet) -> bool {
         let positions_to_map = self.ranges.iter_mut().flat_map(|range| {
             [
@@ -126,6 +141,9 @@ impl ActiveSnippet {
         self.ranges.iter().all(|range| range.end <= range.start)
     }
 
+    /// Advances to the next navigable tabstop.
+    ///
+    /// The boolean is `true` when navigation has reached the final cursor stop.
     pub fn next_tabstop(&mut self, current_selection: &Selection) -> (Selection, bool) {
         let primary_idx = self.primary_idx(current_selection);
         while self.current_tabstop.0 + 1 < self.tabstops.len() {
@@ -142,6 +160,7 @@ impl ActiveSnippet {
         )
     }
 
+    /// Moves to the preceding navigable tabstop, or returns `None` at the first.
     pub fn prev_tabstop(&mut self, current_selection: &Selection) -> Option<Selection> {
         let primary_idx = self.primary_idx(current_selection);
         while self.current_tabstop.0 != 0 {
@@ -193,11 +212,17 @@ impl ActiveSnippet {
         // separate keymap
     }
 
+    /// Builds the selection for the current tabstop.
     pub fn tabstop_selection(&self, primary_idx: usize, direction: Direction) -> Selection {
         let tabstop = &self[self.current_tabstop];
         tabstop.selection(direction, primary_idx, self.ranges.len())
     }
 
+    /// Replaces the current tabstop with a newly rendered nested snippet.
+    ///
+    /// If the nested render does not align one-for-one with the outer snippet
+    /// instances, the outer session is discarded and the nested session is
+    /// returned instead.
     pub fn insert_subsnippet(mut self, snippet: RenderedSnippet) -> Option<Self> {
         if !snippet.ranges.len().is_multiple_of(self.ranges.len())
             || !is_exact_subset(self.ranges.iter().copied(), snippet.ranges.iter().copied())

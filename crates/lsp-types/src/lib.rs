@@ -1,8 +1,13 @@
 /*!
 
-Language Server Protocol types for Rust.
+Language Server Protocol wire types used by Mitos.
 
 Based on: <https://microsoft.github.io/language-server-protocol/specification>
+
+This crate is a local fork of `lsp-types` 0.95.1. Keep changes focused on
+protocol compatibility: serde names, optionality, and untagged enum ordering
+are observable wire behavior. Editor-specific conversions and policy belong in
+the `lsp` crate instead.
 
 This library uses the URL crate for parsing URIs.  Note that there is
 some confusion on the meaning of URLs vs URIs:

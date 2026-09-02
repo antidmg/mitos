@@ -1,3 +1,18 @@
+//! Asynchronous Debug Adapter Protocol client.
+//!
+//! [`Client`] owns one adapter process or TCP connection and sends typed DAP
+//! requests through [`Transport`]. Incoming adapter events and reverse requests
+//! are returned through the receiver created with the client; responses to
+//! client-originated requests are matched internally by sequence number.
+//!
+//! [`registry::Registry`] is the editor-facing owner for multiple clients. It
+//! merges their incoming streams and tracks which session is currently active.
+//! The protocol data structures themselves are re-exported from `dap-types`.
+//!
+//! DAP adapters are less uniform than language servers. Keep adapter-specific
+//! behavior in [`DebuggerQuirks`] or configuration rather than branching on an
+//! adapter name in the transport.
+
 mod client;
 pub mod registry;
 mod transport;
@@ -11,6 +26,8 @@ use std::collections::HashMap;
 
 use thiserror::Error;
 #[derive(Error, Debug)]
+/// Errors raised while starting an adapter, exchanging messages, or decoding
+/// protocol payloads.
 pub enum Error {
     #[error("failed to parse: {0}")]
     Parse(Box<dyn std::error::Error + Send + Sync>),
@@ -27,6 +44,7 @@ pub enum Error {
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
+/// Result type used by DAP client and transport operations.
 pub type Result<T> = core::result::Result<T, Error>;
 
 impl From<serde_json::Error> for Error {
@@ -42,12 +60,17 @@ impl From<sonic_rs::Error> for Error {
 }
 
 #[derive(Debug)]
+/// Reverse requests that Mitos knows how to handle from a debug adapter.
 pub enum Request {
     RunInTerminal(<requests::RunInTerminal as dap_types::Request>::Arguments),
     StartDebugging(<requests::StartDebugging as dap_types::Request>::Arguments),
 }
 
 impl Request {
+    /// Decodes a reverse request by its wire command name.
+    ///
+    /// Missing arguments are decoded from JSON `null`. Unknown commands return
+    /// [`Error::Unhandled`] so the caller can produce a protocol response.
     pub fn parse(command: &str, arguments: Option<serde_json::Value>) -> Result<Self> {
         use dap_types::Request as _;
 
@@ -63,6 +86,7 @@ impl Request {
 }
 
 #[derive(Debug)]
+/// Debug adapter events handled by the editor.
 pub enum Event {
     Initialized(<events::Initialized as events::Event>::Body),
     Stopped(<events::Stopped as events::Event>::Body),
@@ -84,6 +108,10 @@ pub enum Event {
 }
 
 impl Event {
+    /// Decodes an event by its wire event name.
+    ///
+    /// Missing bodies are decoded from JSON `null`, and unknown events return
+    /// [`Error::Unhandled`].
     pub fn parse(event: &str, body: Option<serde_json::Value>) -> Result<Self> {
         use crate::events::Event as _;
 
@@ -120,6 +148,7 @@ where
 }
 
 #[derive(Debug, Clone)]
+/// User-visible state for one long-running DAP progress report.
 pub struct ProgressState {
     title: String,
     message: Option<String>,
@@ -127,6 +156,7 @@ pub struct ProgressState {
 }
 
 impl ProgressState {
+    /// Starts a progress report with the adapter-provided display fields.
     pub fn new(title: String, message: Option<String>, percentage: Option<u8>) -> Self {
         Self {
             title,
@@ -135,6 +165,10 @@ impl ProgressState {
         }
     }
 
+    /// Applies an incremental progress update.
+    ///
+    /// DAP omits unchanged fields, so `None` preserves the previous value
+    /// rather than clearing it.
     pub fn update(&mut self, message: Option<String>, percentage: Option<u8>) {
         if let Some(message) = message {
             self.message = Some(message);
@@ -144,6 +178,7 @@ impl ProgressState {
         }
     }
 
+    /// Formats the in-progress status shown by the editor.
     pub fn status_line(&self) -> String {
         let mut status = format!("Debug: {}", self.title);
         if let Some(message) = self.message.as_deref() {
@@ -156,6 +191,8 @@ impl ProgressState {
         status
     }
 
+    /// Formats the final status, preferring the event's final message over the
+    /// most recent incremental message.
     pub fn end_status_line(&self, message: Option<&str>) -> String {
         let mut status = format!("Debug: {}", self.title);
         if let Some(message) = message.or(self.message.as_deref()) {
@@ -168,4 +205,5 @@ impl ProgressState {
     }
 }
 
+/// Active DAP progress reports keyed by the adapter's progress identifier.
 pub type ProgressMap = HashMap<String, ProgressState>;

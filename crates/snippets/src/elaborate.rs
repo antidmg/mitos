@@ -18,18 +18,26 @@ use editor_core::case_conversion::{to_camel_case_with, to_pascal_case_with};
 use editor_core::Tendril;
 
 #[derive(Debug)]
+/// Parsed snippet with normalized tabstop ordering and nesting.
 pub struct Snippet {
     elements: Vec<SnippetElement>,
     tabstops: Vec<Tabstop>,
 }
 
 impl Snippet {
+    /// Parses LSP snippet syntax and elaborates it into the editing model.
+    ///
+    /// The error includes the unconsumed suffix at which parsing stopped.
     pub fn parse(snippet: &str) -> Result<Self> {
         let parsed_snippet = parser::parse(snippet)
             .map_err(|rest| anyhow!("Failed to parse snippet. Remaining input: {}", rest))?;
         Ok(Snippet::new(parsed_snippet))
     }
 
+    /// Elaborates parser elements into a snippet ready for rendering.
+    ///
+    /// Duplicate tabstop labels are merged, missing `$0` is appended, and
+    /// source labels are replaced with dense [`TabstopIdx`] values.
     pub fn new(elements: Vec<parser::SnippetElement>) -> Snippet {
         let mut res = Snippet {
             elements: Vec::new(),
@@ -42,10 +50,12 @@ impl Snippet {
         res
     }
 
+    /// Returns the normalized top-level elements.
     pub fn elements(&self) -> &[SnippetElement] {
         &self.elements
     }
 
+    /// Iterates over tabstops in navigation order, ending with `$0`.
     pub fn tabstops(&self) -> impl Iterator<Item = &Tabstop> {
         self.tabstops.iter()
     }
@@ -233,6 +243,7 @@ impl Index<TabstopIdx> for Snippet {
 }
 
 #[derive(Debug)]
+/// An element in an elaborated snippet.
 pub enum SnippetElement {
     Tabstop {
         idx: TabstopIdx,
@@ -246,6 +257,7 @@ pub enum SnippetElement {
 }
 
 #[derive(Debug)]
+/// Metadata for one normalized tabstop.
 pub struct Tabstop {
     idx: TabstopIdx,
     pub parent: Option<TabstopIdx>,
@@ -253,6 +265,7 @@ pub struct Tabstop {
 }
 
 #[derive(Debug)]
+/// Content or behavior associated with a normalized tabstop.
 pub enum TabstopKind {
     Choice { choices: Arc<[Tendril]> },
     Placeholder { default: Arc<[SnippetElement]> },
@@ -261,12 +274,14 @@ pub enum TabstopKind {
 }
 
 impl TabstopKind {
+    /// Returns whether this tabstop inserts no initial content.
     pub fn is_empty(&self) -> bool {
         matches!(self, TabstopKind::Empty)
     }
 }
 
 #[derive(Debug)]
+/// Compiled regular-expression transform attached to a tabstop or variable.
 pub struct Transform {
     regex: Regex,
     regex_str: Box<str>,
@@ -322,6 +337,11 @@ impl Transform {
         })
     }
 
+    /// Applies the transform to `range` within `doc`.
+    ///
+    /// The range is expressed in rope character indices. Regex capture ranges
+    /// are byte offsets into that slice and are converted through `RopeSlice`
+    /// before text is copied.
     pub fn apply(&self, mut doc: RopeSlice<'_>, range: Range) -> Tendril {
         let mut buf = Tendril::new();
         let it = self.regex.captures_iter(doc.regex_input_at(range));

@@ -1,8 +1,23 @@
+//! Configuration and wire types for the Debug Adapter Protocol (DAP).
+//!
+//! The crate contains two related families of data:
+//!
+//! - [`DebugAdapterConfig`] and [`DebugTemplate`] describe Mitos's
+//!   `languages.toml` configuration; and
+//! - the remaining request, response, event, and capability types mirror DAP
+//!   JSON payloads and are shared by the `dap` transport and editor layers.
+//!
+//! Wire types intentionally use `Option` heavily. A missing capability is not
+//! equivalent to support, and adapters regularly omit fields allowed by the
+//! protocol. Preserve that distinction when adding or consuming fields. Serde
+//! renames on each type are part of the protocol contract.
+
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+/// An interactive value requested while completing a debug template.
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct AdvancedCompletion {
@@ -11,6 +26,7 @@ pub struct AdvancedCompletion {
     pub default: Option<String>,
 }
 
+/// A completion prompt used by a [`DebugTemplate`].
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case", untagged)]
 pub enum DebugConfigCompletion {
@@ -18,6 +34,10 @@ pub enum DebugConfigCompletion {
     Advanced(AdvancedCompletion),
 }
 
+/// A named launch or attach template exposed to users.
+///
+/// `args` is deliberately untyped because its contents are adapter-specific
+/// and become the arguments of the template's DAP request.
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct DebugTemplate {
@@ -28,6 +48,11 @@ pub struct DebugTemplate {
     pub args: HashMap<String, Value>,
 }
 
+/// Configuration for starting and communicating with a debug adapter.
+///
+/// `transport` currently accepts `"stdio"` or `"tcp"`. For TCP adapters,
+/// `port_arg` is a format string whose `{}` placeholder is replaced with an
+/// ephemeral local port before the process is spawned.
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct DebugAdapterConfig {
@@ -46,10 +71,12 @@ pub struct DebugAdapterConfig {
 /// Workarounds for differences between debug adapters.
 #[derive(Debug, Default, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct DebuggerQuirks {
+    /// Treat paths received from the adapter as absolute.
     #[serde(default)]
     pub absolute_paths: bool,
 }
 
+/// Opaque identifier for a thread within one debug adapter session.
 #[derive(
     Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize,
 )]
@@ -61,8 +88,13 @@ impl std::fmt::Display for ThreadId {
     }
 }
 
+/// Associates debugger thread identifiers with Mitos's display state.
 pub type ThreadStates = HashMap<ThreadId, String>;
 
+/// Associates a typed DAP request marker with its argument and result payloads.
+///
+/// Implementations are zero-sized marker types in [`requests`]. `COMMAND` must
+/// exactly match the protocol method name sent on the wire.
 pub trait Request {
     type Arguments: serde::de::DeserializeOwned + serde::Serialize;
     type Result: serde::de::DeserializeOwned + serde::Serialize;

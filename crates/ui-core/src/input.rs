@@ -1,4 +1,8 @@
-//! Input event handling, currently backed by termina.
+//! Backend-neutral input events and key-notation parsing.
+//!
+//! Feature-gated conversions normalize events from Termina and Crossterm into
+//! these types so keymaps and editor commands do not depend on a terminal
+//! backend.
 use anyhow::{anyhow, Error};
 use serde::de::{self, Deserialize, Deserializer};
 use std::fmt;

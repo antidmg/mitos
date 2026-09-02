@@ -5,11 +5,22 @@ use unicode_width::UnicodeWidthStr;
 
 /// Editor-specific operations on Ratatui's screen buffer.
 pub trait BufferExt {
+    /// Returns whether the coordinate belongs to this buffer's area.
     fn in_bounds(&self, x: u16, y: u16) -> bool;
+    /// Writes a styled line into at most `width` cells.
     fn set_spans(&mut self, x: u16, y: u16, spans: &Line<'_>, width: u16) -> (u16, u16);
+    /// Writes one grapheme and clears continuation cells for wide graphemes.
+    ///
+    /// The caller must ensure the full grapheme width fits in the buffer.
     fn set_grapheme(&mut self, x: u16, y: u16, grapheme: &str, width: usize, style: Style);
+    /// Writes the already-expanded cells of a tab.
     fn set_tab(&mut self, x: u16, y: u16, tab: &str, style: Style);
 
+    /// Writes a string anchored at either or both truncated edges.
+    ///
+    /// Styles are selected by UTF-8 byte offset into `string`, matching syntax
+    /// highlight spans. The caller must keep the requested width within the
+    /// remainder of the buffer row.
     #[allow(clippy::too_many_arguments)]
     fn set_string_anchored(
         &mut self,
@@ -22,6 +33,10 @@ pub trait BufferExt {
         style: impl Fn(usize) -> Style,
     ) -> (u16, u16);
 
+    /// Writes as many complete graphemes as fit in `width` terminal cells.
+    ///
+    /// `truncate_start` keeps the tail rather than the head. When `ellipsis` is
+    /// set, one display cell is reserved to mark truncation.
     #[allow(clippy::too_many_arguments)]
     fn set_string_truncated(
         &mut self,
@@ -34,6 +49,7 @@ pub trait BufferExt {
         truncate_start: bool,
     ) -> (u16, u16);
 
+    /// Resets every cell in `area` and applies `style`.
     fn clear_with(&mut self, area: ratatui::layout::Rect, style: Style);
 }
 

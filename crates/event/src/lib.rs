@@ -3,7 +3,7 @@
 //! it allows defining synchronous hooks that run when certain editor events
 //! occur.
 //!
-//! The core of the event system are hook callbacks and the [`Event`] trait. A
+//! The core of the event system is hook callbacks and the [`Event`] trait. A
 //! hook is essentially just a closure `Fn(event: &mut impl Event) -> Result<()>`
 //! that gets called every time an appropriate event is dispatched. The implementation
 //! details of the [`Event`] trait are considered private. The [`events`] macro is
@@ -12,10 +12,10 @@
 //!
 //! Hooks run synchronously which can be advantageous since they can modify the
 //! current editor state right away (for example to immediately hide the completion
-//! popup). However, they can not contain their own state without locking since
-//! they only receive immutable references. For handler that want to track state, do
-//! expensive background computations or debouncing an [`AsyncHook`] is preferable.
-//! Async hooks are based around a channels that receive events specific to
+//! popup). However, they cannot contain their own state without locking since
+//! they only receive immutable references. For handlers that want to track state, do
+//! expensive background computations, or debounce, an [`AsyncHook`] is preferable.
+//! Async hooks are based around channels that receive events specific to
 //! that `AsyncHook` (usually an enum). These events can be sent by synchronous
 //! hooks. Due to some limitations around tokio channels the [`send_blocking`]
 //! function exported in this crate should be used instead of the builtin
@@ -24,7 +24,7 @@
 //! In addition to the core event system, this crate contains some message queues
 //! that allow transfer of data back to the main event loop from async hooks and
 //! hooks that may not have access to all application data (for example in view).
-//! This include the ability to control rendering ([`lock_frame`], [`request_redraw`]) and
+//! This includes the ability to control rendering ([`lock_frame`], [`request_redraw`]) and
 //! display status messages ([`status`]).
 //!
 //! Hooks declared in term can furthermore dispatch synchronous jobs to be run on the
@@ -51,6 +51,10 @@ pub mod status;
 #[cfg(test)]
 mod test;
 
+/// Registers an event type before hooks for that type are installed.
+///
+/// Event and hook registration happens during application startup; dispatch is
+/// read-only and can then occur from editor operations.
 pub fn register_event<E: Event + 'static>() {
     registry::with_mut(|registry| registry.register_event::<E>())
 }
@@ -73,7 +77,7 @@ pub unsafe fn register_hook_raw<E: Event>(
     unsafe { registry::with_mut(|registry| registry.register_hook(hook)) }
 }
 
-/// Register a hook solely by event name
+/// Registers a callback for an event identified only by its dynamic name.
 pub fn register_dynamic_hook(
     hook: impl Fn() -> Result<()> + 'static + Send + Sync,
     id: &str,
@@ -81,6 +85,10 @@ pub fn register_dynamic_hook(
     registry::with_mut(|reg| reg.register_dynamic_hook(hook, id))
 }
 
+/// Dispatches an event synchronously to every registered hook of its type.
+///
+/// Hook failures are handled by the registry and do not change the return type
+/// of the operation that emitted the event.
 pub fn dispatch(e: impl Event) {
     registry::with(|registry| registry.dispatch(e));
 }

@@ -1,3 +1,20 @@
+//! Discovery and loading of Mitos configuration and runtime assets.
+//!
+//! Runtime assets (queries, themes, grammars, and language configuration) may
+//! come from several directories. [`runtime_dirs`] exposes their precedence;
+//! lookups must search every directory in that order because a higher-priority
+//! directory may override only part of the runtime.
+//!
+//! The configuration and log file paths are process-wide values. Startup must
+//! call [`initialize_config_file`] and [`initialize_log_file`] before calling
+//! [`config_file`] or [`log_file`]. The initializers are intentionally
+//! first-write-wins so later application components cannot silently change the
+//! paths selected from command-line arguments.
+//!
+//! [`grammar`] handles native tree-sitter grammar discovery/loading, while
+//! [`workspace_trust`] keeps decisions about executing workspace-controlled
+//! programs separate from path discovery.
+
 pub mod config;
 pub mod grammar;
 pub mod workspace_trust;
@@ -8,6 +25,8 @@ use etcetera::base_strategy::{choose_base_strategy, BaseStrategy};
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, OnceLock};
 
+/// Build version, optionally followed by the source revision embedded by
+/// `build.rs`.
 pub const VERSION_AND_GIT_HASH: &str = env!("VERSION_AND_GIT_HASH");
 
 static RUNTIME_DIRS: LazyLock<Vec<PathBuf>> = LazyLock::new(prioritize_runtime_dirs);
@@ -16,12 +35,20 @@ static CONFIG_FILE: OnceLock<PathBuf> = OnceLock::new();
 
 static LOG_FILE: OnceLock<PathBuf> = OnceLock::new();
 
+/// Selects the process-wide configuration file path.
+///
+/// The parent directory is created when possible. Only the first call changes
+/// the stored path; subsequent calls are ignored.
 pub fn initialize_config_file(specified_file: Option<PathBuf>) {
     let config_file = specified_file.unwrap_or_else(default_config_file);
     ensure_parent_dir(&config_file);
     CONFIG_FILE.set(config_file).ok();
 }
 
+/// Selects the process-wide log file path.
+///
+/// The parent directory is created when possible. Only the first call changes
+/// the stored path; subsequent calls are ignored.
 pub fn initialize_log_file(specified_file: Option<PathBuf>) {
     let log_file = specified_file.unwrap_or_else(default_log_file);
     ensure_parent_dir(&log_file);
@@ -144,10 +171,20 @@ pub fn data_dir() -> PathBuf {
     path
 }
 
+/// Returns the configuration file selected during startup.
+///
+/// # Panics
+///
+/// Panics if [`initialize_config_file`] has not been called.
 pub fn config_file() -> PathBuf {
     CONFIG_FILE.get().map(|path| path.to_path_buf()).unwrap()
 }
 
+/// Returns the log file selected during startup.
+///
+/// # Panics
+///
+/// Panics if [`initialize_log_file`] has not been called.
 pub fn log_file() -> PathBuf {
     LOG_FILE.get().map(|path| path.to_path_buf()).unwrap()
 }

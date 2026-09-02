@@ -1,3 +1,15 @@
+//! Terminal application and interactive UI for Mitos.
+//!
+//! This is the composition layer of the editor. [`application`] owns startup
+//! and the main event loop, [`commands`] mutates the backend-independent
+//! `view::Editor`, and [`ui`] renders that state through the compositor. LSP,
+//! DAP, jobs, and typed event hooks feed results back into the same event loop;
+//! they must not mutate terminal UI state directly from background tasks.
+//!
+//! The crate also contains the `mitos` executable, but keeps most behavior in
+//! this library so integration tests can drive commands and editor state
+//! without owning a real terminal.
+
 #[macro_use]
 extern crate view;
 

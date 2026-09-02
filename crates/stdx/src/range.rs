@@ -1,8 +1,11 @@
-//! Provides [Range] type expanding on [RangeBounds].
+//! Half-open ranges and ordered range-set helpers.
 
 use std::ops::{self, RangeBounds};
 
-/// A range of `char`s within the text.
+/// A half-open range from `start` (inclusive) to `end` (exclusive).
+///
+/// With the default `usize` parameter this usually stores rope character
+/// indices. The generic form is also used for other ordered coordinate types.
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub struct Range<T = usize> {
     pub start: T,
@@ -10,9 +13,13 @@ pub struct Range<T = usize> {
 }
 
 impl<T: PartialOrd> Range<T> {
+    /// Returns whether `other` is entirely contained by this range.
     pub fn contains(&self, other: Self) -> bool {
         self.start <= other.start && other.end <= self.end
     }
+    /// Returns whether the end does not follow the start.
+    ///
+    /// Inverted ranges are considered empty as well as zero-width ranges.
     pub fn is_empty(&self) -> bool {
         self.end <= self.start
     }
@@ -33,9 +40,10 @@ impl<T> RangeBounds<T> for Range<T> {
 /// `sub_set.all(|rb| super_set.any(|ra| ra.contains(rb)))` that runs in O(m+n)
 /// instead of O(mn) (and in many cases faster).
 ///
-/// Both iterators must uphold a the following invariants:
-/// * ranges must not overlap (but they can be adjacent)
-/// * ranges must be sorted
+/// Both iterators must uphold the following invariants:
+///
+/// - ranges must not overlap (but they can be adjacent);
+/// - ranges must be sorted.
 pub fn is_subset<const ALLOW_EMPTY: bool>(
     mut super_set: impl Iterator<Item = Range>,
     mut sub_set: impl Iterator<Item = Range>,
@@ -68,7 +76,8 @@ pub fn is_subset<const ALLOW_EMPTY: bool>(
     }
 }
 
-/// Similar to is_subset but requires each element of `super_set` to be matched
+/// Like [`is_subset`], but requires each element of `super_set` to contain at
+/// least one element of `sub_set`.
 pub fn is_exact_subset(
     mut super_set: impl Iterator<Item = Range>,
     mut sub_set: impl Iterator<Item = Range>,

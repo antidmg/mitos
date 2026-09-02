@@ -64,6 +64,7 @@ pub struct Flag {
     /// For example a flag like "reverse" mentioned above might take an alias `Some('r')` to
     /// allow specifying the flag as `-r`.
     pub alias: Option<char>,
+    /// Help text displayed alongside the flag in command documentation and completion.
     pub doc: &'static str,
     /// The completion values to use when specifying an argument for a flag.
     ///
@@ -74,8 +75,10 @@ pub struct Flag {
 }
 
 impl Flag {
-    // This allows defining flags with the `..Flag::DEFAULT` shorthand. The `name` and `doc`
-    // fields should always be overwritten.
+    /// Baseline used with struct update syntax when declaring a flag.
+    ///
+    /// Callers must replace at least `name` and `doc`; the empty defaults are
+    /// not meaningful flag definitions.
     pub const DEFAULT: Self = Self {
         name: "",
         doc: "",
@@ -142,8 +145,9 @@ pub struct Signature {
 }
 
 impl Signature {
-    // This allows defining signatures with the `..Signature::DEFAULT` shorthand. The
-    // `positionals` field should always be overwritten.
+    /// Baseline used with struct update syntax when declaring a command.
+    ///
+    /// The default accepts any number of positional arguments and no flags.
     pub const DEFAULT: Self = Self {
         positionals: (0, None),
         raw_after: None,

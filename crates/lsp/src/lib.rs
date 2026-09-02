@@ -1,3 +1,20 @@
+//! Language Server Protocol process, transport, and editor conversions.
+//!
+//! [`Client`] owns one language-server child process. Requests are paired with
+//! responses inside the transport, while server-originated requests and
+//! notifications are exposed as [`Call`] values for the editor event loop.
+//! The registry in this crate chooses and reuses clients by language-server
+//! configuration and workspace root.
+//!
+//! LSP positions are not editor positions. Mitos stores rope positions as Rust
+//! character indices, while a server may use UTF-8, UTF-16, or UTF-32 code
+//! units. All crossings should go through [`util`] with the client's negotiated
+//! [`OffsetEncoding`]; hand-written line/column arithmetic is almost always a
+//! bug for non-ASCII text.
+//!
+//! Protocol wire types are available under [`lsp`] and intentionally remain in
+//! the separate `lsp-types` crate.
+
 mod client;
 pub mod file_event;
 mod file_operations;
@@ -30,11 +47,15 @@ use std::{
 use thiserror::Error;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
+/// Result type used by LSP client and transport operations.
 pub type Result<T, E = Error> = core::result::Result<T, E>;
+/// User-configured name of a language-server definition.
 pub type LanguageServerName = String;
 pub use editor_core::diagnostic::LanguageServerId;
 
 #[derive(Error, Debug)]
+/// Errors raised while starting a server, exchanging JSON-RPC messages, or
+/// decoding protocol payloads.
 pub enum Error {
     #[error("protocol error: {0}")]
     Rpc(#[from] jsonrpc::Error),
@@ -67,6 +88,10 @@ impl From<sonic_rs::Error> for Error {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// Unit used by the server for the `character` component of LSP positions.
+///
+/// UTF-16 is the protocol default when position encoding negotiation is not
+/// supported.
 pub enum OffsetEncoding {
     /// UTF-8 code units aka bytes
     Utf8,

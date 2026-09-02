@@ -1,3 +1,5 @@
+//! Shared vertical scrollbar rendering.
+
 use crate::{
     buffer::Buffer,
     style::Style as RatatuiStyle,
@@ -5,6 +7,11 @@ use crate::{
 };
 use ui_core::graphics::{Color, Rect, Style};
 
+/// Renders a vertical scrollbar at the right edge of `area`.
+///
+/// In a bordered component only the thumb is drawn, preserving the existing
+/// border as the track. In a borderless component both track and thumb use a
+/// right-half block. Heights and `position` are expressed in rendered rows.
 pub fn render(
     surface: &mut Buffer,
     area: Rect,
