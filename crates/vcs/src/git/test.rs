@@ -122,8 +122,9 @@ fn changed_files_include_the_worktree_root_when_started_in_a_subdirectory() {
 fn changed_files_can_be_scoped_to_a_directory() {
     let temp_git = empty_git_repo();
     let project = temp_git.path().join("project");
-    std::fs::create_dir(&project).unwrap();
-    let project_file = project.join("project.txt");
+    let source = project.join("src");
+    std::fs::create_dir_all(&source).unwrap();
+    let project_file = source.join("project.txt");
     let sibling_file = temp_git.path().join("sibling.txt");
     File::create(&project_file)
         .unwrap()
@@ -145,7 +146,7 @@ fn changed_files_can_be_scoped_to_a_directory() {
 
     let changes = RefCell::new(Vec::new());
     git::for_each_changed_file(
-        &ChangedFileScope::Directory(project),
+        &ChangedFileScope::Directory(project.clone()),
         true,
         |_worktree_root, change| {
             changes.borrow_mut().push(change.unwrap());
@@ -157,6 +158,13 @@ fn changed_files_can_be_scoped_to_a_directory() {
     let changes = changes.into_inner();
     assert_eq!(changes.len(), 1);
     assert_eq!(changes[0].path(), project_file);
+
+    let patterns = git::status_patterns(
+        temp_git.path(),
+        &ChangedFileScope::Directory(project.clone()),
+    )
+    .unwrap();
+    assert_eq!(patterns, [":(top,literal)project"]);
 }
 
 /// Test that `get_file_head` does not return content for a directory.

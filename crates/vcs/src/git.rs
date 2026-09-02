@@ -5,7 +5,7 @@ use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;
 
-use gix::bstr::ByteSlice;
+use gix::bstr::{BString, ByteSlice, ByteVec};
 use gix::diff::Rewrites;
 use gix::dir::entry::Status;
 use gix::objs::tree::EntryKind;
@@ -174,23 +174,7 @@ fn status(
             ..Default::default()
         }));
 
-    let patterns = match scope {
-        ChangedFileScope::Directory(directory) => {
-            let directory = gix::path::realpath(directory).context("resolve change scope")?;
-            let canonical_work_dir =
-                gix::path::realpath(&work_dir).context("resolve repository worktree")?;
-            let relative = directory
-                .strip_prefix(canonical_work_dir)
-                .context("change scope is outside the repository worktree")?;
-            if relative.as_os_str().is_empty() {
-                Vec::new()
-            } else {
-                let relative = gix::path::try_into_bstr(relative)?;
-                vec![gix::path::to_unix_separators_on_windows(relative).into_owned()]
-            }
-        }
-        ChangedFileScope::Repository(_) => Vec::new(),
-    };
+    let patterns = status_patterns(&work_dir, scope)?;
 
     let status_iter = status_platform.into_index_worktree_iter(patterns)?;
 
@@ -240,6 +224,31 @@ fn status(
     }
 
     Ok(())
+}
+
+fn status_patterns(work_dir: &Path, scope: &ChangedFileScope) -> Result<Vec<BString>> {
+    match scope {
+        ChangedFileScope::Directory(directory) => {
+            let directory = gix::path::realpath(directory).context("resolve change scope")?;
+            let canonical_work_dir =
+                gix::path::realpath(work_dir).context("resolve repository worktree")?;
+            let relative = directory
+                .strip_prefix(canonical_work_dir)
+                .context("change scope is outside the repository worktree")?;
+            if relative.as_os_str().is_empty() {
+                Ok(Vec::new())
+            } else {
+                let relative = gix::path::try_into_bstr(relative)?;
+                let relative = gix::path::to_unix_separators_on_windows(relative);
+                // gix otherwise resolves this repository-relative path from the process CWD,
+                // which may already be inside `directory` and would prefix the scope twice.
+                let mut pattern = BString::from(":(top,literal)");
+                pattern.push_str(relative.as_ref().as_bytes());
+                Ok(vec![pattern])
+            }
+        }
+        ChangedFileScope::Repository(_) => Ok(Vec::new()),
+    }
 }
 
 /// Finds the object that contains the contents of a file at a specific commit.
