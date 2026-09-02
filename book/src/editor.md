@@ -1,10 +1,14 @@
 # Editor
 
+This chapter explains editor settings in depth. For the complete, canonical
+list of every setting and default, see the [`config.toml` reference](./configuration.md#configtoml-reference).
+
 - [`[editor]` Section](#editor-section)
 - [`[editor.breadcrumb]` Section](#editorbreadcrumb-section)
 - [`[editor.clipboard-provider]` Section](#editorclipboard-provider-section)
 - [`[editor.statusline]` Section](#editorstatusline-section)
 - [`[editor.lsp]` Section](#editorlsp-section)
+- [`[editor.terminal]` Section](#editorterminal-section)
 - [`[editor.cursor-shape]` Section](#editorcursor-shape-section)
 - [`[editor.file-picker]` Section](#editorfile-picker-section)
 - [`[editor.file-explorer]` Section](#editorfile-explorer-section)
@@ -51,6 +55,7 @@
 | `completion-trigger-len` | The min-length of word under cursor to trigger autocompletion | `2` |
 | `completion-replace` | Whether to make completions always replace the entire word and not just the part before the cursor | `false` |
 | `auto-info` | Whether to display info boxes | `true` |
+| `icons` | Whether to show icons in the UI. Requires a Nerd Font | `false` |
 | `true-color` | Whether to override automatic detection of terminal truecolor support in the event of a false negative | `false` |
 | `undercurl` | Whether to override automatic detection of terminal undercurl support in the event of a false negative | `false` |
 | `rulers` | List of column positions at which to display the rulers. Can be overridden by language specific `rulers` in `languages.toml` file | `[]` |
@@ -71,6 +76,7 @@
 | `welcome-screen` | Whether to show the welcome screen when Mitos starts without a file | `true` |
 | `rainbow-brackets` | Whether to render rainbow colors for matching brackets. Requires tree-sitter `rainbows.scm` queries for the language. | `false` |
 | `kitty-keyboard-protocol` | Whether to enable Kitty Keyboard Protocol. Can be `enabled`, `disabled` or `auto` | `"auto"` |
+| `terminal` | External terminal command used by features such as DAP `runInTerminal` | Environment-dependent |
 
 [^3]: In most cases, you also need to enable the `auto-format` setting under `languages.toml`. You can find the reasoning [here](https://github.com/helix-editor/helix/discussions/9043#discussioncomment-7811497).
 
@@ -111,8 +117,8 @@ Alternatively, Mitos can be configured to use arbitrary commands for clipboard i
 [editor.clipboard-provider.custom]
 yank = { command = "cat",  args = ["test.txt"] }
 paste = { command = "tee",  args = ["test.txt"] }
-primary-yank = { command = "cat",  args = ["test-primary.txt"] } # optional
-primary-paste = { command = "tee",  args = ["test-primary.txt"] } # optional
+yank-primary = { command = "cat",  args = ["test-primary.txt"] } # optional
+paste-primary = { command = "tee",  args = ["test-primary.txt"] } # optional
 ```
 
 For custom commands the contents of the yank/paste is communicated over stdin/stdout.
@@ -201,6 +207,21 @@ The following statusline elements can be configured:
 [^1]: By default, a progress spinner is shown in the statusline beside the file path.
 
 [^2]: You may also have to activate them in the language server config for them to appear, not just in Mitos. Inlay hints in Mitos are still being improved on and may be a little bit laggy/janky under some circumstances. Please report any bugs you see so we can fix them!
+
+### `[editor.terminal]` Section
+
+Configures the external terminal command used by features such as DAP
+`runInTerminal` requests.
+
+| Key | Description | Default |
+| --- | --- | --- |
+| `command` | External terminal or multiplexer executable | Environment-dependent |
+| `args` | Arguments placed before the command Mitos asks the terminal to run | `[]` |
+
+Mitos automatically uses a tmux split inside tmux, a WezTerm split when its
+Unix socket is available, Windows Terminal when found on Windows, or Conhost as
+the Windows fallback. On other terminals this setting is unset unless
+configured.
 
 ### `[editor.cursor-shape]` Section
 
@@ -525,6 +546,7 @@ fn main() {
 |------------|-------------|---------|
 | `cursor-line` | The minimum severity that a diagnostic must have to be shown inline on the line that contains the primary cursor. Set to `disable` to not show any diagnostics inline. This option does not have any effect when in insert-mode and will only take effect 350ms after moving the cursor to a different line. | `"warning"` |
 | `other-lines` | The minimum severity that a diagnostic must have to be shown inline on a line that does not contain the cursor-line. Set to `disable` to not show any diagnostics inline. | `"disable"` |
+| `min-diagnostic-width` | Minimum width reserved for diagnostic text. Inline diagnostics are hidden when the view cannot provide this width plus the prefix. | `40` |
 | `prefix-len` | How many horizontal bars `─` are rendered before the diagnostic text.  | `1` |
 | `max-wrap` | Equivalent of the `editor.soft-wrap.max-wrap` option for diagnostics.  | `20` |
 | `max-diagnostics` | Maximum number of diagnostics to render inline for a given line  | `10` |

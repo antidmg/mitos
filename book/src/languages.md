@@ -3,6 +3,10 @@
 Language-specific settings and settings for language servers are configured
 in `languages.toml` files.
 
+The [main configuration reference](./configuration.md#languagestoml-reference)
+contains the canonical list of every accepted key. This chapter explains how
+the language, server, formatter, debugger, and grammar sections work together.
+
 ## `languages.toml` files
 
 There are three possible locations for a `languages.toml` file:
@@ -72,6 +76,8 @@ These configuration keys are available:
 | `rulers`              | Overrides the `editor.rulers` config key for the language. |
 | `path-completion`     | Overrides the `editor.path-completion` config key for the language. |
 | `word-completion`     | Overrides the [`editor.word-completion`](./editor.md#editorword-completion-section) configuration for the language. |
+| `auto-pairs`          | Overrides the [`editor.auto-pairs`](./editor.md#editorauto-pairs-section) configuration for the language. |
+| `debugger`            | Defines the language's debug adapter, transport, and launch/attach templates. See the [complete reference](./configuration.md#languagedebugger). |
 | `workspace-lsp-roots`     | Directories (relative to the workspace root) that stop the upward root search early. Meant for project-specific hard overrides in a local `.mitos/config.toml`; |
 | `persistent-diagnostic-sources` | An array of LSP diagnostic sources assumed unchanged when the language server resends the same set of diagnostics. Mitos can track the position for these diagnostics internally instead. Useful for diagnostics that are recomputed on save.
 | `rainbow-brackets` | Overrides the `editor.rainbow-brackets` config key for the language |
@@ -292,6 +298,9 @@ git repository:
 | `git`  | A git remote URL from which the grammar should be cloned  |
 | `rev`  | The revision (commit hash or tag) which should be fetched |
 | `subpath` | A path within the grammar directory which should be built. Some grammar repositories host multiple grammars (for example `tree-sitter-typescript` and `tree-sitter-ocaml`) in subdirectories. This key is used to point `ms --grammar build` to the correct path for compilation. When omitted, the root of repository is used |
+
+For a grammar already available locally, use `source = { path = "..." }`
+instead. Local sources are built but are not fetched by `ms --grammar fetch`.
 
 ### Choosing grammars
 
