@@ -228,7 +228,10 @@ fn buffer_gather_paths_impl(editor: &mut Editor, args: Args) -> Vec<DocumentId> 
     for arg in args {
         let doc_id = editor.documents().find_map(|doc| {
             let arg_path = Some(Path::new(arg.as_ref()));
-            if doc.path() == arg_path || doc.relative_path() == arg_path {
+            if doc.path() == arg_path
+                || doc.relative_path() == arg_path
+                || doc.display_path() == arg_path
+            {
                 Some(doc.id())
             } else {
                 None

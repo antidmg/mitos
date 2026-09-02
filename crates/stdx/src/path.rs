@@ -159,6 +159,24 @@ where
     path
 }
 
+/// Format a path relative to an explicit display root.
+///
+/// This is intentionally lexical so it also works for paths that no longer exist, such as deleted
+/// files reported by a version control system.
+pub fn get_relative_path_from<'a>(path: &'a Path, root: &Path) -> Cow<'a, Path> {
+    if path.is_relative() {
+        return Cow::Borrowed(path);
+    }
+
+    let path = normalize(path);
+    let root = normalize(root);
+    if let Ok(stripped) = path.strip_prefix(root) {
+        return Cow::Owned(stripped.to_path_buf());
+    }
+
+    fold_home_dir(path)
+}
+
 /// Returns a truncated filepath where the basepart of the path is reduced to the first
 /// char of the folder and the whole filename appended.
 ///
@@ -314,6 +332,27 @@ mod tests {
     use ropey::RopeSlice;
 
     use crate::path::{self, compile_path_regex};
+
+    #[test]
+    fn relative_path_from_uses_an_explicit_root_without_accessing_the_filesystem() {
+        let root = crate::env::current_working_dir().join("workspace");
+        let path = root.join("src").join("..").join("deleted.rs");
+
+        assert_eq!(
+            path::get_relative_path_from(&path, &root),
+            Path::new("deleted.rs")
+        );
+    }
+
+    #[test]
+    fn relative_path_from_preserves_relative_paths() {
+        let path = Path::new("src/main.rs");
+
+        assert_eq!(
+            path::get_relative_path_from(path, Path::new("elsewhere")),
+            path
+        );
+    }
 
     #[test]
     fn expand_tilde() {

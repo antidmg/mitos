@@ -2,6 +2,7 @@ use editor_core::indent::IndentStyle;
 use editor_core::{coords_at_pos, encoding, Position};
 use lsp_client::lsp::DiagnosticSeverity;
 use view::document::DEFAULT_LANGUAGE_NAME;
+use view::graphics::RectExt as _;
 use view::{
     document::{Mode, SCRATCH_BUFFER_NAME},
     graphics::Rect,
@@ -540,7 +541,7 @@ where
     F: Fn(&mut RenderContext<'a>, Span<'a>) + Copy,
 {
     let title = {
-        let rel_path = context.doc.relative_path();
+        let rel_path = context.doc.display_path();
         let path = rel_path
             .as_ref()
             .map(|p| p.to_string_lossy())
@@ -597,7 +598,7 @@ where
     F: Fn(&mut RenderContext<'a>, Span<'a>) + Copy,
 {
     let title = {
-        let rel_path = context.doc.relative_path();
+        let rel_path = context.doc.display_path();
         let path = rel_path
             .as_ref()
             .and_then(|p| p.file_name().map(|s| s.to_string_lossy()))
@@ -721,5 +722,3 @@ mod tests {
         assert_eq!(right, Rect::new(52, 2, 12, 1));
     }
 }
-
-use view::graphics::RectExt as _;

@@ -944,7 +944,7 @@ impl EditorView {
         let mut draw_separator = false;
 
         if matches!(config.breadcrumb.path, Full | File) {
-            if let Some(path) = doc.relative_path() {
+            if let Some(path) = doc.display_path() {
                 let mut components = path.components().peekable();
                 let file_only = matches!(config.breadcrumb.path, File);
 

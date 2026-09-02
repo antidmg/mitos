@@ -506,7 +506,7 @@ pub mod completers {
 
     pub fn buffer(editor: &Editor, input: &str) -> Vec<Completion> {
         let names = editor.documents.values().map(|doc| {
-            doc.relative_path()
+            doc.display_path()
                 .map(|p| p.display().to_string().into())
                 .unwrap_or_else(|| Cow::from(SCRATCH_BUFFER_NAME))
         });

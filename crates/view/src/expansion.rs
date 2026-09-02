@@ -300,7 +300,7 @@ fn expand_variable(editor: &Editor, variable: Variable) -> Result<Cow<'static, s
         Variable::BufferName => {
             // Note: usually we would use `Document::display_name` but we can statically borrow
             // the scratch buffer name by partially reimplementing `display_name`.
-            if let Some(path) = doc.relative_path() {
+            if let Some(path) = doc.display_path() {
                 Ok(Cow::Owned(path.to_string_lossy().into_owned()))
             } else {
                 Ok(Cow::Borrowed(crate::document::SCRATCH_BUFFER_NAME))

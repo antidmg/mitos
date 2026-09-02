@@ -168,6 +168,7 @@ pub struct Document {
 
     path: Option<PathBuf>,
     relative_path: OnceLock<Option<PathBuf>>,
+    display_path: OnceLock<Option<PathBuf>>,
     /// Lazily-computed workspace root for this document (the ancestor that contains a `.git` /
     /// `.svn` / `.jj` / `.mitos`). Avoids per-call `find_workspace_in` ancestor walks for hot
     /// consumers like the statusline trust indicator, LSP launch, and DAP launch. Taken in
@@ -812,6 +813,7 @@ impl Document {
             active_snippet: None,
             path: None,
             relative_path: OnceLock::new(),
+            display_path: OnceLock::new(),
             workspace_root: OnceLock::new(),
             encoding,
             has_bom,
@@ -1426,6 +1428,7 @@ impl Document {
         // `take` to remove any prior relative path that may have existed.
         // This will get set in `relative_path()`.
         self.relative_path.take();
+        self.display_path.take();
         // Same story: invalidate so the next workspace_root() recomputes against the new path.
         self.workspace_root.take();
 
@@ -2226,8 +2229,19 @@ impl Document {
             })
     }
 
+    /// A stable path for user-facing output, relative to this document's workspace when possible.
+    pub fn display_path(&self) -> Option<&Path> {
+        self.display_path
+            .get_or_init(|| {
+                self.path.as_deref().map(|path| {
+                    stdx::path::get_relative_path_from(path, self.workspace_root()).into_owned()
+                })
+            })
+            .as_deref()
+    }
+
     pub fn display_name(&self) -> Cow<'_, str> {
-        self.relative_path()
+        self.display_path()
             .map_or_else(|| SCRATCH_BUFFER_NAME.into(), |path| path.to_string_lossy())
     }
 

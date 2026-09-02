@@ -1406,9 +1406,10 @@ fn goto_file_impl(cx: &mut Context, action: Action) {
     let (view, doc) = current_ref!(cx.editor);
     let text = doc.text().clone();
     let selections = doc.selection(view.id).ranges().to_vec();
-    let rel_path = doc
-        .relative_path()
-        .map(|path| path.parent().unwrap().to_path_buf())
+    let document_dir = doc
+        .path()
+        .and_then(Path::parent)
+        .map(Path::to_path_buf)
         .unwrap_or_default();
     let text = text.slice(..);
 
@@ -1449,7 +1450,7 @@ fn goto_file_impl(cx: &mut Context, action: Action) {
     }
 
     if !resolve_requests.is_empty() {
-        let rel_path = rel_path.clone();
+        let document_dir = document_dir.clone();
         cx.jobs.callback(async move {
             let mut targets = Vec::new();
             let mut seen = HashSet::new();
@@ -1472,7 +1473,7 @@ fn goto_file_impl(cx: &mut Context, action: Action) {
             Ok(Callback::EditorCompositor(Box::new(
                 move |editor, compositor| {
                     for target in targets {
-                        open_url_in_callback(editor, compositor, target, action, &rel_path);
+                        open_url_in_callback(editor, compositor, target, action, &document_dir);
                     }
                 },
             )))
@@ -1521,7 +1522,7 @@ fn goto_file_impl(cx: &mut Context, action: Action) {
         }
 
         let path = path::expand(&sel);
-        let path = &rel_path.join(path);
+        let path = &document_dir.join(path);
         if path.is_dir() {
             let picker = ui::file_picker(cx.editor, path.into());
             cx.push_layer(Box::new(overlaid(picker)));
@@ -1535,16 +1536,17 @@ fn goto_file_impl(cx: &mut Context, action: Action) {
 /// Otherwise, the file is open using external program.
 fn open_url(cx: &mut Context, url: Url, action: Action) {
     let doc = doc!(cx.editor);
-    let rel_path = doc
-        .relative_path()
-        .map(|path| path.parent().unwrap().to_path_buf())
+    let document_dir = doc
+        .path()
+        .and_then(Path::parent)
+        .map(Path::to_path_buf)
         .unwrap_or_default();
 
     if should_open_url_externally(&url) {
         return cx.jobs.callback(crate::open_external_url_callback(url));
     }
 
-    let path = &rel_path.join(url.path());
+    let path = &document_dir.join(url.path());
     if path.is_dir() {
         let picker = ui::file_picker(cx.editor, path.into());
         cx.push_layer(Box::new(overlaid(picker)));
