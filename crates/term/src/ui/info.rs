@@ -6,6 +6,8 @@ use tui::widgets::{Paragraph, Widget};
 use view::graphics::Rect;
 use view::info::Info;
 
+use super::panel;
+
 impl Component for Info {
     fn render(&mut self, viewport: Rect, surface: &mut Surface, cx: &mut Context) {
         let text_style = cx.editor.theme.get("ui.text.info");
@@ -19,7 +21,7 @@ impl Component for Info {
             Layout::vertical([Constraint::Min(0), Constraint::Length(height)]).areas(area);
         surface.clear_with(area, popup_style);
 
-        let block = tui::panel::horizontally_padded(popup_style).title(self.title.as_ref());
+        let block = panel::horizontally_padded(&cx.editor.theme).title(self.title.as_ref());
 
         let inner = block.inner(area);
         block.render(area, surface);

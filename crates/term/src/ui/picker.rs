@@ -1006,7 +1006,7 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
         let background = cx.editor.theme.get("ui.background");
         surface.clear_with(area, background);
 
-        let block = tui::panel::bordered(text_style);
+        let block = panel::bordered(&cx.editor.theme);
         let inner = block.inner(area);
         block.render(area, surface);
 
@@ -1182,10 +1182,9 @@ impl<T: 'static + Send + Sync, D: 'static + Send + Sync> Picker<T, D> {
 
     fn render_preview(&mut self, area: Rect, surface: &mut Surface, cx: &mut Context) {
         let background = cx.editor.theme.get("ui.background");
-        let text_style = cx.editor.theme.get("ui.text");
         surface.clear_with(area, background);
 
-        let block = tui::panel::horizontally_padded(text_style);
+        let block = panel::horizontally_padded(&cx.editor.theme);
         let inner = block.inner(area);
         block.render(area, surface);
 
@@ -1365,7 +1364,7 @@ impl<I: 'static + Send + Sync, D: 'static + Send + Sync> Component for Picker<I,
         let render_preview =
             self.show_preview && self.file_fn.is_some() && area.width > MIN_AREA_WIDTH_FOR_PREVIEW;
         let (picker_area, _) = split_picker_area(area, render_preview);
-        let area = tui::panel::bordered(editor.theme.get("ui.text"))
+        let area = panel::bordered(&editor.theme)
             .inner(picker_area)
             .with_height(1)
             .clip_left(1);

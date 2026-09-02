@@ -512,15 +512,15 @@ impl Prompt {
                 completion_area.x,
                 completion_area
                     .y
-                    .saturating_sub(height.saturating_add(ui::panel::PADDED_VERTICAL_INSET)),
+                    .saturating_sub(height.saturating_add(ui::panel::BORDER_INSET)),
                 max_width,
-                height.saturating_add(ui::panel::PADDED_VERTICAL_INSET),
+                height.saturating_add(ui::panel::BORDER_INSET),
             ));
 
             let background = theme.get("ui.help");
             surface.clear_with(area, background);
 
-            let block = ui::panel::uniformly_padded(theme);
+            let block = ui::panel::horizontally_padded(theme);
             let inner = block.inner(area);
 
             block.render(area, surface);
