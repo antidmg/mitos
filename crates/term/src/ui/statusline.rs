@@ -14,9 +14,9 @@ use view::{
 use crate::ui::ProgressSpinners;
 
 use tui::buffer::Buffer as Surface;
-use tui::layout::Alignment;
+use tui::layout::{Constraint, Layout};
 use tui::text::{Line, Span};
-use tui::widgets::{Paragraph, Widget};
+use tui::widgets::Widget;
 use view::editor::StatusLineElement as StatusLineElementID;
 
 pub struct RenderContext<'a> {
@@ -47,7 +47,6 @@ impl<'a> RenderContext<'a> {
 #[derive(Default)]
 pub struct RenderBuffer<'a> {
     pub left: Line<'a>,
-    pub center: Line<'a>,
     pub right: Line<'a>,
 }
 
@@ -76,62 +75,16 @@ pub fn render(context: &mut RenderContext, viewport: Rect, surface: &mut Surface
         })
     }
 
-    // Center of the status line.
+    let [left_area, right_area] = statusline_areas(viewport, context.parts.right.width() as u16);
 
-    for element_id in &config.statusline.center {
-        let render = get_render_function(*element_id);
-        (render)(context, |context, span| {
-            append(&mut context.parts.center, span, base_style)
-        })
-    }
-
-    let [left_area, center_area, right_area] = statusline_areas(
-        viewport,
-        context.parts.left.width() as u16,
-        context.parts.center.width() as u16,
-        context.parts.right.width() as u16,
-    );
-
-    Paragraph::new(std::mem::take(&mut context.parts.left)).render(left_area, surface);
-    Paragraph::new(std::mem::take(&mut context.parts.center))
-        .alignment(Alignment::Center)
-        .render(center_area, surface);
-    Paragraph::new(std::mem::take(&mut context.parts.right))
-        .alignment(Alignment::Right)
+    std::mem::take(&mut context.parts.left).render(left_area, surface);
+    std::mem::take(&mut context.parts.right)
+        .right_aligned()
         .render(right_area, surface);
 }
 
-fn statusline_areas(
-    viewport: Rect,
-    left_width: u16,
-    center_width: u16,
-    right_width: u16,
-) -> [Rect; 3] {
-    let right_width = right_width.min(viewport.width);
-    let left_width = left_width.min(viewport.width.saturating_sub(right_width));
-    let edge_width = left_width.max(right_width);
-    let center_width = center_width.min(
-        viewport
-            .width
-            .saturating_sub(edge_width.saturating_add(1).saturating_mul(2)),
-    );
-
-    [
-        Rect {
-            width: left_width,
-            ..viewport
-        },
-        Rect {
-            x: viewport.x + viewport.width.saturating_sub(center_width) / 2,
-            width: center_width,
-            ..viewport
-        },
-        Rect {
-            x: viewport.x + viewport.width.saturating_sub(right_width),
-            width: right_width,
-            ..viewport
-        },
-    ]
+fn statusline_areas(viewport: Rect, right_width: u16) -> [Rect; 2] {
+    Layout::horizontal([Constraint::Min(0), Constraint::Length(right_width)]).areas(viewport)
 }
 
 fn append<'a>(buffer: &mut Line<'a>, mut span: Span<'a>, base_style: Style) {
@@ -166,7 +119,7 @@ where
         view::editor::StatusLineElement::TotalLineNumbers => render_total_line_numbers,
         view::editor::StatusLineElement::Separator => render_separator,
         view::editor::StatusLineElement::Spacer => render_spacer,
-        view::editor::StatusLineElement::VersionControl => render_version_control,
+        view::editor::StatusLineElement::Branch => render_branch,
         view::editor::StatusLineElement::Register => render_register,
         view::editor::StatusLineElement::CurrentWorkingDirectory => render_cwd,
         view::editor::StatusLineElement::CodeActionHint => render_code_action_hint,
@@ -626,7 +579,7 @@ where
     write(context, " ".into());
 }
 
-fn render_version_control<'a, F>(context: &mut RenderContext<'a>, write: F)
+fn render_branch<'a, F>(context: &mut RenderContext<'a>, write: F)
 where
     F: Fn(&mut RenderContext<'a>, Span<'a>) + Copy,
 {
@@ -701,24 +654,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn long_left_section_uses_space_not_needed_by_the_right_section() {
+    fn left_section_fills_space_not_needed_by_the_right_section() {
         let viewport = Rect::new(0, 0, 80, 1);
 
-        let [left, center, right] = statusline_areas(viewport, 50, 0, 12);
+        let [left, right] = statusline_areas(viewport, 12);
 
-        assert_eq!(left, Rect::new(0, 0, 50, 1));
-        assert_eq!(center, Rect::new(40, 0, 0, 1));
+        assert_eq!(left, Rect::new(0, 0, 68, 1));
         assert_eq!(right, Rect::new(68, 0, 12, 1));
     }
 
     #[test]
-    fn right_section_keeps_priority_when_both_sides_exceed_the_viewport() {
+    fn right_section_keeps_priority_when_it_exceeds_the_viewport() {
         let viewport = Rect::new(4, 2, 60, 1);
 
-        let [left, center, right] = statusline_areas(viewport, 80, 10, 12);
+        let [left, right] = statusline_areas(viewport, 80);
 
-        assert_eq!(left, Rect::new(4, 2, 48, 1));
-        assert_eq!(center, Rect::new(34, 2, 0, 1));
-        assert_eq!(right, Rect::new(52, 2, 12, 1));
+        assert_eq!(left, Rect::new(4, 2, 0, 1));
+        assert_eq!(right, Rect::new(4, 2, 60, 1));
     }
 }

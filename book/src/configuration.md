@@ -168,8 +168,7 @@ they handle the primary selection where the platform has one.
 
 | Key | Type | Default |
 | --- | --- | --- |
-| `left` | array of element names | `["mode", "spinner", "file-name", "read-only-indicator", "file-modification-indicator"]` |
-| `center` | array of element names | `[]` |
+| `left` | array of element names | `["mode", "spinner", "branch", "file-name", "read-only-indicator", "file-modification-indicator"]` |
 | `right` | array of element names | `["diagnostics", "selections", "register", "position", "file-encoding"]` |
 | `separator` | string | `"│"` |
 | `mode.normal` | string | `"NOR"` |

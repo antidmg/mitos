@@ -127,16 +127,15 @@ For custom commands the contents of the yank/paste is communicated over stdin/st
 
 Allows configuring the statusline at the bottom of the editor.
 
-The configuration distinguishes between three areas of the status line:
+The configuration distinguishes between two areas of the status line:
 
-`[ ... ... LEFT ... ... | ... ... ... CENTER ... ... ... | ... ... RIGHT ... ... ]`
+`[ ... ... LEFT ... ... | ... ... RIGHT ... ... ]`
 
 Statusline elements can be defined as follows:
 
 ```toml
 [editor.statusline]
 left = ["mode", "spinner"]
-center = ["file-name"]
 right = ["diagnostics", "selections", "position", "file-encoding", "file-line-ending", "file-type"]
 separator = "│"
 mode.normal = "NORMAL"
@@ -149,8 +148,7 @@ The `[editor.statusline]` key takes the following sub-keys:
 
 | Key           | Description | Default |
 | ---           | ---         | ---     |
-| `left`        | A list of elements aligned to the left of the statusline | `["mode", "spinner", "file-name", "read-only-indicator", "file-modification-indicator"]` |
-| `center`      | A list of elements aligned to the middle of the statusline | `[]` |
+| `left`        | A list of elements aligned to the left of the statusline | `["mode", "spinner", "branch", "file-name", "read-only-indicator", "file-modification-indicator"]` |
 | `right`       | A list of elements aligned to the right of the statusline | `["diagnostics", "selections", "register", "position", "file-encoding"]` |
 | `separator`   | The character used to separate elements in the statusline | `"│"` |
 | `mode.normal` | The text shown in the `mode` element for normal mode | `"NOR"` |
@@ -165,6 +163,7 @@ The following statusline elements can be configured:
 | ------ | ----------- |
 | `mode` | The current editor mode (`mode.normal`/`mode.insert`/`mode.select`) |
 | `spinner` | A progress spinner indicating LSP activity |
+| `branch` | The current branch name or detached commit hash of the opened workspace |
 | `file-name` | The path/name of the opened file |
 | `file-absolute-path` | The absolute path/name of the opened file |
 | `file-base-name` | The basename of the opened file |
@@ -184,7 +183,6 @@ The following statusline elements can be configured:
 | `position-percentage` | The cursor position as a percentage of the total number of lines |
 | `separator` | The string defined in `editor.statusline.separator` (defaults to `"│"`) |
 | `spacer` | Inserts a space between elements (multiple/contiguous spacers may be specified) |
-| `version-control` | The current branch name or detached commit hash of the opened workspace |
 | `register` | The current selected register |
 | `code-action-hint` | Indicator for when code actions are available |
 

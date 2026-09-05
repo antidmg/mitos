@@ -515,10 +515,6 @@ impl Config {
                 .contains(&StatusLineElement::CodeActionHint)
             || self
                 .statusline
-                .center
-                .contains(&StatusLineElement::CodeActionHint)
-            || self
-                .statusline
                 .right
                 .contains(&StatusLineElement::CodeActionHint)
     }
@@ -695,7 +691,6 @@ pub struct SearchConfig {
 #[serde(rename_all = "kebab-case", default, deny_unknown_fields)]
 pub struct StatusLineConfig {
     pub left: Vec<StatusLineElement>,
-    pub center: Vec<StatusLineElement>,
     pub right: Vec<StatusLineElement>,
     pub separator: String,
     pub mode: ModeConfig,
@@ -711,11 +706,11 @@ impl Default for StatusLineConfig {
             left: vec![
                 E::Mode,
                 E::Spinner,
+                E::Branch,
                 E::FileName,
                 E::ReadOnlyIndicator,
                 E::FileModificationIndicator,
             ],
-            center: vec![],
             right: vec![
                 E::Diagnostics,
                 E::Selections,
@@ -812,8 +807,8 @@ pub enum StatusLineElement {
     /// A single space
     Spacer,
 
-    /// Current version control information
-    VersionControl,
+    /// The current branch name, or detached commit hash
+    Branch,
 
     /// Indicator for selected register
     Register,
