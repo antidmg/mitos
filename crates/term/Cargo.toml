@@ -22,6 +22,7 @@ assets = [
   { source = "../../runtime/grammars/*", dest = "/usr/lib/mitos/runtime/grammars/", mode = "644" }, # to avoid sources/
   { source = "../../runtime/queries/**/*", dest = "/usr/lib/mitos/runtime/queries/", mode = "644" },
   { source = "../../runtime/themes/**/*", dest = "/usr/lib/mitos/runtime/themes/", mode = "644" },
+  { source = "../../runtime/dictionaries/**/*", dest = "/usr/lib/mitos/runtime/dictionaries/", mode = "644" },
   { source = "../../README.md", dest = "/usr/share/doc/mitos/", mode = "644" },
   { source = "../../FORK.md", dest = "/usr/share/doc/mitos/", mode = "644" },
   { source = "../../LICENSE", dest = "/usr/share/doc/mitos/", mode = "644" },

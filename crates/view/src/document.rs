@@ -182,6 +182,16 @@ pub struct Document {
     /// Current indent style.
     pub indent_style: IndentStyle,
     editor_config: EditorConfig,
+    /// The languages (dictionaries) to spell check this buffer against, or empty to disable spell
+    /// checking. A word is flagged only when every dictionary rejects it.
+    ///
+    /// Resolved by [`Document::detect_spelling_languages`] from the manual override, the
+    /// document's `.editorconfig` (`spelling_language = en_US`), or the resolved config.
+    pub spelling_languages: Vec<editor_core::SpellingLanguage>,
+    /// A manual `:set-spelling-language` choice, which takes precedence over `.editorconfig` and
+    /// config when resolving [`Document::spelling_languages`]. `None` means derive from those; an
+    /// empty `Vec` forces spell checking off regardless of what they say.
+    pub spelling_language_override: Option<Vec<editor_core::SpellingLanguage>>,
 
     /// The document's default line ending.
     pub line_ending: LineEnding,
@@ -829,6 +839,8 @@ impl Document {
             view_data: Default::default(),
             indent_style: DEFAULT_INDENT,
             editor_config: EditorConfig::default(),
+            spelling_languages: Vec::new(),
+            spelling_language_override: None,
             line_ending,
             restore_cursor: false,
             syntax: None,
@@ -1330,6 +1342,36 @@ impl Document {
         {
             self.line_ending = line_ending;
         }
+        self.detect_spelling_languages();
+    }
+
+    /// Resolves the languages this document is spell-checked against, in precedence order: a manual
+    /// `:set-spelling-language` override, then the `.editorconfig` `spelling_language`, then the
+    /// resolved config (`languages.toml` over `[editor.spelling]`). Re-run when any of these change.
+    pub fn detect_spelling_languages(&mut self) {
+        let config = self.config.load();
+        self.spelling_languages = if let Some(languages) = &self.spelling_language_override {
+            languages.clone()
+        } else if let Some(language) = self
+            .editor_config
+            .spelling_language
+            .as_ref()
+            .filter(|_| config.editor_config)
+        {
+            vec![language.clone()]
+        } else {
+            config
+                .spelling
+                .merged(
+                    self.language_config()
+                        .and_then(|config| config.spelling.as_ref()),
+                )
+                .languages()
+                .to_vec()
+        };
+        let mut seen = HashSet::new();
+        self.spelling_languages
+            .retain(|language| seen.insert(language.clone()));
     }
 
     pub fn detect_editor_config(&mut self) {
@@ -2405,6 +2447,39 @@ impl Document {
                     .is_some_and(|source| unchanged_sources.iter().any(|s| **s == **source))
             });
         }
+        self.diagnostics.extend(diagnostics);
+        self.diagnostics.sort_by_key(|diagnostic| {
+            (
+                diagnostic.range,
+                diagnostic.severity,
+                diagnostic.provider.clone(),
+            )
+        });
+    }
+
+    /// Replaces `provider`'s diagnostics that fall within any of `regions` with `diagnostics`,
+    /// leaving every other diagnostic untouched, including `provider`'s own diagnostics that lie
+    /// outside `regions`.
+    ///
+    /// This is the incremental counterpart to [`Document::replace_diagnostics`]: when only bounded
+    /// regions of the document have been re-examined (e.g. the areas around an edit), the caller
+    /// re-checks those regions and splices the results in, rather than recomputing the whole
+    /// document. Diagnostics outside `regions` keep the positions they were edit-mapped to.
+    ///
+    /// `regions` are half-open char ranges in the current document text; `diagnostics` are expected
+    /// to fall within them. A diagnostic is considered inside a region when their ranges overlap.
+    pub fn splice_diagnostics(
+        &mut self,
+        diagnostics: impl IntoIterator<Item = Diagnostic>,
+        regions: &[std::ops::Range<usize>],
+        provider: &DiagnosticProvider,
+    ) {
+        self.diagnostics.retain(|d| {
+            &d.provider != provider
+                || !regions
+                    .iter()
+                    .any(|region| d.range.start < region.end && region.start < d.range.end)
+        });
         self.diagnostics.extend(diagnostics);
         self.diagnostics.sort_by_key(|diagnostic| {
             (

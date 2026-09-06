@@ -2517,10 +2517,50 @@ fn language(cx: &mut compositor::Context, args: Args, event: PromptEvent) -> any
     let diagnostics =
         Editor::doc_diagnostics(&cx.editor.language_servers, &cx.editor.diagnostics, doc);
     doc.replace_diagnostics(diagnostics, &[], None);
+    cx.editor.refresh_spelling(id);
     Ok(())
 }
 
 #[cold]
+fn spelling_language(
+    cx: &mut compositor::Context,
+    args: Args,
+    event: PromptEvent,
+) -> anyhow::Result<()> {
+    if event != PromptEvent::Validate {
+        return Ok(());
+    }
+
+    if args.is_empty() {
+        let doc = doc!(cx.editor);
+        let status = if doc.spelling_languages.is_empty() {
+            "off".to_string()
+        } else {
+            doc.spelling_languages
+                .iter()
+                .map(|language| language.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        };
+        cx.editor.set_status(status);
+        return Ok(());
+    }
+
+    let languages = if args.len() == 1 && &args[0] == "off" {
+        Vec::new()
+    } else {
+        args.iter()
+            .map(|arg| arg.parse())
+            .collect::<Result<Vec<editor_core::SpellingLanguage>, _>>()?
+    };
+    let doc = doc_mut!(cx.editor);
+    let doc_id = doc.id();
+    doc.spelling_language_override = Some(languages);
+    cx.editor.refresh_spelling(doc_id);
+
+    Ok(())
+}
+
 fn sort(cx: &mut compositor::Context, args: Args, event: PromptEvent) -> anyhow::Result<()> {
     if event != PromptEvent::Validate {
         return Ok(());
@@ -3908,6 +3948,17 @@ pub const TYPABLE_COMMAND_LIST: &[TypableCommand] = &[
         completer: CommandCompleter::positional(&[completers::language]),
         signature: Signature {
             positionals: (0, Some(1)),
+            ..Signature::DEFAULT
+        },
+    },
+    TypableCommand {
+        name: "set-spelling-language",
+        aliases: &["spelling"],
+        doc: "Set the spell-checking languages for the current buffer (e.g. `en_US`); a word is flagged only when every language rejects it. Pass `off` to disable, or no value to show the current languages.",
+        fun: spelling_language,
+        completer: CommandCompleter::all(completers::spelling_language),
+        signature: Signature {
+            positionals: (0, None),
             ..Signature::DEFAULT
         },
     },

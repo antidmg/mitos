@@ -76,6 +76,7 @@ These configuration keys are available:
 | `rulers`              | Overrides the `editor.rulers` config key for the language. |
 | `path-completion`     | Overrides the `editor.path-completion` config key for the language. |
 | `word-completion`     | Overrides the [`editor.word-completion`](./editor.md#editorword-completion-section) configuration for the language. |
+| `spelling` | Layers over [`editor.spelling`](./configuration.md#editorspelling): `languages` and `min-word-length` replace the global value; `words` and `ignore-regexes` extend it. |
 | `auto-pairs`          | Overrides the [`editor.auto-pairs`](./editor.md#editorauto-pairs-section) configuration for the language. |
 | `debugger`            | Defines the language's debug adapter, transport, and launch/attach templates. See the [complete reference](./configuration.md#languagedebugger). |
 | `workspace-lsp-roots`     | Directories (relative to the workspace root) that stop the upward root search early. Meant for project-specific hard overrides in a local `.mitos/config.toml`; |

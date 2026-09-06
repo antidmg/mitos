@@ -26,6 +26,7 @@
 - [Command line](./command-line.md)
 - [Commands](./commands.md)
 - [Language servers](./lsp.md)
+- [Spell checking](./spell-checking.md)
 - [Language support](./lang-support.md)
 - [Workspace trust](./workspace-trust.md)
 
@@ -56,3 +57,4 @@
 - [Adding injection queries](./guides/injection.md)
 - [Adding tags queries](./guides/tags.md)
 - [Adding rainbow bracket queries](./guides/rainbow_bracket_queries.md)
+- [Adding spellcheck queries](./guides/spellcheck.md)

@@ -20,5 +20,6 @@ mod test {
     mod command_line;
     mod commands;
     mod movement;
+    mod spelling;
     mod splits;
 }

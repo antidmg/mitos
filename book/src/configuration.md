@@ -88,6 +88,7 @@ For examples and behavioral details, see the [Editor](./editor.md) chapter.
 | `auto-pairs` | boolean or character map | `true` | Insert matching delimiters. See [`[editor.auto-pairs]`](#editorauto-pairs). |
 | `auto-completion` | boolean | `true` | Show completion automatically. |
 | `path-completion` | boolean | `true` | Complete filesystem paths recognized at the cursor. |
+| `spelling` | table | Disabled | Dictionaries, accepted words, and token filters. See [`[editor.spelling]`](#editorspelling). |
 | `word-completion` | table | `{ enable = true, trigger-length = 7 }` | Complete words from open buffers. See [`[editor.word-completion]`](#editorword-completion). |
 | `auto-format` | boolean | `true` | Format on save when the current language also enables `auto-format`. |
 | `auto-save` | boolean or table | `false` | A boolean controls save-on-focus-loss; a table can also configure delayed saves. See [`[editor.auto-save]`](#editorauto-save). |
@@ -405,6 +406,32 @@ Severity settings accept `"disable"`, `"hint"`, `"info"`, `"warning"`, or
 | `max-wrap` | integer | `20` | Maximum free columns used to wrap diagnostic text. |
 | `max-diagnostics` | integer | `10` | Maximum inline diagnostics rendered for one line. |
 
+### `[editor.spelling]`
+
+Global options for spell checking. See the [Spell
+checking](./spell-checking.md) chapter for the full feature details.
+
+| Key               | Description                                                                                              | Default |
+| ---               | ---                                                                                                      | ---     |
+| `languages`       | The dictionaries to check every document against (e.g. `["en_US"]`). Empty disables spell checking.      | `[]`    |
+| `words`           | Extra accepted words, matched case-insensitively, in addition to the dictionaries.                       | `[]`    |
+| `ignore-regexes`  | Tokens matching any of these regexes are not checked (for example `"^[A-Z0-9_]+$"` to skip `CONSTANTS`). | `[]`    |
+| `min-word-length` | Tokens shorter than this are not checked.                                                                | `1`     |
+
+Per-language settings in `languages.toml` override these: `languages` and
+`min-word-length` replace the global value, while `words` and `ignore-regexes`
+are added to the global lists.
+
+Example:
+
+```toml
+[editor.spelling]
+languages = ["en_US"]
+words = ["Mitos", "tokio"]
+ignore-regexes = ["^[A-Z0-9_]+$"]
+```
+
+
 ### `[editor.word-completion]`
 
 | Key | Type | Default | Description |
@@ -489,6 +516,7 @@ routing, formatters, and complete examples.
 | `code-actions-on-save` | string array; unset | LSP code-action kinds run in order on save. |
 | `formatter` | table; unset | External formatter. `command` is required; `args` defaults to `[]`. |
 | `path-completion` | boolean; inherits editor | Override `editor.path-completion`. |
+| `spelling` | table; inherits editor | `languages` and `min-word-length` replace global values; `words` and `ignore-regexes` extend them. See [spell checking](./spell-checking.md). |
 | `word-completion` | table; inherits editor | Override `enable` and/or `trigger-length` from `editor.word-completion`. |
 | `diagnostic-severity` | `"hint"`, `"info"`, `"warning"`, or `"error"`; `"hint"` | Minimum accepted diagnostic severity. |
 | `grammar` | string; defaults to `name` | Tree-sitter grammar name. |

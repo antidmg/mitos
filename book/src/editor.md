@@ -28,6 +28,7 @@ list of every setting and default, see the [`config.toml` reference](./configura
 - [`[editor.smart-tab]` Section](#editorsmart-tab-section)
 - [`[editor.inline-diagnostics]` Section](#editorinline-diagnostics-section)
 - [`[editor.word-completion]` Section](#editorword-completion-section)
+- [`[editor.spelling]` Section](#editorspelling-section)
 - [`[editor.workspace-trust]` Section](#editorworkspace-trust-section)
 
 ### `[editor]` Section
@@ -560,6 +561,12 @@ fn main() {
             └─ no such value in this scope
 }
 ```
+
+### `[editor.spelling]` Section
+
+Spell checking is opt-in. See the [`editor.spelling` configuration reference](./configuration.md#editorspelling)
+for settings and [Spell checking](./spell-checking.md) for dictionaries, corrections,
+and personal word lists.
 
 ### `[editor.word-completion]` Section
 

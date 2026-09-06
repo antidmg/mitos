@@ -164,6 +164,15 @@ pub fn cache_dir() -> PathBuf {
     path
 }
 
+pub fn state_dir() -> PathBuf {
+    let strategy = choose_base_strategy().expect("could not determine XDG strategy");
+    let mut path = strategy
+        .state_dir()
+        .expect("state_dir is always Some for default base strategy");
+    path.push("mitos");
+    path
+}
+
 pub fn data_dir() -> PathBuf {
     let strategy = choose_base_strategy().expect("Unable to find the data directory!");
     let mut path = strategy.data_dir();
@@ -203,6 +212,15 @@ pub fn lang_config_file() -> PathBuf {
 
 pub fn default_log_file() -> PathBuf {
     cache_dir().join("mitos.log")
+}
+
+/// The personal dictionary for a spelling `language` (e.g. `"en_US"`): the words the user has added
+/// via "Add to dictionary", one per line. Namespaced per language so a word added for one language
+/// isn't accepted in another.
+pub fn personal_dictionary_file(language: &str) -> PathBuf {
+    state_dir()
+        .join("dictionaries")
+        .join(format!("{language}.txt"))
 }
 
 /// Merge two TOML documents, merging values from `right` onto `left`

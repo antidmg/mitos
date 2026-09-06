@@ -57,6 +57,7 @@ toml.workspace = true
 log.workspace = true
 
 parking_lot.workspace = true
+spellbook.workspace = true
 thiserror.workspace = true
 
 kstring.workspace = true

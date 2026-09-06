@@ -21,7 +21,7 @@ use globset::{GlobBuilder, GlobMatcher};
 
 use crate::{
     indent::{IndentStyle, MAX_INDENT},
-    LineEnding,
+    LineEnding, SpellingLanguage,
 };
 
 /// Configuration declared for a path in `.editorconfig` files.
@@ -31,7 +31,7 @@ pub struct EditorConfig {
     pub tab_width: Option<NonZeroU8>,
     pub line_ending: Option<LineEnding>,
     pub encoding: Option<&'static Encoding>,
-    // pub spelling_language: Option<SpellingLanguage>,
+    pub spelling_language: Option<SpellingLanguage>,
     pub trim_trailing_whitespace: Option<bool>,
     pub insert_final_newline: Option<bool>,
     pub max_line_length: Option<NonZeroU16>,
@@ -144,6 +144,10 @@ impl EditorConfig {
             "utf-16be" => Some(encoding_rs::UTF_16BE),
             _ => None,
         });
+        let spelling_language = pairs
+            .get("spelling_language")
+            .filter(|s| !s.eq_ignore_ascii_case("unset"))
+            .and_then(|s| s.parse().ok());
         let trim_trailing_whitespace =
             pairs
                 .get("trim_trailing_whitespace")
@@ -170,6 +174,7 @@ impl EditorConfig {
             tab_width,
             line_ending,
             encoding,
+            spelling_language,
             trim_trailing_whitespace,
             insert_final_newline,
             max_line_length,
@@ -242,7 +247,12 @@ impl FromStr for Ini {
                 // >       include any whitespace that is between non-whitespace characters.
                 // >     * If a value is not provided, then the value is an empty string.
                 let key = key.trim().to_lowercase().into_boxed_str();
-                let value = value.trim().to_lowercase().into_boxed_str();
+                // Dictionary names map directly to case-sensitive runtime filenames.
+                let value = if key.as_ref() == "spelling_language" {
+                    value.trim().into()
+                } else {
+                    value.trim().to_lowercase().into_boxed_str()
+                };
                 if let Some(section) = ini.sections.last_mut() {
                     section.pairs.insert(key, value);
                 } else {
@@ -330,6 +340,17 @@ mod test {
                 ..Default::default()
             }
         );
+    }
+
+    #[test]
+    fn spelling_language_preserves_case_and_can_be_unset() {
+        let config = editor_config("test.txt", "[*]\nspelling_language = en_US\n");
+        assert_eq!(config.spelling_language.unwrap().as_str(), "en_US");
+        let config = editor_config(
+            "test.txt",
+            "[*]\nspelling_language = en_US\n[*.txt]\nspelling_language = unset\n",
+        );
+        assert!(config.spelling_language.is_none());
     }
 
     #[test]
