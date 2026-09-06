@@ -293,6 +293,20 @@ pub fn test_config() -> Config {
 
 pub fn test_editor_config() -> view::editor::Config {
     view::editor::Config {
+        // Watcher tests opt in; unrelated tests should not crawl the source tree.
+        file_watcher: editor_core::file_watcher::Config {
+            enable: false,
+            watch_vcs: false,
+            ..Default::default()
+        },
+        auto_reload: view::editor::AutoReloadConfig {
+            enable: false,
+            poll: view::editor::AutoReloadPoll {
+                enable: false,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
         lsp: LspConfig {
             enable: false,
             auto_document_highlight: false,

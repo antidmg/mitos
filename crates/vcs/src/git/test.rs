@@ -238,3 +238,25 @@ fn symlink_to_git_repo() {
     assert_eq!(git::get_diff_base(&file_link, true).unwrap(), contents);
     assert_eq!(git::get_diff_base(&file, true).unwrap(), contents);
 }
+
+#[test]
+fn watched_paths_include_branch_refs_and_linked_worktree_metadata() {
+    let repo = empty_git_repo();
+    std::fs::write(repo.path().join("file.txt"), "hello\n").unwrap();
+    create_commit(repo.path(), true);
+    let paths = git::get_watched_paths(repo.path(), false).unwrap();
+    assert!(paths.iter().any(|path| path.ends_with(".git/HEAD")));
+    assert!(paths
+        .iter()
+        .any(|path| path.ends_with(".git/refs/heads/main")));
+    assert!(paths.iter().any(|path| path.ends_with(".git/packed-refs")));
+    exec_git_cmd("worktree add -b feature linked", repo.path());
+    let paths = git::get_watched_paths(&repo.path().join("linked"), false).unwrap();
+    assert!(paths
+        .iter()
+        .any(|path| path.ends_with(".git/worktrees/linked/HEAD")));
+    assert!(paths
+        .iter()
+        .any(|path| path.ends_with(".git/refs/heads/feature")));
+    assert!(paths.iter().any(|path| path.ends_with(".git/packed-refs")));
+}

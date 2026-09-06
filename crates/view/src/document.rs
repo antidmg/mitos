@@ -207,6 +207,11 @@ pub struct Document {
     // were no saves.
     last_saved_time: SystemTime,
 
+    /// On-disk mtime of the last external change auto-reload already surfaced for
+    /// this document (prompt/warning). Lets it show the conflict once instead of
+    /// re-prompting on every poll/focus check while the buffer stays modified.
+    pub auto_reload_seen_mtime: Option<SystemTime>,
+
     last_saved_revision: usize,
     version: i32, // should be usize?
     pub(crate) modified_since_accessed: bool,
@@ -835,6 +840,7 @@ impl Document {
             history: Cell::new(History::default()),
             savepoints: Vec::new(),
             last_saved_time: SystemTime::now(),
+            auto_reload_seen_mtime: None,
             last_saved_revision: 0,
             modified_since_accessed: false,
             language_servers: HashMap::new(),
@@ -1334,7 +1340,13 @@ impl Document {
         }
     }
 
+    /// Filesystem modification time recorded by the last read or successful save.
+    pub fn last_saved_time(&self) -> SystemTime {
+        self.last_saved_time
+    }
+
     pub fn pickup_last_saved_time(&mut self) {
+        self.auto_reload_seen_mtime = None;
         self.last_saved_time = match self.path() {
             Some(path) => match path.metadata() {
                 Ok(metadata) => match metadata.modified() {
@@ -1394,12 +1406,7 @@ impl Document {
         self.pickup_last_saved_time();
         self.detect_indent_and_line_ending();
 
-        match provider_registry.get_diff_base(&path, trust_full) {
-            Some(diff_base) => self.set_diff_base(diff_base),
-            None => self.diff_handle = None,
-        }
-
-        self.version_control_head = provider_registry.get_current_head_name(&path, trust_full);
+        self.refresh_vcs(provider_registry, trust_full);
 
         Ok(())
     }
@@ -1950,6 +1957,7 @@ impl Document {
         );
         self.last_saved_revision = rev;
         self.last_saved_time = save_time;
+        self.auto_reload_seen_mtime = None;
     }
 
     /// Get the document's latest saved revision.
@@ -2079,7 +2087,19 @@ impl Document {
         self.diff_handle.as_ref()
     }
 
-    /// Intialize/updates the differ for this document with a new base.
+    /// Refresh both branch display and the diff base after repository changes.
+    pub fn refresh_vcs(&mut self, providers: &DiffProviderRegistry, trust_full: bool) {
+        let Some(path) = self.path().map(ToOwned::to_owned) else {
+            return;
+        };
+        match providers.get_diff_base(&path, trust_full) {
+            Some(base) => self.set_diff_base(base),
+            None => self.diff_handle = None,
+        }
+        self.version_control_head = providers.get_current_head_name(&path, trust_full);
+    }
+
+    /// Initialize or update the differ for this document with a new base.
     pub fn set_diff_base(&mut self, diff_base: Vec<u8>) {
         match from_reader(&mut diff_base.as_slice(), Some(self.encoding)) {
             Ok((diff_base, ..)) => {

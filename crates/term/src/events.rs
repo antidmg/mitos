@@ -1,3 +1,4 @@
+use editor_core::file_watcher::FileSystemDidChange;
 use event::{events, register_event};
 use view::document::Mode;
 use view::events::{
@@ -27,4 +28,5 @@ pub fn register() {
     register_event::<LanguageServerInitialized>();
     register_event::<LanguageServerExited>();
     register_event::<ConfigDidChange>();
+    register_event::<FileSystemDidChange>();
 }

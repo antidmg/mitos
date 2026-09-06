@@ -1,6 +1,17 @@
-use std::{collections::HashMap, path::PathBuf, sync::Weak};
+//! Batched LSP file notifications.
+//!
+//! Adapted from work by Pascal Kuthe and Blaž Hrastnik in
+//! [Helix PR #14544](https://github.com/helix-editor/helix/pull/14544).
 
-use globset::{GlobBuilder, GlobSetBuilder};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+    sync::Weak,
+};
+
+use editor_core::file_watcher::{EventType, Events, FileSystemDidChange};
+use event::register_hook;
+use globset::{Glob, GlobBuilder, GlobSet};
 use tokio::sync::mpsc;
 
 use crate::{lsp, Client, LanguageServerId};
@@ -8,9 +19,10 @@ use crate::{lsp, Client, LanguageServerId};
 enum Event {
     FileChanged {
         path: PathBuf,
+        ty: EventType,
     },
+    FileWatcher(Events),
     Register {
-        client_id: LanguageServerId,
         client: Weak<Client>,
         registration_id: String,
         options: lsp::DidChangeWatchedFilesRegistrationOptions,
@@ -27,18 +39,163 @@ enum Event {
 #[derive(Default)]
 struct ClientState {
     client: Weak<Client>,
-    registered: HashMap<String, globset::GlobSet>,
+    registrations: HashMap<String, Vec<(Glob, lsp::WatchKind)>>,
+    pending: Vec<lsp::FileEvent>,
 }
 
-/// The Handler uses a dedicated tokio task to respond to file change events by
-/// forwarding changes to LSPs that have registered for notifications with a
-/// matching glob.
-///
-/// When an LSP registers for the DidChangeWatchedFiles notification, the
-/// Handler is notified by sending the registration details in addition to a
-/// weak reference to the LSP client. This is done so that the Handler can have
-/// access to the client without preventing the client from being dropped if it
-/// is closed and the Handler isn't properly notified.
+#[derive(Default)]
+struct State {
+    clients: HashMap<LanguageServerId, ClientState>,
+    matcher: GlobSet,
+    interests: Vec<(LanguageServerId, lsp::WatchKind)>,
+    candidates: Vec<usize>,
+}
+
+/// Relative bases are literal filesystem paths, even when they contain glob syntax.
+fn watcher_glob(pattern: lsp::GlobPattern) -> anyhow::Result<Glob> {
+    let pattern = match pattern {
+        lsp::GlobPattern::String(pattern) => pattern,
+        lsp::GlobPattern::Relative(pattern) => {
+            let uri = match pattern.base_uri {
+                lsp::OneOf::Left(folder) => folder.uri,
+                lsp::OneOf::Right(uri) => uri,
+            };
+            let path = uri
+                .to_file_path()
+                .map_err(|_| anyhow::anyhow!("invalid file watcher base URI: {uri}"))?;
+            let path = editor_core::file_watcher::canonicalize_path(&path);
+            let path = path
+                .to_str()
+                .ok_or_else(|| anyhow::anyhow!("file watcher base must be UTF-8"))?;
+            #[cfg(windows)]
+            let path = path.replace('\\', "/");
+            format!(
+                "{}/{}",
+                globset::escape(path.trim_end_matches('/')),
+                pattern.pattern
+            )
+        }
+    };
+    Ok(GlobBuilder::new(&pattern).literal_separator(true).build()?)
+}
+
+impl State {
+    fn register(
+        &mut self,
+        id: LanguageServerId,
+        client: Weak<Client>,
+        registration: String,
+        options: lsp::DidChangeWatchedFilesRegistrationOptions,
+    ) {
+        let state = self.clients.entry(id).or_default();
+        if !state.client.ptr_eq(&client) {
+            *state = ClientState::default();
+        }
+        state.client = client;
+        let interests = options
+            .watchers
+            .into_iter()
+            .filter_map(|watcher| {
+                let flags = watcher.kind.unwrap_or(lsp::WatchKind::all());
+                if flags.is_empty() {
+                    return None;
+                }
+                match watcher_glob(watcher.glob_pattern) {
+                    Ok(glob) => Some((glob, flags)),
+                    Err(err) => {
+                        log::warn!("invalid LSP file watcher: {err}");
+                        None
+                    }
+                }
+            })
+            .collect();
+        state.registrations.insert(registration, interests);
+        self.rebuild();
+    }
+
+    fn unregister(&mut self, id: LanguageServerId, registration: &str) {
+        if let Some(client) = self.clients.get_mut(&id) {
+            client.registrations.remove(registration);
+            if client.registrations.is_empty() {
+                self.clients.remove(&id);
+            }
+            self.rebuild();
+        }
+    }
+
+    fn rebuild(&mut self) {
+        let mut builder = GlobSet::builder();
+        let mut interests = Vec::new();
+        for (&id, client) in &self.clients {
+            for (glob, flags) in client.registrations.values().flatten() {
+                builder.add(glob.clone());
+                interests.push((id, *flags));
+            }
+        }
+        match builder.build() {
+            Ok(matcher) => {
+                self.matcher = matcher;
+                self.interests = interests;
+            }
+            Err(err) => {
+                // Never retain an old matcher referring to removed clients.
+                self.matcher = GlobSet::empty();
+                self.interests.clear();
+                log::error!("failed to build file watcher patterns: {err}");
+            }
+        }
+    }
+
+    fn queue<'a>(&mut self, events: impl IntoIterator<Item = (&'a Path, EventType)>) {
+        for (path, ty) in events {
+            let (flag, typ) = match ty {
+                EventType::Create => (lsp::WatchKind::Create, lsp::FileChangeType::CREATED),
+                EventType::Delete => (lsp::WatchKind::Delete, lsp::FileChangeType::DELETED),
+                EventType::Modified => (lsp::WatchKind::Change, lsp::FileChangeType::CHANGED),
+                EventType::Tempfile => continue,
+            };
+            let Ok(uri) = lsp::Url::from_file_path(path) else {
+                continue;
+            };
+            self.matcher.matches_into(path, &mut self.candidates);
+            for &candidate in &self.candidates {
+                let (id, flags) = self.interests[candidate];
+                if !flags.contains(flag) {
+                    continue;
+                }
+                let event = lsp::FileEvent {
+                    uri: uri.clone(),
+                    typ,
+                };
+                let pending = &mut self.clients.get_mut(&id).unwrap().pending;
+                // Overlapping registrations should deliver a change only once per server.
+                if !pending.contains(&event) {
+                    pending.push(event);
+                }
+            }
+        }
+    }
+
+    fn notify<'a>(&mut self, events: impl IntoIterator<Item = (&'a Path, EventType)>) {
+        self.queue(events);
+        let mut removed = false;
+        self.clients.retain(|_, state| {
+            let Some(client) = state.client.upgrade() else {
+                removed = true;
+                return false;
+            };
+            if !state.pending.is_empty() {
+                client.did_change_watched_files(std::mem::take(&mut state.pending));
+            }
+            true
+        });
+        if removed {
+            self.rebuild();
+        }
+    }
+}
+
+/// Routes native changes and editor writes to registered language servers.
 #[derive(Clone, Debug)]
 pub struct Handler {
     tx: mpsc::UnboundedSender<Event>,
@@ -54,18 +211,23 @@ impl Handler {
     pub fn new() -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
         tokio::spawn(Self::run(rx));
+        let weak = tx.downgrade();
+        register_hook!(move |event: &mut FileSystemDidChange| {
+            if let Some(tx) = weak.upgrade() {
+                let _ = tx.send(Event::FileWatcher(event.fs_events.clone()));
+            }
+            Ok(())
+        });
         Self { tx }
     }
 
     pub fn register(
         &self,
-        client_id: LanguageServerId,
         client: Weak<Client>,
         registration_id: String,
         options: lsp::DidChangeWatchedFilesRegistrationOptions,
     ) {
         let _ = self.tx.send(Event::Register {
-            client_id,
             client,
             registration_id,
             options,
@@ -79,8 +241,9 @@ impl Handler {
         });
     }
 
-    pub fn file_changed(&self, path: PathBuf) {
-        let _ = self.tx.send(Event::FileChanged { path });
+    pub fn file_changed(&self, path: PathBuf, ty: EventType) {
+        let path = editor_core::file_watcher::canonicalize_path(&path);
+        let _ = self.tx.send(Event::FileChanged { path, ty });
     }
 
     pub fn remove_client(&self, client_id: LanguageServerId) {
@@ -88,102 +251,146 @@ impl Handler {
     }
 
     async fn run(mut rx: mpsc::UnboundedReceiver<Event>) {
-        let mut state: HashMap<LanguageServerId, ClientState> = HashMap::new();
+        let mut state = State::default();
         while let Some(event) = rx.recv().await {
             match event {
-                Event::FileChanged { path } => {
-                    log::debug!("Received file event for {:?}", path);
-
-                    state.retain(|id, client_state| {
-                        if !client_state
-                            .registered
-                            .values()
-                            .any(|glob| glob.is_match(&path))
-                        {
-                            return true;
-                        }
-                        let Some(client) = client_state.client.upgrade() else {
-                            log::warn!("LSP client was dropped: {id}");
-                            return false;
-                        };
-                        let Ok(uri) = lsp::Url::from_file_path(&path) else {
-                            return true;
-                        };
-                        log::debug!(
-                            "Sending didChangeWatchedFiles notification to client '{}'",
-                            client.name()
-                        );
-                        client.did_change_watched_files(vec![lsp::FileEvent {
-                            uri,
-                            // We currently always send the CHANGED state
-                            // since we don't actually have more context at
-                            // the moment.
-                            typ: lsp::FileChangeType::CHANGED,
-                        }]);
-                        true
-                    });
-                }
+                Event::FileWatcher(events) => state.notify(
+                    events
+                        .iter()
+                        .map(|event| (event.path.as_std_path(), event.ty)),
+                ),
+                Event::FileChanged { path, ty } => state.notify([(path.as_path(), ty)]),
                 Event::Register {
-                    client_id,
                     client,
                     registration_id,
-                    options: ops,
+                    options,
                 } => {
-                    log::debug!(
-                        "Registering didChangeWatchedFiles for client '{}' with id '{}'",
-                        client_id,
-                        registration_id
-                    );
-
-                    let entry = state.entry(client_id).or_default();
-                    entry.client = client;
-
-                    let mut builder = GlobSetBuilder::new();
-                    for watcher in ops.watchers {
-                        if let lsp::GlobPattern::String(pattern) = watcher.glob_pattern
-                            && let Ok(glob) = GlobBuilder::new(&pattern).build()
-                        {
-                            builder.add(glob);
-                        }
-                    }
-                    match builder.build() {
-                        Ok(globset) => {
-                            entry.registered.insert(registration_id, globset);
-                        }
-                        Err(err) => {
-                            // Remove any old state for that registration id and
-                            // remove the entire client if it's now empty.
-                            entry.registered.remove(&registration_id);
-                            if entry.registered.is_empty() {
-                                state.remove(&client_id);
-                            }
-                            log::warn!(
-                                "Unable to build globset for LSP didChangeWatchedFiles {err}"
-                            )
-                        }
+                    if let Some(strong) = client.upgrade() {
+                        state.register(strong.id(), client, registration_id, options);
                     }
                 }
                 Event::Unregister {
                     client_id,
                     registration_id,
-                } => {
-                    log::debug!(
-                        "Unregistering didChangeWatchedFiles with id '{}' for client '{}'",
-                        registration_id,
-                        client_id
-                    );
-                    if let Some(client_state) = state.get_mut(&client_id) {
-                        client_state.registered.remove(&registration_id);
-                        if client_state.registered.is_empty() {
-                            state.remove(&client_id);
-                        }
-                    }
-                }
+                } => state.unregister(client_id, &registration_id),
                 Event::RemoveClient { client_id } => {
-                    log::debug!("Removing LSP client: {client_id}");
-                    state.remove(&client_id);
+                    state.clients.remove(&client_id);
+                    state.rebuild();
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn registration(
+        pattern: &str,
+        kind: Option<lsp::WatchKind>,
+    ) -> lsp::DidChangeWatchedFilesRegistrationOptions {
+        lsp::DidChangeWatchedFilesRegistrationOptions {
+            watchers: vec![lsp::FileSystemWatcher {
+                glob_pattern: lsp::GlobPattern::String(pattern.into()),
+                kind,
+            }],
+        }
+    }
+
+    #[test]
+    fn overlapping_registrations_respect_kinds_and_unregister_independently() {
+        let mut state = State::default();
+        let id = LanguageServerId::default();
+        state.register(
+            id,
+            Weak::new(),
+            "changes".into(),
+            registration("**/*.rs", Some(lsp::WatchKind::Change)),
+        );
+        state.register(id, Weak::new(), "all".into(), registration("**/*.rs", None));
+        let path = std::env::temp_dir().join("watched.rs");
+        state.queue([
+            (path.as_path(), EventType::Create),
+            (path.as_path(), EventType::Modified),
+            (path.as_path(), EventType::Delete),
+            (path.as_path(), EventType::Tempfile),
+        ]);
+        let pending = &mut state.clients.get_mut(&id).unwrap().pending;
+        assert_eq!(
+            pending.iter().map(|event| event.typ).collect::<Vec<_>>(),
+            [
+                lsp::FileChangeType::CREATED,
+                lsp::FileChangeType::CHANGED,
+                lsp::FileChangeType::DELETED
+            ]
+        );
+        pending.clear();
+        state.unregister(id, "all");
+        state.register(
+            id,
+            Weak::new(),
+            "new".into(),
+            registration("**/*.toml", None),
+        );
+        state.unregister(id, "changes");
+        let config = std::env::temp_dir().join("Cargo.toml");
+        state.queue([
+            (path.as_path(), EventType::Modified),
+            (config.as_path(), EventType::Create),
+        ]);
+        assert_eq!(state.clients[&id].pending.len(), 1);
+        assert_eq!(
+            state.clients[&id].pending[0].uri,
+            lsp::Url::from_file_path(config).unwrap()
+        );
+    }
+
+    #[test]
+    fn reregister_replaces_only_the_named_registration() {
+        let mut state = State::default();
+        let id = LanguageServerId::default();
+        state.register(
+            id,
+            Weak::new(),
+            "first".into(),
+            registration("**/*.rs", None),
+        );
+        state.register(
+            id,
+            Weak::new(),
+            "second".into(),
+            registration("**/*.toml", None),
+        );
+        state.register(
+            id,
+            Weak::new(),
+            "first".into(),
+            registration("**/*.md", None),
+        );
+        let paths: Vec<_> = ["a.rs", "a.toml", "a.md"]
+            .map(|name| std::env::temp_dir().join(name))
+            .into();
+        state.queue(
+            paths
+                .iter()
+                .map(|path| (path.as_path(), EventType::Modified)),
+        );
+        assert_eq!(state.clients[&id].pending.len(), 2);
+    }
+
+    #[test]
+    fn relative_patterns_escape_the_base_and_obey_directory_boundaries() {
+        let base =
+            editor_core::file_watcher::canonicalize_path(&std::env::temp_dir()).join("project[1]");
+        let glob = watcher_glob(lsp::GlobPattern::Relative(lsp::RelativePattern {
+            base_uri: lsp::OneOf::Right(lsp::Url::from_directory_path(&base).unwrap()),
+            pattern: "*.rs".into(),
+        }))
+        .unwrap()
+        .compile_matcher();
+        assert!(glob.is_match(base.join("a.rs")));
+        assert!(!glob.is_match(base.join("nested/a.rs")));
+        assert!(!glob.is_match(std::env::temp_dir().join("project1/a.rs")));
     }
 }

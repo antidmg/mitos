@@ -55,6 +55,18 @@ pub struct DiffProviderRegistry {
 }
 
 impl DiffProviderRegistry {
+    /// Git metadata whose changes invalidate branch names and document diff bases.
+    pub fn get_watched_paths(&self, path: &Path, trust_full: bool) -> Vec<PathBuf> {
+        self.providers
+            .iter()
+            .flat_map(|provider| match provider {
+                #[cfg(feature = "git")]
+                DiffProvider::Git => git::get_watched_paths(path, trust_full).unwrap_or_default(),
+                DiffProvider::None => Vec::new(),
+            })
+            .collect()
+    }
+
     /// Reads the unedited version of `file` used as the base of a document diff.
     ///
     /// Providers are tried in registry order. Errors are logged and suppressed;

@@ -1,7 +1,8 @@
 use completion::{CompletionEvent, CompletionHandler};
-use event::send_blocking;
+use event::{register_hook, send_blocking};
 use tokio::sync::mpsc::Sender;
 
+use crate::events::ConfigDidChange;
 use crate::handlers::lsp::SignatureHelpInvoked;
 use crate::{DocumentId, Editor, ViewId};
 
@@ -17,11 +18,18 @@ pub enum AutoSaveEvent {
     LeftInsertMode,
 }
 
+#[derive(Debug)]
+pub enum AutoReloadEvent {
+    PollAfter { interval: u64 },
+    Stop,
+}
+
 pub struct Handlers {
     // only public because most of the actual implementation is in term right now :/
     pub completions: CompletionHandler,
     pub signature_hints: Sender<lsp::SignatureHelpEvent>,
     pub auto_save: Sender<AutoSaveEvent>,
+    pub auto_reload: Sender<AutoReloadEvent>,
     pub document_colors: Sender<lsp::DocumentColorsEvent>,
     pub document_links: Sender<lsp::DocumentLinksEvent>,
     pub word_index: word_index::Handler,
@@ -61,4 +69,10 @@ impl Handlers {
 pub fn register_hooks(handlers: &Handlers) {
     lsp::register_hooks(handlers);
     word_index::register_hooks(handlers);
+    // must be done here because the file watcher is in helix-core
+    register_hook!(move |event: &mut ConfigDidChange<'_>| {
+        event.editor.file_watcher.reload(&event.new.file_watcher);
+        event.editor.refresh_vcs_watches();
+        Ok(())
+    });
 }

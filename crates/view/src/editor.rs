@@ -46,6 +46,7 @@ use anyhow::{anyhow, bail, Error};
 
 use dap::{self as dap, registry::DebugAdapterId};
 pub use editor_core::diagnostic::Severity;
+use editor_core::file_watcher::{self, Watcher};
 use editor_core::{
     auto_pairs::AutoPairs,
     diagnostic::DiagnosticProvider,
@@ -440,6 +441,8 @@ pub struct Config {
     /// Whether to enable Kitty Keyboard Protocol
     pub kitty_keyboard_protocol: KittyKeyboardProtocolConfig,
     pub buffer_picker: BufferPickerConfig,
+    pub auto_reload: AutoReloadConfig,
+    pub file_watcher: file_watcher::Config,
     /// Workspace-trust configuration.
     pub workspace_trust: WorkspaceTrustConfig,
     /// Commands defined in the top-level `[commands]` configuration table.
@@ -1246,6 +1249,8 @@ impl Default for Config {
             rainbow_brackets: false,
             kitty_keyboard_protocol: Default::default(),
             buffer_picker: BufferPickerConfig::default(),
+            file_watcher: file_watcher::Config::default(),
+            auto_reload: AutoReloadConfig::default(),
             workspace_trust: WorkspaceTrustConfig::default(),
             commands: CustomCommands::default(),
         }
@@ -1350,7 +1355,47 @@ pub struct Editor {
 
     pub mouse_down_range: Option<Range>,
     pub cursor_cache: CursorCache,
+    pub file_watcher: Watcher,
     pub workspace_trust: WorkspaceTrust,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize, Eq, PartialOrd, Ord)]
+#[serde(default, rename_all = "kebab-case", deny_unknown_fields)]
+pub struct AutoReloadConfig {
+    pub enable: bool,
+    pub prompt_if_modified: bool,
+    /// Poll for changes to files outside the watched workspace
+    pub poll: AutoReloadPoll,
+}
+
+impl Default for AutoReloadConfig {
+    fn default() -> Self {
+        AutoReloadConfig {
+            enable: true,
+            prompt_if_modified: true,
+            poll: AutoReloadPoll::default(),
+        }
+    }
+}
+
+/// Configuration for polling unwatched files for external changes
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize, Eq, PartialOrd, Ord)]
+#[serde(default, rename_all = "kebab-case", deny_unknown_fields)]
+pub struct AutoReloadPoll {
+    /// Enable polling for files outside the watched workspace
+    pub enable: bool,
+    /// Polling interval in milliseconds (default: 30000). This is only a backstop:
+    /// unwatched files are normally re-checked when the terminal regains focus.
+    pub interval: u64,
+}
+
+impl Default for AutoReloadPoll {
+    fn default() -> Self {
+        AutoReloadPoll {
+            enable: true,
+            interval: 30000,
+        }
+    }
 }
 
 pub type Motion = Box<dyn Fn(&mut Editor)>;
@@ -1430,6 +1475,10 @@ impl Editor {
         let conf = config.load();
         let auto_pairs = (&conf.auto_pairs).into();
 
+        // Initialize file watcher and diff providers
+        let file_watcher = Watcher::new(&conf.file_watcher);
+        let diff_providers = DiffProviderRegistry::default();
+
         // HAXX: offset the render area height by 1 to account for prompt/commandline
         area.height -= 1;
 
@@ -1448,7 +1497,7 @@ impl Editor {
             theme: theme_loader.default(),
             language_servers,
             diagnostics: Diagnostics::new(),
-            diff_providers: DiffProviderRegistry::default(),
+            diff_providers,
             debug_adapters: dap::registry::Registry::new(),
             breakpoints: HashMap::new(),
             syn_loader,
@@ -1475,6 +1524,7 @@ impl Editor {
             handlers,
             mouse_down_range: None,
             cursor_cache: CursorCache::default(),
+            file_watcher,
             dir_stack: VecDeque::with_capacity(DIR_STACK_CAP),
             workspace_trust,
         }
@@ -1668,6 +1718,8 @@ impl Editor {
             }
         }
 
+        let old_watched = self.file_watcher.is_watching(old_path);
+        let new_watched = self.file_watcher.is_watching(&new_path);
         if old_path.exists() {
             fs::rename(old_path, &new_path)?;
         }
@@ -1684,12 +1736,17 @@ impl Editor {
             }
             ls.did_rename(old_path, &new_path, is_dir);
         }
-        self.language_servers
-            .file_event_handler
-            .file_changed(old_path.to_owned());
-        self.language_servers
-            .file_event_handler
-            .file_changed(new_path);
+
+        if !old_watched {
+            self.language_servers
+                .file_event_handler
+                .file_changed(old_path.to_owned(), file_watcher::EventType::Delete);
+        }
+        if !new_watched {
+            self.language_servers
+                .file_event_handler
+                .file_changed(new_path, file_watcher::EventType::Create);
+        }
         Ok(())
     }
 
@@ -1734,12 +1791,17 @@ impl Editor {
             }
             ls.did_create(&path, is_dir);
         }
-        self.language_servers.file_event_handler.file_changed(path);
+        if !self.file_watcher.is_watching(&path) {
+            self.language_servers
+                .file_event_handler
+                .file_changed(path, file_watcher::EventType::Create);
+        }
         Ok(())
     }
 
     pub fn delete_path(&mut self, path: &Path, recursive: bool) -> io::Result<()> {
         let path = canonicalize(path);
+        let watched = self.file_watcher.is_watching(&path);
         let is_dir = path.is_dir();
         let language_servers: Vec<_> = self
             .language_servers
@@ -1779,7 +1841,11 @@ impl Editor {
             }
             ls.did_delete(&path, is_dir);
         }
-        self.language_servers.file_event_handler.file_changed(path);
+        if !watched {
+            self.language_servers
+                .file_event_handler
+                .file_changed(path, file_watcher::EventType::Delete);
+        }
         Ok(())
     }
 
@@ -1805,7 +1871,8 @@ impl Editor {
         doc.language_servers.clear();
         doc.set_path(Some(path));
         doc.detect_editor_config();
-        self.refresh_doc_language(doc_id)
+        self.refresh_doc_language(doc_id);
+        self.refresh_vcs_watches();
     }
 
     pub fn refresh_doc_language(&mut self, doc_id: DocumentId) {
@@ -2061,6 +2128,7 @@ impl Editor {
             DocumentId(unsafe { NonZeroUsize::new_unchecked(self.next_document_id.0.get() + 1) });
         doc.id = id;
         self.documents.insert(id, doc);
+        self.refresh_vcs_watches();
 
         let (save_sender, save_receiver) = tokio::sync::mpsc::unbounded_channel();
         self.saves.insert(id, save_sender);
@@ -2221,6 +2289,7 @@ impl Editor {
         }
 
         let doc = self.documents.remove(&doc_id).unwrap();
+        self.refresh_vcs_watches();
 
         // If the document we removed was visible in all views, we will have no more views. We don't
         // want to close the editor just for a simple buffer close, so we need to create a new view
@@ -2262,15 +2331,28 @@ impl Editor {
 
         let path = path.map(|path| path.into());
         let doc = doc_mut!(self, &doc_id);
+        // the path that will be written: the override, else the document's own path
+        let save_path = path.clone().or_else(|| doc.path().map(ToOwned::to_owned));
+        let created = save_path.as_ref().is_some_and(|path| !path.exists());
         let doc_save_future = doc.save(path, force)?;
 
-        // When a file is written to, notify the file event handler.
-        // Note: This can be removed once proper file watching is implemented.
+        // When a file is written to, notify the file event handler, unless the
+        // watcher already covers it, in which case filesentry reports the write.
         let handler = self.language_servers.file_event_handler.clone();
+        let watched = save_path
+            .as_deref()
+            .is_some_and(|path| self.file_watcher.is_watching(path));
         let future = async move {
             let res = doc_save_future.await;
-            if let Ok(event) = &res {
-                handler.file_changed(event.path.clone());
+            if !watched && let Ok(event) = &res {
+                handler.file_changed(
+                    event.path.clone(),
+                    if created {
+                        file_watcher::EventType::Create
+                    } else {
+                        file_watcher::EventType::Modified
+                    },
+                );
             }
             res
         };
@@ -2608,9 +2690,33 @@ impl Editor {
         }
     }
 
+    /// Include repositories for every open document, including linked worktrees.
+    pub fn refresh_vcs_watches(&mut self) {
+        let mut paths = Vec::new();
+        if self.config().file_watcher.watch_vcs {
+            for doc in self.documents.values() {
+                let Some(path) = doc.path().and_then(|path| path.parent()) else {
+                    continue;
+                };
+                let trust_full = self
+                    .workspace_trust
+                    .query(
+                        doc.workspace_root(),
+                        loader::workspace_trust::TrustQuery::Git,
+                    )
+                    .is_trusted();
+                paths.extend(self.diff_providers.get_watched_paths(path, trust_full));
+            }
+        }
+        self.file_watcher.set_extra_watched_paths(paths);
+    }
+
     pub fn set_cwd(&mut self, path: &Path) -> std::io::Result<()> {
         self.last_cwd = stdx::env::set_current_working_dir(path)?;
         self.clear_doc_relative_paths();
+        self.file_watcher
+            .reload(&self.config().file_watcher.clone());
+        self.refresh_vcs_watches();
         Ok(())
     }
 

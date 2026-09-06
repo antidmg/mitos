@@ -1888,6 +1888,7 @@ impl Component for EditorView {
             Event::IdleTimeout => self.handle_idle_timeout(&mut cx),
             Event::FocusGained => {
                 self.terminal_focused = true;
+                crate::handlers::auto_reload::on_focus_gained();
                 EventResult::Consumed(None)
             }
             Event::FocusLost => {
@@ -1989,6 +1990,8 @@ impl Component for EditorView {
             use view::editor::Severity;
             let style = if *severity == Severity::Error {
                 cx.editor.theme.get("error")
+            } else if *severity == Severity::Warning {
+                cx.editor.theme.get("warning")
             } else {
                 cx.editor.theme.get("ui.text")
             };

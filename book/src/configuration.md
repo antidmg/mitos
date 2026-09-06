@@ -91,6 +91,8 @@ For examples and behavioral details, see the [Editor](./editor.md) chapter.
 | `word-completion` | table | `{ enable = true, trigger-length = 7 }` | Complete words from open buffers. See [`[editor.word-completion]`](#editorword-completion). |
 | `auto-format` | boolean | `true` | Format on save when the current language also enables `auto-format`. |
 | `auto-save` | boolean or table | `false` | A boolean controls save-on-focus-loss; a table can also configure delayed saves. See [`[editor.auto-save]`](#editorauto-save). |
+| `auto-reload` | table | See below | Reload buffers when files change externally. See [`[editor.auto-reload]`](#editorauto-reload). |
+| `file-watcher` | table | See below | Native file watching, traversal, and Git refreshes. See [`[editor.file-watcher]`](#editorfile-watcher). |
 | `text-width` | integer | `80` | Width used by `:reflow` and optionally soft wrapping. |
 | `idle-timeout` | milliseconds | `250` | Idle delay used by editor UI timers. |
 | `completion-timeout` | milliseconds | `250` | Delay after typing a word character before completion is shown; use `5` for effectively immediate completion. |
@@ -201,6 +203,73 @@ Valid elements and their behavior are listed in the
 `normal`, `insert`, and `select` each accept `"block"`, `"bar"`,
 `"underline"`, or `"hidden"`; all default to `"block"`. Terminals can change
 only the primary cursor's shape.
+
+### `[editor.auto-reload]`
+
+Mitos reloads unmodified buffers when their files change externally, preserving
+undo history and updating selections in every split. If a buffer has unsaved
+changes, a prompt offers **Enter** to reload or **Esc** to keep the buffer. The
+same external change prompts only once. Deleted files keep their open buffers;
+recreating the file can trigger another reload.
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `enable` | `true` | Automatically reload files changed on disk. |
+| `prompt-if-modified` | `true` | Prompt before reloading a buffer with unsaved changes. When disabled, show a warning instead. |
+| `poll.enable` | `true` | Periodically check open files outside native watcher coverage and Git metadata. |
+| `poll.interval` | `30000` | Polling interval in milliseconds, with a minimum of `100`. |
+
+Files outside watched roots, hidden or ignored files, and files beyond the depth
+limit are checked when the terminal regains focus and by periodic polling. This
+also provides a fallback when a native watcher cannot start. Focus checks remain
+active when `poll.enable` is `false`. Git refreshes use the same polling schedule
+and can continue when buffer auto-reload is disabled.
+
+```toml
+[editor.auto-reload]
+enable = true
+prompt-if-modified = true
+
+[editor.auto-reload.poll]
+enable = true
+interval = 30000
+```
+
+### `[editor.file-watcher]`
+
+Native file events also notify language servers registered for file creation,
+changes, and deletion. Relative LSP patterns may add watch roots outside the
+current workspace. Recursive watching defaults to workspaces so starting Mitos
+in a home directory does not watch the entire home directory.
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `enable` | `true` | Enable native recursive file watching. Buffer polling and focus checks can still run when disabled. |
+| `watch-vcs` | `true` | Refresh branch names and diff gutters when Git HEAD or branch references change, including linked worktrees. |
+| `require-workspace` | `true` | Automatically watch the working directory only when a workspace is found. Explicit LSP roots are still allowed. |
+| `hidden` | `true` | Exclude hidden paths, apart from editor/build configuration and the Git metadata needed for refreshes. |
+| `ignore` | `true` | Read `.ignore` files. |
+| `git-ignore` | `true` | Read `.gitignore` files, including nested files. |
+| `git-global` | `true` | Read Git's global ignore file. |
+| `max-depth` | `10` | Maximum path depth below a watch root. Deeper open files use polling. |
+
+The global Mitos `ignore` file and `.mitos/ignore` also apply. For watcher-specific
+rules, use `filesentryignore` in the Mitos configuration directory or
+`.mitos/filesentryignore` in the workspace. These use gitignore syntax and take
+priority over the other filters. Changes to workspace ignore files refresh the
+watcher's filters. Configuration reloads and `:cd` update watch coverage.
+
+```toml
+[editor.file-watcher]
+enable = true
+watch-vcs = true
+require-workspace = true
+hidden = true
+ignore = true
+git-ignore = true
+git-global = true
+max-depth = 10
+```
 
 ### `[editor.file-picker]`
 

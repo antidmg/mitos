@@ -2,7 +2,7 @@ use anyhow::{bail, Context, Result};
 use arc_swap::ArcSwap;
 use gix::filter::plumbing::driver::apply::Delay;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use gix::bstr::{BString, ByteSlice, ByteVec};
@@ -95,6 +95,18 @@ pub fn for_each_changed_file(
         scope,
         f,
     )
+}
+
+/// Watch HEAD, the current branch ref, and packed refs, including linked worktrees.
+pub fn get_watched_paths(path: &Path, trust_full: bool) -> Result<Vec<PathBuf>> {
+    let repo = open_repo(path, trust_full)?.to_thread_local();
+    let git_dir = repo.git_dir().canonicalize()?;
+    let common_dir = repo.common_dir().canonicalize()?;
+    let mut paths = vec![git_dir.join("HEAD"), common_dir.join("packed-refs")];
+    if let Some(head) = repo.head_name()? {
+        paths.push(common_dir.join(head.as_bstr().to_str()?));
+    }
+    Ok(paths)
 }
 
 fn open_repo(path: &Path, trust_full: bool) -> Result<ThreadSafeRepository> {
