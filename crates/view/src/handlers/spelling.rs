@@ -10,6 +10,7 @@
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
+    future::Future,
     path::Path,
     sync::Arc,
 };
@@ -143,113 +144,129 @@ impl Editor {
         });
     }
 
-    /// Code actions for the spelling diagnostics overlapping the primary selection: a replacement
-    /// for each of the dictionary's suggestions, plus an "add to dictionary" action.
-    pub fn spelling_actions(&self) -> Vec<Action> {
+    /// Capture the spelling findings overlapping the primary selection, then generate corrections
+    /// and "add to dictionary" actions on a blocking worker. The future owns its snapshot so the
+    /// editor can keep processing input while suggestions are computed.
+    pub fn spelling_actions(&self) -> impl Future<Output = anyhow::Result<Vec<Action>>> + use<> {
         let (view, doc) = current_ref!(self);
         // The dictionaries this document is checked against, in configuration order.
         let dictionaries: Vec<(SpellingLanguage, _)> = doc
             .spelling_languages
             .iter()
-            .filter_map(|language| Some((language.clone(), self.dictionaries.get(language)?)))
+            .filter_map(|language| {
+                Some((language.clone(), self.dictionaries.get(language)?.clone()))
+            })
             .collect();
-        if dictionaries.is_empty() {
-            return Vec::new();
-        }
         let doc_id = doc.id();
         let view_id = view.id;
+        let version = doc.version();
         let selection = doc.selection(view_id).primary();
         let text = doc.text();
+        let words: Vec<_> = doc
+            .diagnostics()
+            .iter()
+            .filter(|diagnostic| {
+                diagnostic.provider == DiagnosticProvider::Spelling
+                    && selection.overlaps(&editor_core::Range::new(
+                        diagnostic.range.start,
+                        diagnostic.range.end,
+                    ))
+            })
+            .map(|diagnostic| {
+                let range = diagnostic.range;
+                let word = Cow::<str>::from(text.slice(range.start..range.end)).into_owned();
+                (range, word)
+            })
+            .collect();
 
-        let mut suggestions = Vec::new();
-        let mut actions = Vec::new();
-        for diagnostic in doc.diagnostics() {
-            if diagnostic.provider != DiagnosticProvider::Spelling {
-                continue;
+        async move {
+            if dictionaries.is_empty() || words.is_empty() {
+                return Ok(Vec::new());
             }
-            let range = diagnostic.range;
-            if !selection.overlaps(&editor_core::Range::new(range.start, range.end)) {
-                continue;
-            }
-            let word = Cow::<str>::from(text.slice(range.start..range.end)).into_owned();
+            Ok(tokio::task::spawn_blocking(move || {
+                let mut suggestions = Vec::new();
+                let mut actions = Vec::new();
+                for (range, word) in words {
+                    // Offer the suggestions from every dictionary, in order, without duplicates.
+                    suggestions.clear();
+                    for (_, dictionary) in &dictionaries {
+                        let mut candidates = Vec::new();
+                        dictionary.suggest(&word, &mut candidates);
+                        suggestions.extend(candidates);
+                    }
+                    let mut seen = HashSet::new();
+                    suggestions.retain(|suggestion| seen.insert(suggestion.clone()));
+                    for suggestion in &suggestions {
+                        let suggestion = suggestion.clone();
+                        let title = format!("Replace '{word}' with '{suggestion}'");
+                        actions.push(Action::new(
+                            title,
+                            SPELLING_ACTION_PRIORITY,
+                            move |editor| {
+                                let Some(doc) = editor.documents.get_mut(&doc_id) else {
+                                    return;
+                                };
+                                let Some(view) = editor.tree.try_get(view_id) else {
+                                    return;
+                                };
+                                // A file reload or edit may have invalidated the menu's captured range.
+                                if doc.version() != version || view.doc != doc_id {
+                                    return;
+                                }
+                                let view = editor.tree.get_mut(view_id);
+                                let transaction = Transaction::change(
+                                    doc.text(),
+                                    std::iter::once((
+                                        range.start,
+                                        range.end,
+                                        Some(Tendril::from(&*suggestion)),
+                                    )),
+                                );
+                                doc.apply(&transaction, view_id);
+                                doc.append_changes_to_history(view);
+                            },
+                        ));
+                    }
 
-            // Offer the suggestions from every dictionary, in order, without duplicates.
-            suggestions.clear();
-            for (_, dictionary) in &dictionaries {
-                let mut candidates = Vec::new();
-                dictionary.suggest(&word, &mut candidates);
-                suggestions.extend(candidates);
-            }
-            let mut seen = HashSet::new();
-            suggestions.retain(|suggestion| seen.insert(suggestion.clone()));
-            for suggestion in &suggestions {
-                let suggestion = suggestion.clone();
-                let title = format!("Replace '{word}' with '{suggestion}'");
-                let version = doc.version();
-                actions.push(Action::new(
-                    title,
-                    SPELLING_ACTION_PRIORITY,
-                    move |editor| {
-                        let Some(doc) = editor.documents.get_mut(&doc_id) else {
-                            return;
-                        };
-                        let Some(view) = editor.tree.try_get(view_id) else {
-                            return;
-                        };
-                        // A file reload or edit may have invalidated the menu's captured range.
-                        if doc.version() != version || view.doc != doc_id {
-                            return;
-                        }
-                        let view = editor.tree.get_mut(view_id);
-                        let transaction = Transaction::change(
-                            doc.text(),
-                            std::iter::once((
-                                range.start,
-                                range.end,
-                                Some(Tendril::from(&*suggestion)),
-                            )),
-                        );
-                        doc.apply(&transaction, view_id);
-                        doc.append_changes_to_history(view);
-                    },
-                ));
-            }
-
-            // "Add to dictionary" targets one dictionary, so offer one action per language.
-            for (language, _) in &dictionaries {
-                let language = language.clone();
-                let word = word.clone();
-                let title = format!("Add '{word}' to dictionary '{language}'");
-                actions.push(Action::new(
-                    title,
-                    SPELLING_ACTION_PRIORITY,
-                    move |editor| {
-                        let Some(dictionary) = editor.dictionaries.get_mut(&language) else {
-                            return;
-                        };
-                        let path = loader::personal_dictionary_file(language.as_str());
-                        if let Err(err) = add_personal_word(dictionary, &path, &word) {
-                            log::error!(
+                    // "Add to dictionary" targets one dictionary, so offer one action per language.
+                    for (language, _) in &dictionaries {
+                        let language = language.clone();
+                        let word = word.clone();
+                        let title = format!("Add '{word}' to dictionary '{language}'");
+                        actions.push(Action::new(
+                            title,
+                            SPELLING_ACTION_PRIORITY,
+                            move |editor| {
+                                let Some(dictionary) = editor.dictionaries.get_mut(&language)
+                                else {
+                                    return;
+                                };
+                                let path = loader::personal_dictionary_file(language.as_str());
+                                if let Err(err) = add_personal_word(dictionary, &path, &word) {
+                                    log::error!(
                                 "could not persist '{word}' to the personal dictionary: {err}"
                             );
-                            editor.set_error(|| {
+                                    editor.set_error(|| {
                                 format!("Could not save personal dictionary '{language}': {err}")
                             });
-                            return;
-                        }
-                        // The dictionary's contents changed; re-check the open documents using it.
-                        send_blocking(
-                            &editor.handlers.spelling.event_tx,
-                            SpellingEvent::DictionaryLoaded {
-                                language: language.clone(),
+                                    return;
+                                }
+                                // The dictionary's contents changed; re-check the open documents using it.
+                                send_blocking(
+                                    &editor.handlers.spelling.event_tx,
+                                    SpellingEvent::DictionaryLoaded {
+                                        language: language.clone(),
+                                    },
+                                );
                             },
-                        );
-                    },
-                ));
-            }
-        }
+                        ));
+                    }
+                }
 
-        actions
+                actions
+            })
+            .await?)
+        }
     }
 }
 

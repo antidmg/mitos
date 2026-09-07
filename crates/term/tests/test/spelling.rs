@@ -1,8 +1,11 @@
 use std::{fs, time::Duration};
 
 use editor_core::{diagnostic::DiagnosticProvider, Range, Selection, Transaction};
-use term::application::Application;
-use view::{current, current_ref, quicklist::QuicklistTarget};
+use term::{
+    application::Application,
+    ui::{Menu, Popup},
+};
+use view::{action::Action, current, current_ref, quicklist::QuicklistTarget};
 
 use super::helpers::*;
 
@@ -50,6 +53,45 @@ async fn keys(app: &mut Application, keys: &str) -> anyhow::Result<()> {
     app.editor.reset_idle_timer();
     tokio::time::timeout(Duration::from_secs(10), run_event_loop_until_idle(app)).await?;
     Ok(())
+}
+
+async fn selected_code_action(app: &mut Application) -> anyhow::Result<Option<String>> {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    term::job::dispatch(move |_, compositor| {
+        let title = compositor
+            .find_id::<Popup<Menu<Action>>>("code-action")
+            .and_then(|popup| popup.contents().selection())
+            .map(|action| action.title().to_owned());
+        let _ = tx.send(title);
+    })
+    .await;
+    app.editor.reset_idle_timer();
+    run_event_loop_until_idle(app).await;
+    Ok(rx.await?)
+}
+
+async fn open_corrections(app: &mut Application) -> anyhow::Result<()> {
+    keys(app, "<space>a").await?;
+    tokio::time::timeout(Duration::from_secs(10), async {
+        while selected_code_action(app).await?.is_none() {}
+        anyhow::Ok(())
+    })
+    .await??;
+    assert_status_not_error(&app.editor);
+    Ok(())
+}
+
+async fn choose_correction(app: &mut Application, title: &str) -> anyhow::Result<()> {
+    let first = selected_code_action(app).await?.unwrap();
+    let mut selected = first.clone();
+    loop {
+        if selected == title {
+            return keys(app, "<ret>").await;
+        }
+        keys(app, "<C-n>").await?;
+        selected = selected_code_action(app).await?.unwrap();
+        anyhow::ensure!(selected != first, "missing code action {title:?}");
+    }
 }
 
 fn selection(app: &Application) -> &Selection {
@@ -178,7 +220,7 @@ async fn spelling_textobjects_select_findings_and_preserve_direction() -> anyhow
 #[tokio::test(flavor = "multi_thread")]
 async fn opt_in_commands_corrections_and_undo() -> anyhow::Result<()> {
     let mut app = AppBuilder::new()
-        .with_input_text("#[t|]#eh quik\n")
+        .with_input_text("t#[e|]#h quik\n")
         .build()?;
     run_event_loop_until_idle(&mut app).await;
     assert!(mistakes(&app).is_empty());
@@ -195,24 +237,113 @@ async fn opt_in_commands_corrections_and_undo() -> anyhow::Result<()> {
         .1
         .spelling_languages
         .push("second_dictionary".parse()?);
-    let actions = app.editor.spelling_actions();
+    let actions = app.editor.spelling_actions().await?;
     let correction = actions
         .iter()
         .find(|a| a.title() == "Replace 'teh' with 'the'")
         .unwrap();
-    correction.execute(&mut app.editor);
+    // Exercise the real command and popup with LSP disabled, rather than invoking the action
+    // helper directly. Corrections from the first dictionary survive the later empty results.
+    open_corrections(&mut app).await?;
+    choose_correction(&mut app, "Replace 'teh' with 'the'").await?;
+    assert_eq!(current_ref!(app.editor).1.text().to_string(), "the quik\n");
     wait_for_mistakes(&mut app, &["quik"]).await?;
     keys(&mut app, "u").await?;
     wait_for_mistakes(&mut app, &["teh", "quik"]).await?;
     // A menu captured before an edit must not overwrite a newer buffer version.
     correction.execute(&mut app.editor);
+    assert_eq!(current_ref!(app.editor).1.text().to_string(), "teh quik\n");
     assert_eq!(mistakes(&app), ["teh", "quik"]);
     let id = current_ref!(app.editor).1.id();
     let pending = app.editor.handlers.spelling.open_request(id);
     keys(&mut app, ":spelling off<ret>").await?;
     assert!(pending.is_canceled());
     wait_for_mistakes(&mut app, &[]).await?;
-    assert!(app.editor.spelling_actions().is_empty());
+    assert!(app.editor.spelling_actions().await?.is_empty());
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn spelling_correction_menu_can_be_dismissed_and_replaces_unicode_ranges(
+) -> anyhow::Result<()> {
+    let mut app = AppBuilder::new()
+        .with_input_text("🚀 w#[r|]#ld hello\n")
+        .build()?;
+    keys(&mut app, ":spelling en_US<ret>").await?;
+    wait_for_mistakes(&mut app, &["wrld"]).await?;
+
+    open_corrections(&mut app).await?;
+    // The personal-dictionary action is reachable through the same menu. Dismiss it without
+    // writing to the user's dictionary.
+    keys(&mut app, "<C-p>").await?;
+    assert_eq!(
+        selected_code_action(&mut app).await?.as_deref(),
+        Some("Add 'wrld' to dictionary 'en_US'")
+    );
+    keys(&mut app, "<esc>").await?;
+    assert!(selected_code_action(&mut app).await?.is_none());
+    assert_eq!(
+        current_ref!(app.editor).1.text().to_string(),
+        "🚀 wrld hello\n"
+    );
+
+    open_corrections(&mut app).await?;
+    choose_correction(&mut app, "Replace 'wrld' with 'world'").await?;
+    assert_eq!(
+        current_ref!(app.editor).1.text().to_string(),
+        "🚀 world hello\n"
+    );
+    wait_for_mistakes(&mut app, &[]).await?;
+    keys(&mut app, "u").await?;
+    wait_for_mistakes(&mut app, &["wrld"]).await?;
+    assert_eq!(
+        current_ref!(app.editor).1.text().to_string(),
+        "🚀 wrld hello\n"
+    );
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn pending_spelling_corrections_keep_their_original_document_version() -> anyhow::Result<()> {
+    let mut app = AppBuilder::new().with_input_text("#[t|]#eh\n").build()?;
+    keys(&mut app, ":spelling en_US<ret>").await?;
+    wait_for_mistakes(&mut app, &["teh"]).await?;
+
+    // Request creation snapshots the target before the future is polled. Editing remains
+    // possible while it is pending, and the old replacement cannot overwrite the newer text.
+    let pending = app.editor.spelling_actions();
+    replace(&mut app, 0, 3, "hello");
+    let actions = pending.await?;
+    actions
+        .iter()
+        .find(|action| action.title() == "Replace 'teh' with 'the'")
+        .unwrap()
+        .execute(&mut app.editor);
+    assert_eq!(current_ref!(app.editor).1.text().to_string(), "hello\n");
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn code_actions_report_no_actions_outside_spelling_findings() -> anyhow::Result<()> {
+    let mut app = AppBuilder::new()
+        .with_input_text("#[h|]#ello teh\n")
+        .build()?;
+    keys(&mut app, ":spelling en_US<ret>").await?;
+    wait_for_mistakes(&mut app, &["teh"]).await?;
+    keys(&mut app, "<space>a").await?;
+    tokio::time::timeout(Duration::from_secs(10), async {
+        while !app
+            .editor
+            .get_status()
+            .is_some_and(|(message, _)| message == "No code actions available")
+        {
+            app.editor.reset_idle_timer();
+            run_event_loop_until_idle(&mut app).await;
+        }
+    })
+    .await?;
+    assert!(selected_code_action(&mut app).await?.is_none());
+    assert_eq!(current_ref!(app.editor).1.text().to_string(), "hello teh\n");
     Ok(())
 }
 

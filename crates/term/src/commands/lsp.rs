@@ -964,39 +964,46 @@ impl ui::menu::Item for CodeActionItem {
 }
 
 pub fn code_action(cx: &mut Context) {
+    let mode = cx.editor.mode();
     let (view, doc) = current!(cx.editor);
 
-    let selection_range = doc.selection(view.id).primary();
+    let doc_id = doc.id();
+    let view_id = view.id;
+    let version = doc.version();
+    let selection = doc.selection(view_id).clone();
 
-    let mut futures: FuturesUnordered<_> =
-        code_actions_for_range(doc, selection_range, None, CodeActionTriggerKind::INVOKED)
-            .into_iter()
-            .map(|(request, ls_id)| async move {
-                let Some(mut actions) = request.await? else {
-                    return anyhow::Ok(Vec::new());
-                };
+    let mut futures: FuturesUnordered<_> = code_actions_for_range(
+        doc,
+        selection.primary(),
+        None,
+        CodeActionTriggerKind::INVOKED,
+    )
+    .into_iter()
+    .map(|(request, ls_id)| {
+        async move {
+            let Some(mut actions) = request.await? else {
+                return anyhow::Ok(Vec::new());
+            };
 
-                // remove disabled code actions
-                actions.retain(|action| {
-                    matches!(
-                        action,
-                        CodeActionOrCommand::Command(_)
-                            | CodeActionOrCommand::CodeAction(CodeAction { disabled: None, .. })
-                    )
-                });
+            // remove disabled code actions
+            actions.retain(|action| {
+                matches!(
+                    action,
+                    CodeActionOrCommand::Command(_)
+                        | CodeActionOrCommand::CodeAction(CodeAction { disabled: None, .. })
+                )
+            });
 
-                Ok(actions
-                    .into_iter()
-                    .map(|lsp_item| CodeActionItem::lsp(ls_id, lsp_item))
-                    .collect())
-            })
-            .collect();
+            Ok(actions
+                .into_iter()
+                .map(|lsp_item| CodeActionItem::lsp(ls_id, lsp_item))
+                .collect())
+        }
+        .boxed()
+    })
+    .collect();
 
-    if futures.is_empty() {
-        cx.editor
-            .set_error(|| "No configured language server supports code actions");
-        return;
-    }
+    futures.push(cx.editor.spelling_actions().boxed());
 
     cx.jobs.callback(async move {
         let mut actions = Vec::new();
@@ -1013,6 +1020,16 @@ pub fn code_action(cx: &mut Context) {
         actions.sort_by_key(|action| std::cmp::Reverse(action.priority));
 
         let call = move |editor: &mut Editor, compositor: &mut Compositor| {
+            let (view, doc) = current_ref!(editor);
+            // Input may have changed the target while the providers were computing actions.
+            if view.id != view_id
+                || doc.id() != doc_id
+                || doc.version() != version
+                || editor.mode() != mode
+                || doc.selection(view_id) != &selection
+            {
+                return;
+            }
             if actions.is_empty() {
                 editor.set_error(|| "No code actions available");
                 return;

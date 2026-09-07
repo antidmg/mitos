@@ -74,6 +74,17 @@ cursor with `mis` or `mas`. Use `mIs` or `mAs` to select all spelling findings
 fully contained in the current selection. Both inside and around variants use
 the finding's exact range.
 
+## Correcting findings
+
+Move onto a misspelled word (or select it with `]s`, `[s`, or `mis`) and press
+`Space-a` to open code actions. Choose a `Replace ...` action and press `Enter`
+to replace the whole word. Press `u` to undo the correction, or `Escape` to
+dismiss the menu without changing the text.
+
+Spelling actions work without a language server. With multiple selections,
+the menu offers corrections for findings overlapping the primary selection.
+The same menu offers `Add ... to dictionary` to accept a word permanently.
+
 ## Dictionaries
 
 Dictionaries are Hunspell `.aff`/`.dic` pairs loaded from
