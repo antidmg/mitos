@@ -2,7 +2,7 @@
 
 :root {
   --sidebar-target-width: 280px;
-  --content-max-width: 690px;
+  --content-max-width: 840px;
   --menu-bar-height: 56px;
   --page-padding: 0px;
   --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -169,10 +169,6 @@ html {
   background: var(--bg);
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
-}
-
-body {
-  font-size: 1.5rem;
 }
 
 code {
@@ -572,7 +568,6 @@ table {
   width: 100%;
   margin: 0;
   border-collapse: collapse;
-  font-size: 1.35rem;
 }
 
 table thead {
@@ -582,12 +577,13 @@ table thead {
 table thead tr,
 table thead th,
 table td {
+  padding: 6px 12px;
   border: 0;
 }
 
 table th,
 table td {
-  padding: 7px 11px;
+  padding: 6px 12px;
   text-align: left;
   vertical-align: top;
 }
