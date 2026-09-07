@@ -5,7 +5,10 @@ use term::{
     application::Application,
     ui::{Menu, Popup},
 };
-use view::{action::Action, current, current_ref, quicklist::QuicklistTarget};
+use view::{
+    action::Action, current, current_ref, handlers::spelling::IgnoredWordsFile,
+    quicklist::QuicklistTarget,
+};
 
 use super::helpers::*;
 
@@ -454,6 +457,91 @@ async fn session_ignore_is_shared_only_by_buffers_using_its_language() -> anyhow
     )
     .await?;
     wait_for_mistakes(&mut app, &["quik"]).await?;
+    Ok(())
+}
+
+async fn app_with_ignore_file(path: &std::path::Path) -> anyhow::Result<Application> {
+    let mut app = AppBuilder::new()
+        .with_input_text("#[Z|]#orblé ZORBLÉ quik\n")
+        .build()?;
+    // Install the same state the dictionary loader publishes, with a temporary user ignore file.
+    let language: editor_core::SpellingLanguage = "en_US".parse()?;
+    app.editor.dictionaries.insert(
+        language.clone(),
+        std::sync::Arc::new(view::Dictionary::new("SET UTF-8\n", "1\nhello\n").unwrap()),
+    );
+    app.editor
+        .handlers
+        .spelling
+        .ignored_word_files
+        .insert(language, IgnoredWordsFile::load(path.to_owned())?);
+    keys(&mut app, ":spelling en_US<ret>").await?;
+    Ok(app)
+}
+
+#[test]
+fn forever_ignore_survives_editor_restart() -> anyhow::Result<()> {
+    let dir = tempfile::tempdir()?;
+    let path = dir.path().join("spelling/en_US.ignore");
+
+    // Separate runtimes give each editor fresh handlers and event queues, just like a restart.
+    tokio::runtime::Runtime::new()?.block_on(async {
+        let mut app = app_with_ignore_file(&path).await?;
+        wait_for_mistakes(&mut app, &["Zorblé", "ZORBLÉ", "quik"]).await?;
+        let version = current_ref!(app.editor).1.version();
+        let dictionary = app.editor.dictionaries[&"en_US".parse()?].clone();
+        open_corrections(&mut app).await?;
+        choose_correction(&mut app, "Ignore 'Zorblé' forever (en_US)").await?;
+        wait_for_mistakes(&mut app, &["quik"]).await?;
+        assert_eq!(current_ref!(app.editor).1.version(), version);
+        assert!(!dictionary.check("Zorblé"));
+        assert_eq!(fs::read_to_string(&path)?, "zorblé\n");
+
+        // A session-only ignore for another word must not be saved with the permanent entry.
+        keys(&mut app, "]s").await?;
+        open_corrections(&mut app).await?;
+        choose_correction(&mut app, "Ignore 'quik' for this session (en_US)").await?;
+        wait_for_mistakes(&mut app, &[]).await?;
+        assert_eq!(fs::read_to_string(&path)?, "zorblé\n");
+        anyhow::Ok(())
+    })?;
+
+    tokio::runtime::Runtime::new()?.block_on(async {
+        let mut app = app_with_ignore_file(&path).await?;
+        // Only the persistent entry survives; a fresh editor flags the session-only word again.
+        wait_for_mistakes(&mut app, &["quik"]).await?;
+        let dictionary = app.editor.dictionaries[&"en_US".parse()?].clone();
+        app.editor
+            .dictionaries
+            .insert("second_language".parse()?, dictionary);
+        keys(&mut app, ":spelling second_language<ret>").await?;
+        wait_for_mistakes(&mut app, &["Zorblé", "ZORBLÉ", "quik"]).await?;
+        keys(&mut app, ":spelling en_US second_language<ret>").await?;
+        wait_for_mistakes(&mut app, &["quik"]).await?;
+        anyhow::Ok(())
+    })
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn forever_ignore_reports_save_failures_without_suppressing_findings() -> anyhow::Result<()> {
+    let dir = tempfile::tempdir()?;
+    let path = dir.path().join("en_US.ignore");
+    let mut app = app_with_ignore_file(&path).await?;
+    wait_for_mistakes(&mut app, &["Zorblé", "ZORBLÉ", "quik"]).await?;
+    // Turn the file path into a directory after loading, so the write reliably fails even as root.
+    fs::create_dir(&path)?;
+    open_corrections(&mut app).await?;
+    choose_correction(&mut app, "Ignore 'Zorblé' forever (en_US)").await?;
+    assert!(
+        app.editor.get_status().is_some_and(
+            |(message, _)| message.contains("Could not save spelling ignore for 'en_US'")
+        )
+    );
+    assert_eq!(mistakes(&app), ["Zorblé", "ZORBLÉ", "quik"]);
+    // Force a new scan to catch an accidental in-memory ignore on the failed save path.
+    let doc_id = current_ref!(app.editor).1.id();
+    app.editor.refresh_spelling(doc_id);
+    wait_for_mistakes(&mut app, &["Zorblé", "ZORBLÉ", "quik"]).await?;
     Ok(())
 }
 

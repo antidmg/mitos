@@ -98,6 +98,23 @@ ignore for it. The ignore survives edits, configuration reloads, and toggling
 spell checking off and back on. It does not change the document or write to
 your personal dictionary or configuration files.
 
+### Ignoring a word permanently
+
+Choose `Ignore 'word' forever (language)` from `Space-a` to keep ignoring it
+after restarting Mitos, across projects using that dictionary. Matching is
+case-insensitive and applies to the whole word, just like a session ignore.
+
+Persistent ignores are stored as UTF-8 text, one word per line, in
+`<config>/spelling/<language>.ignore`, for example
+`~/.config/mitos/spelling/en_US.ignore` on Linux. They are loaded when the
+dictionary is first used. Remove a word from that file and restart Mitos to
+check it again, or add words there by hand.
+
+`Ignore forever` suppresses findings without adding words to the dictionary's
+suggestion vocabulary. Use `Add ... to dictionary` when you also want the word
+available as a correction suggestion. A failed save reports an error and
+leaves the word's checking behavior unchanged.
+
 ## Dictionaries
 
 Dictionaries are Hunspell `.aff`/`.dic` pairs loaded from

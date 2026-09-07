@@ -223,6 +223,13 @@ pub fn personal_dictionary_file(language: &str) -> PathBuf {
         .join(format!("{language}.txt"))
 }
 
+/// User spelling ignores, one word per line, kept separate from dictionary suggestions.
+pub fn spelling_ignore_file(language: &str) -> PathBuf {
+    config_dir()
+        .join("spelling")
+        .join(format!("{language}.ignore"))
+}
+
 /// Merge two TOML documents, merging values from `right` onto `left`
 ///
 /// `merge_depth` sets the nesting depth up to which values are merged instead

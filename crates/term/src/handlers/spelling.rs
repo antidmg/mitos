@@ -12,6 +12,7 @@
 
 use std::{collections::HashMap, future::Future, ops::Range, sync::Arc, time::Duration};
 
+use anyhow::Context as _;
 use editor_core::{
     diagnostic::{Diagnostic, DiagnosticProvider},
     syntax::{
@@ -24,7 +25,10 @@ use event::{cancelable_future, register_hook, send_blocking, AsyncHook, TaskHand
 use tokio::time::Instant;
 use view::{
     events::{ConfigDidChange, DocumentDidChange, DocumentDidClose, DocumentDidOpen},
-    handlers::{spelling::SpellingEvent, Handlers},
+    handlers::{
+        spelling::{IgnoredWordsFile, SpellingEvent},
+        Handlers,
+    },
     Dictionary, DocumentId, Editor,
 };
 
@@ -283,7 +287,7 @@ fn lookup_dictionary(editor: &mut Editor, language: SpellingLanguage) -> Option<
 
 fn load_dictionary(language: SpellingLanguage) {
     tokio::task::spawn_blocking(move || {
-        let load = || -> anyhow::Result<Dictionary> {
+        let load = || -> anyhow::Result<(Dictionary, IgnoredWordsFile)> {
             let aff = std::fs::read_to_string(loader::runtime_file(format!(
                 "dictionaries/{language}/{language}.aff"
             )))?;
@@ -298,11 +302,16 @@ fn load_dictionary(language: SpellingLanguage) {
                 &loader::personal_dictionary_file(language.as_str()),
             )?;
 
-            Ok(dictionary)
+            let path = loader::spelling_ignore_file(language.as_str());
+            let ignored_words = IgnoredWordsFile::load(path.clone()).with_context(|| {
+                format!("could not read spelling ignore file '{}'", path.display())
+            })?;
+
+            Ok((dictionary, ignored_words))
         };
 
         match load() {
-            Ok(dictionary) => job::dispatch_blocking(move |editor, _| {
+            Ok((dictionary, ignored_words)) => job::dispatch_blocking(move |editor, _| {
                 editor
                     .handlers
                     .spelling
@@ -311,13 +320,18 @@ fn load_dictionary(language: SpellingLanguage) {
                 editor
                     .dictionaries
                     .insert(language.clone(), Arc::new(dictionary));
+                editor
+                    .handlers
+                    .spelling
+                    .ignored_word_files
+                    .insert(language.clone(), ignored_words);
                 send_blocking(
                     &editor.handlers.spelling.event_tx,
                     SpellingEvent::DictionaryLoaded { language },
                 );
             }),
             Err(err) => {
-                log::error!("could not load spelling dictionary '{language}': {err}");
+                log::error!("could not load spelling dictionary '{language}': {err:#}");
                 // Allow a later check to retry the load.
                 job::dispatch_blocking(move |editor, _| {
                     editor
@@ -326,7 +340,7 @@ fn load_dictionary(language: SpellingLanguage) {
                         .loading_dictionaries
                         .remove(&language);
                     editor.set_error(|| {
-                        format!("Could not load spelling dictionary '{language}': {err}")
+                        format!("Could not load spelling dictionary '{language}': {err:#}")
                     });
                 });
             }
