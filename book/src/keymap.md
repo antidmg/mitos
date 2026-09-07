@@ -362,10 +362,12 @@ These mappings are in the style of [vim-unimpaired](https://github.com/tpope/vim
 
 | Key      | Description                                  | Command                 |
 | -----    | -----------                                  | -------                 |
-| `]d`     | Go to next diagnostic (**LSP**)              | `goto_next_diag`        |
-| `[d`     | Go to previous diagnostic (**LSP**)          | `goto_prev_diag`        |
-| `]D`     | Go to last diagnostic in document (**LSP**)  | `goto_last_diag`        |
-| `[D`     | Go to first diagnostic in document (**LSP**) | `goto_first_diag`       |
+| `]d`     | Go to next diagnostic                       | `goto_next_diag`        |
+| `[d`     | Go to previous diagnostic                   | `goto_prev_diag`        |
+| `]s`     | Go to next spelling finding                 | `goto_next_spelling`    |
+| `[s`     | Go to previous spelling finding             | `goto_prev_spelling`    |
+| `]D`     | Go to last diagnostic in document           | `goto_last_diag`        |
+| `[D`     | Go to first diagnostic in document          | `goto_first_diag`       |
 | `]q`     | Go to next quicklist entry                   | `goto_next_quicklist`   |
 | `[q`     | Go to previous quicklist entry               | `goto_prev_quicklist`   |
 | `]l`     | Go to next quicklist entry in current file   | `goto_next_file_quicklist` |

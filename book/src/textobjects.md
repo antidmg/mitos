@@ -26,12 +26,19 @@ function or block of code.
 | `c`                    | Comment                  |
 | `T`                    | Test                     |
 | `g`                    | Change                   |
+| `s`                    | Spelling finding         |
 | `x`                    | (X)HTML element          |
 
 > 💡 `f`, `t`, etc. need a tree-sitter grammar active for the current
 document and a special tree-sitter query file to work properly. [Only
 some grammars](./lang-support.md) currently have the query file implemented.
 Contributions are welcome!
+
+The `s` textobject uses [spell-checking findings](./spell-checking.md). Both
+`mis` and `mas` select the diagnosed word under the cursor; `mIs` and `mAs`
+select every finding fully contained in the current selection. Use `[s` and
+`]s` to navigate to the previous or next finding. These commands also work in
+plain text and scratch buffers when spell checking is enabled.
 
 ## Navigating using tree-sitter textobjects
 

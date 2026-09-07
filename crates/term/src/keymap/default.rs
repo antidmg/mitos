@@ -112,6 +112,7 @@ pub fn default() -> HashMap<Mode, KeyTrie> {
         },
         "[" => { "Left bracket"
             "d" => goto_prev_diag,
+            "s" => goto_prev_spelling,
             "q" => goto_prev_quicklist,
             "D" => goto_first_diag,
             "g" => goto_prev_change,
@@ -129,6 +130,7 @@ pub fn default() -> HashMap<Mode, KeyTrie> {
         },
         "]" => { "Right bracket"
             "d" => goto_next_diag,
+            "s" => goto_next_spelling,
             "q" => goto_next_quicklist,
             "D" => goto_last_diag,
             "g" => goto_next_change,

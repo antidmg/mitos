@@ -62,6 +62,18 @@ are checked in full.
 See [Adding spellcheck queries](./guides/spellcheck.md) to extend coverage to a
 new language.
 
+## Navigating and selecting findings
+
+Use `]s` to select the next spelling finding and `[s` to select the previous
+one. These commands skip other diagnostics, support counts such as `3]s`, and
+stop at the first or last finding without wrapping. In select mode they extend
+the selection; with multiple cursors each cursor moves independently.
+
+The `s` [textobject](./textobjects.md) selects the diagnosed word under the
+cursor with `mis` or `mas`. Use `mIs` or `mAs` to select all spelling findings
+fully contained in the current selection. Both inside and around variants use
+the finding's exact range.
+
 ## Dictionaries
 
 Dictionaries are Hunspell `.aff`/`.dic` pairs loaded from

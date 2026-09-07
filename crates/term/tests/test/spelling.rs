@@ -1,6 +1,6 @@
 use std::{fs, time::Duration};
 
-use editor_core::{diagnostic::DiagnosticProvider, Selection, Transaction};
+use editor_core::{diagnostic::DiagnosticProvider, Range, Selection, Transaction};
 use term::application::Application;
 use view::{current, current_ref, quicklist::QuicklistTarget};
 
@@ -49,6 +49,129 @@ async fn keys(app: &mut Application, keys: &str) -> anyhow::Result<()> {
     }
     app.editor.reset_idle_timer();
     tokio::time::timeout(Duration::from_secs(10), run_event_loop_until_idle(app)).await?;
+    Ok(())
+}
+
+fn selection(app: &Application) -> &Selection {
+    let (view, doc) = current_ref!(app.editor);
+    doc.selection(view.id)
+}
+
+fn select(app: &mut Application, selection: Selection) {
+    let (view, doc) = current!(app.editor);
+    doc.set_selection(view.id, selection);
+}
+
+async fn navigation_app() -> anyhow::Result<Application> {
+    let mut app = AppBuilder::new()
+        .with_input_text("#[🚀|]# teh hello quik world wrld\n")
+        .build()?;
+    keys(&mut app, ":spelling en_US<ret>").await?;
+    wait_for_mistakes(&mut app, &["teh", "quik", "wrld"]).await?;
+    // A non-spelling diagnostic between the findings must be skipped, even with the same source
+    // label. Navigation and textobjects should filter by provider, not severity or source text.
+    let (_, doc) = current!(app.editor);
+    let mut diagnostic = doc.diagnostics()[0].clone();
+    diagnostic.range = editor_core::diagnostic::Range { start: 6, end: 11 };
+    let provider = DiagnosticProvider::Lsp {
+        server_id: Default::default(),
+        identifier: None,
+    };
+    diagnostic.provider = provider.clone();
+    doc.replace_diagnostics([diagnostic], &[], Some(&provider));
+    Ok(app)
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn spelling_navigation_skips_other_diagnostics_and_respects_counts_and_boundaries(
+) -> anyhow::Result<()> {
+    let mut app = navigation_app().await?;
+    keys(&mut app, "]s").await?;
+    assert_eq!(selection(&app), &Selection::single(2, 5));
+    keys(&mut app, "<A-.>").await?;
+    assert_eq!(selection(&app), &Selection::single(12, 16));
+    // Reversing direction skips the selected finding rather than selecting it again.
+    keys(&mut app, "[s").await?;
+    assert_eq!(selection(&app), &Selection::single(5, 2));
+    keys(&mut app, "[s").await?;
+    assert_eq!(selection(&app), &Selection::single(5, 2));
+    keys(&mut app, "2]s").await?;
+    assert_eq!(selection(&app), &Selection::single(23, 27));
+    keys(&mut app, "]s").await?;
+    assert_eq!(selection(&app), &Selection::single(23, 27));
+    keys(&mut app, "99[s").await?;
+    assert_eq!(selection(&app), &Selection::single(5, 2));
+    keys(&mut app, "99]s").await?;
+    assert_eq!(selection(&app), &Selection::single(23, 27));
+    // A cursor immediately after a finding can navigate back to it.
+    select(&mut app, Selection::point(16));
+    keys(&mut app, "[s").await?;
+    assert_eq!(selection(&app), &Selection::single(16, 12));
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn spelling_navigation_moves_each_cursor_and_extends_selections() -> anyhow::Result<()> {
+    let mut app = navigation_app().await?;
+    select(
+        &mut app,
+        Selection::new(vec![Range::point(0), Range::point(11)].into(), 1),
+    );
+    keys(&mut app, "]s").await?;
+    assert_eq!(
+        selection(&app),
+        &Selection::new(vec![Range::new(2, 5), Range::new(12, 16)].into(), 1)
+    );
+    select(
+        &mut app,
+        Selection::new(vec![Range::point(12), Range::point(27)].into(), 0),
+    );
+    keys(&mut app, "[s").await?;
+    assert_eq!(
+        selection(&app),
+        &Selection::new(vec![Range::new(5, 2), Range::new(27, 23)].into(), 0)
+    );
+    select(&mut app, Selection::single(0, 1));
+    keys(&mut app, "v2]s").await?;
+    assert_eq!(selection(&app), &Selection::single(0, 16));
+    keys(&mut app, "[s").await?;
+    assert_eq!(selection(&app), &Selection::single(0, 5));
+    select(&mut app, Selection::single(28, 27));
+    keys(&mut app, "2[s").await?;
+    assert_eq!(selection(&app), &Selection::single(28, 12));
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn spelling_textobjects_select_findings_and_preserve_direction() -> anyhow::Result<()> {
+    let mut app = navigation_app().await?;
+    select(&mut app, Selection::single(3, 4));
+    keys(&mut app, "mis").await?;
+    assert_eq!(selection(&app), &Selection::single(2, 5));
+    select(&mut app, Selection::single(4, 3));
+    keys(&mut app, "mas").await?;
+    assert_eq!(selection(&app), &Selection::single(5, 2));
+    // Outside a finding, the textobject leaves the selection alone.
+    select(&mut app, Selection::single(6, 7));
+    keys(&mut app, "mis").await?;
+    assert_eq!(selection(&app), &Selection::single(6, 7));
+    select(&mut app, Selection::single(0, 17));
+    keys(&mut app, "mIs").await?;
+    assert_eq!(
+        selection(&app),
+        &Selection::new(vec![Range::new(2, 5), Range::new(12, 16)].into(), 0)
+    );
+    // The partially selected first finding and the non-spelling diagnostic are excluded.
+    select(&mut app, Selection::single(28, 3));
+    keys(&mut app, "mAs").await?;
+    assert_eq!(
+        selection(&app),
+        &Selection::new(vec![Range::new(16, 12), Range::new(27, 23)].into(), 0)
+    );
+    keys(&mut app, ":spelling off<ret>").await?;
+    let before = selection(&app).clone();
+    keys(&mut app, "[s]smis").await?;
+    assert_eq!(selection(&app), &before);
     Ok(())
 }
 

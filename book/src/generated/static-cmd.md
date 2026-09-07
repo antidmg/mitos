@@ -153,6 +153,8 @@
 | `goto_last_diag` | Goto last diagnostic | normal: `` ]D ``, select: `` ]D `` |
 | `goto_next_diag` | Goto next diagnostic | normal: `` ]d ``, select: `` ]d `` |
 | `goto_prev_diag` | Goto previous diagnostic | normal: `` [d ``, select: `` [d `` |
+| `goto_next_spelling` | Goto next spelling finding | normal: `` ]s ``, select: `` ]s `` |
+| `goto_prev_spelling` | Goto previous spelling finding | normal: `` [s ``, select: `` [s `` |
 | `goto_next_quicklist` | Goto next quicklist entry | normal: `` ]q ``, select: `` ]q `` |
 | `goto_prev_quicklist` | Goto previous quicklist entry | normal: `` [q ``, select: `` [q `` |
 | `goto_next_file_quicklist` | Goto next quicklist entry in current file | normal: `` ]l ``, select: `` ]l `` |

@@ -26,6 +26,7 @@ use editor_core::{
     char_idx_at_visual_offset,
     chars::char_is_word,
     comment,
+    diagnostic::DiagnosticProvider,
     doc_formatter::TextFormat,
     encoding, find_workspace,
     graphemes::{self, next_grapheme_boundary},
@@ -467,6 +468,8 @@ impl MappableCommand {
         goto_last_diag, "Goto last diagnostic",
         goto_next_diag, "Goto next diagnostic",
         goto_prev_diag, "Goto previous diagnostic",
+        goto_next_spelling, "Goto next spelling finding",
+        goto_prev_spelling, "Goto previous spelling finding",
         goto_next_quicklist, "Goto next quicklist entry",
         goto_prev_quicklist, "Goto previous quicklist entry",
         goto_next_file_quicklist, "Goto next quicklist entry in current file",
@@ -4560,6 +4563,65 @@ fn goto_prev_diag(cx: &mut Context) {
     cx.editor.apply_motion(motion)
 }
 
+fn spelling_ranges(doc: &Document) -> impl DoubleEndedIterator<Item = Range> + '_ {
+    doc.diagnostics()
+        .iter()
+        .filter(|diagnostic| diagnostic.provider == DiagnosticProvider::Spelling)
+        .map(|diagnostic| Range::new(diagnostic.range.start, diagnostic.range.end))
+}
+
+fn goto_next_spelling(cx: &mut Context) {
+    goto_spelling(cx, Direction::Forward);
+}
+
+fn goto_prev_spelling(cx: &mut Context) {
+    goto_spelling(cx, Direction::Backward);
+}
+
+fn goto_spelling(cx: &mut Context, direction: Direction) {
+    let count = cx.count();
+    cx.editor.apply_motion(move |editor| {
+        let (view, doc) = current!(editor);
+        let text = doc.text().slice(..);
+        let selection = doc.selection(view.id).clone().transform(|range| {
+            let cursor = range.cursor(text);
+            // Exclude the finding under the cursor, including when it is already selected.
+            // Taking the last available target also clamps counts at the document's boundaries.
+            let target = match direction {
+                Direction::Forward => spelling_ranges(doc)
+                    .filter(|target| target.from() > cursor)
+                    .take(count)
+                    .last(),
+                Direction::Backward => spelling_ranges(doc)
+                    .rev()
+                    .filter(|target| target.to() <= cursor)
+                    .take(count)
+                    .last(),
+            };
+            let Some(target) = target else {
+                return range;
+            };
+            if editor.mode == Mode::Select {
+                let head = if target.to() <= range.anchor {
+                    target.from()
+                } else {
+                    target.to()
+                };
+                Range::new(range.anchor, head)
+            } else {
+                target.with_direction(direction)
+            }
+        });
+        if selection == *doc.selection(view.id) {
+            return;
+        }
+        push_jump(view, doc);
+        doc.set_selection(view.id, selection);
+        view.diagnostics_handler
+            .immediately_show_diagnostic(doc, view.id);
+    });
+}
+
 fn goto_next_quicklist(cx: &mut Context) {
     goto_quicklist_impl(cx, Direction::Forward, false);
 }
@@ -6817,6 +6879,11 @@ fn select_all_textobjects_ranges(
                         .then_some(diagnostic_range)
                 }));
             }
+            's' => ranges.extend(
+                spelling_ranges(doc)
+                    .filter(|finding| range.contains_range(finding))
+                    .map(|finding| finding.with_direction(range.direction())),
+            ),
             _ => {}
         }
     }
@@ -6858,6 +6925,7 @@ fn select_all_textobjects(cx: &mut Context, objtype: textobject::TextObject) {
         ("e", "Data structure entry (tree-sitter)"),
         ("g", "Change"),
         ("d", "Diagnostic"),
+        ("s", "Spelling finding"),
         ("x", "(X)HTML element (tree-sitter)"),
     ];
     cx.editor.autoinfo = Some(Info::new(title, &help_text));
@@ -6932,6 +7000,9 @@ fn select_textobject(cx: &mut Context, objtype: textobject::TextObject) {
                             count,
                         ),
                         'g' => textobject_change(range),
+                        's' => spelling_ranges(doc)
+                            .find(|finding| finding.contains(range.cursor(text)))
+                            .map_or(range, |finding| finding.with_direction(range.direction())),
                         // TODO: cancel new ranges if inconsistent surround matches across lines
                         ch if !ch.is_ascii_alphanumeric() => textobject::textobject_pair_surround(
                             doc.syntax(),
@@ -6967,6 +7038,7 @@ fn select_textobject(cx: &mut Context, objtype: textobject::TextObject) {
         ("e", "Data structure entry (tree-sitter)"),
         ("m", "Closest surrounding pair (tree-sitter)"),
         ("g", "Change"),
+        ("s", "Spelling finding"),
         ("x", "(X)HTML element (tree-sitter)"),
         (" ", "... or any character acting as a pair"),
     ];
