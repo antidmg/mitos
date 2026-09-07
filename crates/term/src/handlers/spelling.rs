@@ -160,10 +160,7 @@ fn recheck_document(editor: &mut Editor, doc_id: DocumentId, changes: ChangeSet,
         return;
     }
     let languages = doc.spelling_languages.clone();
-    let config = editor.config().spelling.merged(
-        doc.language_config()
-            .and_then(|config| config.spelling.as_ref()),
-    );
+    let config = editor.spelling_config(doc);
     let Some(dictionaries) = lookup_dictionaries(editor, &languages) else {
         return;
     };
@@ -203,10 +200,7 @@ fn check_document(editor: &mut Editor, doc_id: DocumentId) {
     // Cloning the syntax bumps a few refcounts on its (persistent) trees; cheap enough to snapshot
     // for the off-thread check.
     let syntax = doc.syntax().cloned();
-    let config = editor.config().spelling.merged(
-        doc.language_config()
-            .and_then(|config| config.spelling.as_ref()),
-    );
+    let config = editor.spelling_config(doc);
     let loader = editor.syn_loader.load_full();
     let Some(dictionaries) = lookup_dictionaries(editor, &languages) else {
         return;

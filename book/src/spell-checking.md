@@ -85,6 +85,19 @@ Spelling actions work without a language server. With multiple selections,
 the menu offers corrections for findings overlapping the primary selection.
 The same menu offers `Add ... to dictionary` to accept a word permanently.
 
+### Ignoring a word for this session
+
+Choose `Ignore 'word' for this session (language)` from `Space-a` to suppress
+that word until Mitos exits. Matching is case-insensitive and applies to the
+whole word, including in other open buffers and buffers opened later that use
+the chosen dictionary. Other misspellings continue to be checked.
+
+With multiple dictionaries, choose the language the ignore should apply to.
+A buffer ignores the word if any of its configured dictionaries has a session
+ignore for it. The ignore survives edits, configuration reloads, and toggling
+spell checking off and back on. It does not change the document or write to
+your personal dictionary or configuration files.
+
 ## Dictionaries
 
 Dictionaries are Hunspell `.aff`/`.dic` pairs loaded from

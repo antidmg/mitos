@@ -348,6 +348,116 @@ async fn code_actions_report_no_actions_outside_spelling_findings() -> anyhow::R
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn session_ignore_survives_edits_and_settings_changes_without_persisting(
+) -> anyhow::Result<()> {
+    let mut app = AppBuilder::new()
+        .with_input_text("#[Z|]#orblé zorblé ZORBLÉ quik\n")
+        .build()?;
+    keys(&mut app, ":spelling en_US<ret>").await?;
+    wait_for_mistakes(&mut app, &["Zorblé", "zorblé", "ZORBLÉ", "quik"]).await?;
+    let language = "en_US".parse()?;
+    let dictionary = app.editor.dictionaries[&language].clone();
+    let personal_path = loader::personal_dictionary_file("en_US");
+    let personal_before = fs::read(&personal_path).ok();
+    let original = current_ref!(app.editor).1.text().to_string();
+    let version = current_ref!(app.editor).1.version();
+    let config = (*app.editor.config()).clone();
+
+    // An overlapping LSP diagnostic must survive ignoring the spelling finding.
+    let (doc_id, provider) = {
+        let (_, doc) = current!(app.editor);
+        let mut diagnostic = doc.diagnostics()[0].clone();
+        let provider = DiagnosticProvider::Lsp {
+            server_id: Default::default(),
+            identifier: None,
+        };
+        diagnostic.provider = provider.clone();
+        doc.replace_diagnostics([diagnostic], &[], Some(&provider));
+        (doc.id(), provider)
+    };
+    open_corrections(&mut app).await?;
+    let pending = app.editor.handlers.spelling.open_request(doc_id);
+    choose_correction(&mut app, "Ignore 'Zorblé' for this session (en_US)").await?;
+    assert!(pending.is_canceled());
+    wait_for_mistakes(&mut app, &["quik"]).await?;
+    let (_, doc) = current_ref!(app.editor);
+    assert_eq!(doc.text().to_string(), original);
+    assert_eq!(doc.version(), version);
+    assert!(doc
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic.provider == provider));
+    assert!(std::sync::Arc::ptr_eq(
+        &dictionary,
+        &app.editor.dictionaries[&language]
+    ));
+    assert!(!dictionary.check("Zorblé"));
+    assert_eq!(app.editor.config().spelling, config.spelling);
+    assert!(personal_before == fs::read(&personal_path).ok());
+
+    // An incremental edit still ignores exact words, but not words with additional suffixes.
+    let end = current_ref!(app.editor).1.text().len_chars() - 1;
+    replace(&mut app, end, end, " zorblé zorblés");
+    wait_for_mistakes(&mut app, &["quik", "zorblés"]).await?;
+    keys(&mut app, ":spelling off<ret>").await?;
+    wait_for_mistakes(&mut app, &[]).await?;
+    keys(&mut app, ":spelling en_US<ret>").await?;
+    wait_for_mistakes(&mut app, &["quik", "zorblés"]).await?;
+    app.handle_config_events(view::editor::ConfigEvent::Update(Box::new(config)));
+    wait_for_mistakes(&mut app, &["quik", "zorblés"]).await?;
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn session_ignore_is_shared_only_by_buffers_using_its_language() -> anyhow::Result<()> {
+    let mut app = AppBuilder::new()
+        .with_input_text("#[z|]#orble quik\n")
+        .build()?;
+    for language in ["session_a", "session_b"] {
+        app.editor.dictionaries.insert(
+            language.parse()?,
+            std::sync::Arc::new(view::Dictionary::new("SET UTF-8\n", "1\nhello\n").unwrap()),
+        );
+    }
+    keys(&mut app, ":spelling session_a session_b<ret>").await?;
+    wait_for_mistakes(&mut app, &["zorble", "quik"]).await?;
+    let first = current_ref!(app.editor).1.id();
+
+    keys(
+        &mut app,
+        ":new<ret>izorble quik<esc>:spelling session_a<ret>",
+    )
+    .await?;
+    wait_for_mistakes(&mut app, &["zorble", "quik"]).await?;
+    let second = current_ref!(app.editor).1.id();
+    keys(
+        &mut app,
+        ":new<ret>izorble quik<esc>:spelling session_b<ret>",
+    )
+    .await?;
+    wait_for_mistakes(&mut app, &["zorble", "quik"]).await?;
+    let third = current_ref!(app.editor).1.id();
+
+    app.editor.switch(first, view::editor::Action::Replace);
+    open_corrections(&mut app).await?;
+    choose_correction(&mut app, "Ignore 'zorble' for this session (session_a)").await?;
+    wait_for_mistakes(&mut app, &["quik"]).await?;
+    // Both buffers using session_a are refreshed, including the one that wasn't focused.
+    app.editor.switch(second, view::editor::Action::Replace);
+    wait_for_mistakes(&mut app, &["quik"]).await?;
+    app.editor.switch(third, view::editor::Action::Replace);
+    assert_eq!(mistakes(&app), ["zorble", "quik"]);
+
+    keys(
+        &mut app,
+        ":new<ret>izorble quik<esc>:spelling session_a<ret>",
+    )
+    .await?;
+    wait_for_mistakes(&mut app, &["quik"]).await?;
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn missing_dictionaries_report_an_error_and_bad_names_preserve_settings() -> anyhow::Result<()>
 {
     let mut app = AppBuilder::new().with_input_text("#[t|]#eh\n").build()?;

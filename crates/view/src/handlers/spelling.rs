@@ -16,12 +16,13 @@ use std::{
 };
 
 use editor_core::{
-    diagnostic::DiagnosticProvider, ChangeSet, SpellingLanguage, Tendril, Transaction,
+    diagnostic::DiagnosticProvider, syntax::config::SpellingConfig, ChangeSet, SpellingLanguage,
+    Tendril, Transaction,
 };
 use event::{send_blocking, TaskController, TaskHandle};
 use tokio::sync::mpsc::Sender;
 
-use crate::{action::Action, Dictionary, DocumentId, Editor};
+use crate::{action::Action, Dictionary, Document, DocumentId, Editor};
 
 #[derive(Debug)]
 pub struct SpellingHandler {
@@ -32,6 +33,9 @@ pub struct SpellingHandler {
     /// Languages whose dictionary is currently being loaded, so the same one isn't loaded twice
     /// concurrently.
     pub loading_dictionaries: HashSet<SpellingLanguage>,
+    /// Lowercased words ignored for this editor session, scoped to each spelling language.
+    /// Ignoring a word does not add it to dictionary suggestions or persistence.
+    ignored_words: HashMap<SpellingLanguage, HashSet<String>>,
 }
 
 impl SpellingHandler {
@@ -40,6 +44,7 @@ impl SpellingHandler {
             event_tx,
             requests: HashMap::new(),
             loading_dictionaries: HashSet::new(),
+            ignored_words: HashMap::new(),
         }
     }
 
@@ -124,6 +129,48 @@ pub fn load_personal_dictionary(dictionary: &mut Dictionary, path: &Path) -> std
 }
 
 impl Editor {
+    /// Resolve spelling settings for a document, including words ignored for this session.
+    /// Both full and incremental scans use this snapshot without changing persisted settings.
+    pub fn spelling_config(&self, doc: &Document) -> SpellingConfig {
+        let mut config = self.config().spelling.merged(
+            doc.language_config()
+                .and_then(|config| config.spelling.as_ref()),
+        );
+        for language in &doc.spelling_languages {
+            if let Some(words) = self.handlers.spelling.ignored_words.get(language) {
+                config.words.extend(words.iter().cloned());
+            }
+        }
+        config
+    }
+
+    fn ignore_spelling_word(&mut self, language: &SpellingLanguage, word: &str) {
+        if !self
+            .handlers
+            .spelling
+            .ignored_words
+            .entry(language.clone())
+            .or_default()
+            .insert(word.to_lowercase())
+        {
+            return;
+        }
+        let documents: Vec<_> = self
+            .documents()
+            .filter(|doc| doc.spelling_languages.contains(language))
+            .map(Document::id)
+            .collect();
+        for doc in documents {
+            // Invalidate snapshots before queuing new checks so an older result cannot restore
+            // the ignored findings. CheckRequested bypasses the edit debounce.
+            self.handlers.spelling.requests.remove(&doc);
+            send_blocking(
+                &self.handlers.spelling.event_tx,
+                SpellingEvent::CheckRequested { doc },
+            );
+        }
+    }
+
     /// Invalidate old checks and diagnostics after changing a document's spelling settings.
     pub fn refresh_spelling(&mut self, doc_id: DocumentId) {
         self.handlers.spelling.requests.remove(&doc_id);
@@ -144,9 +191,9 @@ impl Editor {
         });
     }
 
-    /// Capture the spelling findings overlapping the primary selection, then generate corrections
-    /// and "add to dictionary" actions on a blocking worker. The future owns its snapshot so the
-    /// editor can keep processing input while suggestions are computed.
+    /// Capture the spelling findings overlapping the primary selection, then generate corrections,
+    /// session ignores, and personal-dictionary actions on a blocking worker. The future owns its
+    /// snapshot so the editor can keep processing input while suggestions are computed.
     pub fn spelling_actions(&self) -> impl Future<Output = anyhow::Result<Vec<Action>>> + use<> {
         let (view, doc) = current_ref!(self);
         // The dictionaries this document is checked against, in configuration order.
@@ -228,8 +275,17 @@ impl Editor {
                         ));
                     }
 
-                    // "Add to dictionary" targets one dictionary, so offer one action per language.
+                    // Session ignores and personal words target one spelling language at a time.
                     for (language, _) in &dictionaries {
+                        let ignored_language = language.clone();
+                        let ignored_word = word.clone();
+                        actions.push(Action::new(
+                            format!("Ignore '{word}' for this session ({language})"),
+                            SPELLING_ACTION_PRIORITY,
+                            move |editor| {
+                                editor.ignore_spelling_word(&ignored_language, &ignored_word)
+                            },
+                        ));
                         let language = language.clone();
                         let word = word.clone();
                         let title = format!("Add '{word}' to dictionary '{language}'");
