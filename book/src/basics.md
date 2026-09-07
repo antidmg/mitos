@@ -66,7 +66,17 @@ simple workflow is:
 1. Press `x` to select a line.
 2. Press `s`, enter a regular expression, and press `Enter`.
 3. Mitos creates one selection for every match in the line.
-4. Press `c` and type once to replace every selection.
+4. Press `Alt-r`, type the replacement, and press `Enter` to replace every selection.
+
+The replacement prompt leaves the document untouched until `Enter`, then replaces
+all selections in one undo step. `Escape` cancels, and submitting empty text deletes
+the selections. Replacement text is literal, including strings such as `$1`.
+The new text stays selected, preserving the primary selection and each selection's
+direction. Press `.` to repeat the committed replacement on the current selections.
+
+Use `c` to change selections interactively in insert mode. `r` still replaces each
+selected grapheme with the next character: selecting `hello` and typing `rx` gives
+`xxxxx`, while `Alt-r`, `x`, `Enter` gives `x`.
 
 Use `,` to keep only the primary selection. The [Usage](./usage.md) and
 [Registers](./registers.md) pages cover more ways to compose edits.

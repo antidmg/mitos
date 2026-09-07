@@ -593,7 +593,9 @@
  Note: If you want to perform find-and-replace, the select
        command is the way to do it. Select the text you want
        to replace in — type % to select the whole file — and
-       then perform the steps explained above.
+       then select the matches with s. Press Alt-r, enter the
+       replacement text, and press Enter to replace all matches
+       in one undo step. Escape cancels the replacement prompt.
 
 
 =================================================================

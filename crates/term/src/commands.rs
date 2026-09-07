@@ -367,7 +367,8 @@ impl MappableCommand {
         extend_till_prev_char, "Extend till previous occurrence of char",
         extend_prev_char, "Extend to previous occurrence of char",
         repeat_last_motion, "Repeat last motion",
-        replace, "Replace with new char",
+        replace_char, "Replace each selected grapheme with a character",
+        replace, "Replace selections with entered text",
         switch_case, "Switch (toggle) case",
         switch_to_uppercase, "Switch to uppercase",
         switch_to_lowercase, "Switch to lowercase",
@@ -1832,7 +1833,7 @@ fn repeat_last_motion(cx: &mut Context) {
     cx.editor.repeat_last_motion(cx.count())
 }
 
-fn replace(cx: &mut Context) {
+fn replace_char(cx: &mut Context) {
     let mut buf = [0u8; 4]; // To hold utf8 encoded char.
 
     // need to wait for next key
@@ -1875,6 +1876,52 @@ fn replace(cx: &mut Context) {
             exit_select_mode(cx);
         }
     })
+}
+
+fn replace(cx: &mut Context) {
+    let prompt = Prompt::new_with_callback(
+        "replace:".into(),
+        None,
+        ui::completers::none,
+        |_cx, input, event| {
+            if event != PromptEvent::Validate {
+                return None;
+            }
+            let replacement = Tendril::from(input);
+            Some(Box::new(move |compositor, cx| {
+                replace_selections(cx.editor, &replacement);
+                compositor.find::<ui::EditorView>().unwrap().last_edit =
+                    ui::editor::LastEdit::Replace(replacement);
+            }))
+        },
+    );
+    cx.push_layer(Box::new(prompt));
+}
+
+pub(crate) fn replace_selections(editor: &mut Editor, replacement: &str) {
+    let scrolloff = editor.config().scrolloff;
+    let (view, doc) = current!(editor);
+    let replacement = Tendril::from(
+        LINE_ENDING_REGEX
+            .replace_all(replacement, doc.line_ending.as_str())
+            .as_ref(),
+    );
+    let len = replacement.chars().count();
+    let transaction =
+        Transaction::change_by_and_with_selection(doc.text(), doc.selection(view.id), |range| {
+            let selection =
+                Range::new(range.from(), range.from() + len).with_direction(range.direction());
+            (
+                (range.from(), range.to(), Some(replacement.clone())),
+                Some(selection),
+            )
+        });
+    doc.apply(&transaction, view.id);
+    doc.append_changes_to_history(view);
+    view.ensure_cursor_in_view(doc, scrolloff);
+    if editor.mode == Mode::Select {
+        editor.mode = Mode::Normal;
+    }
 }
 
 fn switch_case_impl<F>(cx: &mut Context, change_fn: F)

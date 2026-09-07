@@ -15,7 +15,8 @@ pub fn default() -> HashMap<Mode, KeyTrie> {
         "f" => find_next_char,
         "T" => till_prev_char,
         "F" => find_prev_char,
-        "r" => replace,
+        "r" => replace_char,
+        "A-r" => replace,
         "R" => replace_with_yanked,
         "A-." =>  repeat_last_motion,
 

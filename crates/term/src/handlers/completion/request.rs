@@ -255,7 +255,7 @@ fn request_completions(
     }
 
     let ui = compositor.find::<ui::EditorView>().unwrap();
-    ui.last_insert.1.push(InsertEvent::RequestCompletion);
+    ui.record_insert_event(InsertEvent::RequestCompletion);
     let handle_ = handle.clone();
     let request_completions = async move {
         let mut context = HashMap::new();

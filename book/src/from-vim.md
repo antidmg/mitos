@@ -37,9 +37,9 @@ copy a line:
 
 global replace:
 * vim: `:%s/word/replacement/g<ret>`
-* mitos: `%sword<ret>creplacement<esc>`
+* mitos: `%sword<ret><A-r>replacement<ret>`
 
-Explanation: `%` selects the entire buffer, `s` opens a prompt for a regex, `<ret>` validates the regex and reduces the selection to each match (hence, all occurrences of word are selected). `c` deletes the selection contents and enter insert mode, replacement is typed and then `<esc>` goes back to normal mode.
+Explanation: `%` selects the entire buffer, `s` opens a regex prompt, and `<ret>` selects each match. `Alt-r` opens the replacement prompt. Type the replacement and press `<ret>` to apply it to all selections in one undo step. Replacement text is literal; `$1` does not expand a regex capture.
 
 ## Navigation
 
@@ -104,9 +104,9 @@ block selection:
 
 search "foo" and replace with "bar" in the current selection:
 * vim: `:s/foo/bar/g<ret>`
-* mitos: `sfoo<ret>cbar<esc>,`
+* mitos: `sfoo<ret><A-r>bar<ret>,`
 
-Explanation: `s` will open a prompt in the command line for a regex, and select all matches inside the selection (effectively adding a new cursor on each match). Pressing enter will then finalise this step, and allow the `c` to change the selections to "bar". When done, go back to normal mode with `<esc>`, and keep only the primary selection with `,` (remove all the additional cursors).
+Explanation: `s` opens a regex prompt and selects all matches inside the selection. `Alt-r` opens the replacement prompt; enter `bar` and press `<ret>` to apply it once to each selection. Keep only the primary selection with `,`.
 
 ## File actions
 

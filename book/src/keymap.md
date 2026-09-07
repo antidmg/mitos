@@ -69,7 +69,8 @@ Normal mode is the default mode when you launch mitos. You can return to it from
 
 | Key         | Description                                                          | Command                   |
 | -----       | -----------                                                          | -------                   |
-| `r`         | Replace with a character                                             | `replace`                 |
+| `r`         | Replace each selected grapheme with a character                       | `replace_char`            |
+| `Alt-r`     | Replace selections with entered text                                 | `replace`                 |
 | `R`         | Replace with yanked text                                             | `replace_with_yanked`     |
 | `~`         | Switch case of the selected text                                     | `switch_case`             |
 | `` ` ``     | Set the selected text to lower case                                  | `switch_to_lowercase`     |
@@ -80,7 +81,7 @@ Normal mode is the default mode when you launch mitos. You can return to it from
 | `A`         | Insert at the end of the line                                        | `insert_at_line_end`      |
 | `o`         | Open new line below selection                                        | `open_below`              |
 | `O`         | Open new line above selection                                        | `open_above`              |
-| `.`         | Repeat last insert                                                   | N/A                       |
+| `.`         | Repeat last insert or prompted replacement                            | N/A                       |
 | `u`         | Undo change                                                          | `undo`                    |
 | `U`         | Redo change                                                          | `redo`                    |
 | `Alt-u`     | Move backward in history                                             | `earlier`                 |
