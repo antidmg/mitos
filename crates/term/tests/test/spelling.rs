@@ -674,6 +674,22 @@ async fn coalesced_edits_restore_diagnostics_even_when_text_is_unchanged() -> an
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn python_docstrings_recheck_when_their_statement_position_changes() -> anyhow::Result<()> {
+    let mut app = AppBuilder::new()
+        .with_input_text("#[\"|]#\"\"teh hello\"\"\"\nvalue = \"quik\"\n")
+        .build()?;
+    keys(&mut app, ":lang python<ret>:spelling en_US<ret>").await?;
+    wait_for_mistakes(&mut app, &["teh"]).await?;
+
+    // The same string becomes an ordinary expression once another statement precedes it.
+    replace(&mut app, 0, 0, "pass\n");
+    wait_for_mistakes(&mut app, &[]).await?;
+    replace(&mut app, 0, 5, "");
+    wait_for_mistakes(&mut app, &["teh"]).await?;
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn syntax_changes_recheck_prose_beyond_the_edit_window() -> anyhow::Result<()> {
     let mut config = test_config();
     config.editor.spelling.languages = Some(vec!["en_US".parse()?]);

@@ -26,6 +26,24 @@ grammar has a query (`runtime/queries/comment/spellcheck.scm`) capturing
 comment text. So you usually do not need a query just to check a language's
 comments.
 
+## Choosing prose regions
+
+Prefer nodes that represent prose over capturing an entire document or every
+string. For example, Python's query selects the first string statement in a
+module, class, or function; JSX's query selects rendered text while leaving
+expressions and property values alone.
+
+Use `@nospell` on enclosing code regions when their children can otherwise
+match `@spell`. HTML's `pre` and `code` elements are examples. Exclusions also
+apply to captures from injected languages, so a code block can exclude comments
+that an injected grammar would otherwise check.
+
+Add coverage cases to `crates/core/tests/spellcheck.rs` for both prose and
+nearby code, metadata, and escapes. Validate the query against the configured
+grammar with `cargo xtask query-check <language>`, then run
+`cargo test -p core --test spellcheck`. Query compilation alone cannot show
+whether the intended text is selected.
+
 ## An example
 
 To check the contents of strings in a language, capture the string's text node:

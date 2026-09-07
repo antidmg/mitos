@@ -52,12 +52,26 @@ There are several ways to turn spell checking on:
 What gets checked is controlled per language by a tree-sitter `spellcheck.scm`
 query: a node captured `@spell` is checked, and `@nospell` excludes part of one.
 Most languages inject a shared `comment` grammar, so their comments are checked
-with no language-specific query, and Markdown also checks its prose. Which
-regions are checked therefore depends on the queries present in your runtime
-directories, and grows as more are added. Strings and identifiers are checked
-only where a language's query opts them in. With syntax parsing, text outside
-`@spell` captures is left unchecked. Plain text and files without a syntax tree
-are checked in full.
+with no language-specific query. The bundled queries also cover:
+
+| Language | Checked text | Excluded text |
+| --- | --- | --- |
+| Markdown | Prose, headings, lists, and visible link text | Inline code and link destinations |
+| Python | Module, class, and function docstrings, including after leading comments | Ordinary strings, bytes, f-strings, and escape sequences |
+| HTML | Visible text, including headings and link labels | Tags, attributes, entities, code elements (`code`, `pre`, `kbd`, `samp`), scripts, and styles |
+| JSX / TSX | JSX text, including nested JSX inside expressions | Component names, attributes, expressions, and code elements |
+| Git commit messages | Subject, body, and breaking-change descriptions | Conventional prefixes, trailers, template comments, and diffs |
+| reStructuredText | Headings, paragraphs, lists, and quotations | Literal code, interpreted roles, references, and directive bodies |
+| Typst | Prose, headings, emphasis, and content blocks | Code, ordinary strings, math, labels, references, URLs, and escapes |
+
+Python docstrings are treated as prose; examples and markup inside them are
+not parsed separately. reStructuredText directive bodies are left unchecked
+because their syntax nodes do not distinguish prose from code.
+
+Coverage depends on the queries present in your runtime directories. Strings
+and identifiers are checked only where a language's query opts them in. With
+syntax parsing, text outside `@spell` captures is left unchecked. Plain text
+and files without a syntax tree are checked in full.
 
 See [Adding spellcheck queries](./guides/spellcheck.md) to extend coverage to a
 new language.
