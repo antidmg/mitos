@@ -86,18 +86,11 @@ footer a:hover {
 }
 
 .hero {
-  max-width: 54rem;
   padding-block: clamp(5rem, 11vw, 9rem) clamp(3rem, 7vw, 5rem);
-}
-
-.eyebrow {
-  margin: 0 0 1rem;
-  color: var(--accent);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 h1,
@@ -109,18 +102,18 @@ p {
 
 h1 {
   margin: 0;
-  font-size: clamp(3.5rem, 9vw, 7.5rem);
+  font-size: clamp(2.6rem, 2rem + 2.5vw, 3rem);
+  letter-spacing: -.02em;
+  line-height: 1.2;
   font-weight: 580;
-  letter-spacing: -0.075em;
-  line-height: 0.88;
 }
 
 .lede {
-  max-width: 43rem;
+  max-width: 36rem;
   margin: 2rem 0 0;
   color: var(--muted);
   font-size: clamp(1.1rem, 2.3vw, 1.45rem);
-  line-height: 1.65;
+  line-height: 1.2;
 }
 
 .actions {
@@ -150,21 +143,6 @@ h1 {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-foreground);
-}
-
-.command {
-  display: inline-flex;
-  gap: 0.65rem;
-  margin-top: 1.5rem;
-  padding: 0.75rem 0.9rem;
-  border: 1px solid var(--border);
-  border-radius: 0.45rem;
-  background: var(--surface);
-  color: var(--muted);
-}
-
-.command code {
-  color: var(--foreground);
 }
 
 .editor-preview {

@@ -1,8 +1,13 @@
+<div align="center">
+
 # Mitos
 
 [![Build status](https://github.com/matoous/mitos/actions/workflows/build.yml/badge.svg)](https://github.com/matoous/mitos/actions)
+[![License](https://img.shields.io/github/license/mitos-editor/mitos)](./LICENSE)
 
-Mitos is a post-modern, modal text editor written in Rust. It is a fork of [Helix](https://github.com/helix-editor/helix) and continues its selection-first editing model with multiple selections, built-in language server support, and tree-sitter-powered syntax awareness.
+</div>
+
+Mitos is a modern, batteries-included, modal text editor written in Rust. It is a fork of [Helix](https://github.com/helix-editor/helix) and continues its selection-first editing model with multi-select, built-in language server support, and tree-sitter-powered syntax awareness.
 
 ## Features
 
@@ -23,16 +28,12 @@ cargo build --release
 ./target/release/ms --health
 ```
 
-The optimized executable is written to `target/release/ms` (`ms` is short for
-Mitos). Install it on your `PATH` with `cargo install --path crates/term --locked`.
-
-The source documentation lives in [`book/`](./book). Contributor guidance is
-available in [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md).
+The optimized executable is written to `target/release/ms` (`ms` is short for Mitos). Install it on your `PATH` with `cargo install --path crates/term --locked`.
 
 ---
 
-Mitos is a fork of [Helix](https://github.com/helix-editor/helix). The fork was created from commit `f9928f57f` and retains the complete upstream Git history so that original authorship and contribution records remain available.
+Mitos is a fork of [Helix](https://github.com/helix-editor/helix). The fork was created from commit `f9928f57f` and retains the complete upstream Git history.
 
 The covered source files remain licensed under the Mozilla Public License 2.0 (`MPL-2.0`). The unmodified license text is distributed in [`LICENSE`](./LICENSE), and Cargo package metadata continues to declare `MPL-2.0`.
 
-Mitos is not endorsed by or affiliated with the Helix project or its maintainers.
+**Mitos is not endorsed by or affiliated with the Helix project or its maintainers.**

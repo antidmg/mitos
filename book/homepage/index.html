@@ -1,83 +1,76 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Mitos is a selection-first modal text editor for the terminal.">
-    <meta name="theme-color" content="#0d0d0d">
-    <title>Mitos — modal text editor</title>
-    <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="landing.css">
-  </head>
-  <body>
-    <header class="site-header">
-      <a class="brand" href="./" aria-label="Mitos home">
-        <img src="favicon.svg" alt="" width="30" height="30">
-        <span>Mitos</span>
-      </a>
-      <nav aria-label="Primary navigation">
-        <a href="docs/">Documentation</a>
-        <a href="https://github.com/mitos-editor/mitos">GitHub</a>
-      </nav>
-    </header>
 
-    <main>
-      <section class="hero">
-        <p class="eyebrow">Terminal text editor</p>
-        <h1>Editing starts<br>with a selection.</h1>
-        <p class="lede">
-          Mitos is a modal editor built around selections, with multiple
-          cursors, tree-sitter syntax awareness, and built-in language tooling.
-        </p>
-        <div class="actions">
-          <a class="button primary" href="docs/basics.html">Read the docs</a>
-          <a class="button" href="docs/install.html">Install Mitos</a>
-        </div>
-        <div class="command">
-          <span aria-hidden="true">$</span>
-          <code>ms --tutor</code>
-        </div>
-      </section>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Mitos is a selection-first modal text editor for the terminal.">
+  <meta name="theme-color" content="#0d0d0d">
+  <title>Mitos — modal text editor</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="landing.css">
+</head>
 
-      <section class="editor-preview" aria-label="Mitos editor preview">
-        <div class="window-bar" aria-hidden="true">
-          <span></span><span></span><span></span>
-          <strong>commands.rs — Mitos</strong>
-        </div>
-        <img
-          src="docs/editor-screenshot.png"
-          alt="Mitos editing Rust code with inline documentation"
-          width="2023"
-          height="1530"
-        >
-      </section>
-
-      <section class="features" aria-labelledby="features-title">
-        <div>
-          <p class="eyebrow">Built for code</p>
-          <h2 id="features-title">A focused editor with modern foundations.</h2>
-        </div>
-        <div class="feature-grid">
-          <article>
-            <h3>Selection first</h3>
-            <p>See the target of an edit before the edit happens, from one selection to many.</p>
-          </article>
-          <article>
-            <h3>Syntax aware</h3>
-            <p>Navigate and edit code using tree-sitter-powered motions and text objects.</p>
-          </article>
-          <article>
-            <h3>Language tooling</h3>
-            <p>Use completion, diagnostics, formatting, rename, and code actions through LSP.</p>
-          </article>
-        </div>
-      </section>
-    </main>
-
-    <footer>
-      <span>Mitos is open source under MPL-2.0.</span>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Mitos home">
+      <img src="favicon.svg" alt="" width="30" height="30">
+      <span>Mitos</span>
+    </a>
+    <nav aria-label="Primary navigation">
       <a href="docs/">Documentation</a>
-      <a href="https://github.com/mitos-editor/mitos/releases">Releases</a>
-    </footer>
-  </body>
+      <a href="https://github.com/mitos-editor/mitos">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Text editor for now and tomorrow</h1>
+      <p class="lede">
+        Mitos is a batteries-included modal text editor built around selections, with multi-cursor, tree-sitter
+        syntax awareness, and built-in language tooling.
+      </p>
+      <div class="actions">
+        <a class="button primary" href="docs/basics.html">Read the docs</a>
+        <a class="button" href="docs/install.html">Install Mitos</a>
+      </div>
+    </section>
+
+    <section class="editor-preview" aria-label="Mitos editor preview">
+      <div class="window-bar" aria-hidden="true">
+        <span></span><span></span><span></span>
+        <strong>commands.rs — Mitos</strong>
+      </div>
+      <img src="docs/editor-screenshot.png" alt="Mitos editing Rust code with inline documentation" width="2023"
+        height="1530">
+    </section>
+
+    <section class="features" aria-labelledby="features-title">
+      <div>
+        <h2 id="features-title">A focused editor with modern foundations.</h2>
+      </div>
+      <div class="feature-grid">
+        <article>
+          <h3>Selection first</h3>
+          <p>See the target of an edit before the edit happens, from one selection to many.</p>
+        </article>
+        <article>
+          <h3>Syntax aware</h3>
+          <p>Navigate and edit code using tree-sitter-powered motions and text objects.</p>
+        </article>
+        <article>
+          <h3>Language tooling</h3>
+          <p>Use completion, diagnostics, formatting, rename, and code actions through LSP.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Mitos is open source under MPL-2.0.</span>
+    <a href="docs/">Documentation</a>
+    <a href="https://github.com/mitos-editor/mitos/releases">Releases</a>
+  </footer>
+</body>
+
 </html>
