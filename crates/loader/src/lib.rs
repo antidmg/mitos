@@ -165,10 +165,10 @@ pub fn cache_dir() -> PathBuf {
 }
 
 pub fn state_dir() -> PathBuf {
-    let strategy = choose_base_strategy().expect("could not determine XDG strategy");
-    let mut path = strategy
-        .state_dir()
-        .expect("state_dir is always Some for default base strategy");
+    let strategy = choose_base_strategy().expect("Unable to find the state directory!");
+    // Windows has no dedicated state directory. Keep persistent state in its
+    // data directory rather than requiring an XDG-only location.
+    let mut path = strategy.state_dir().unwrap_or_else(|| strategy.data_dir());
     path.push("mitos");
     path
 }
@@ -349,6 +349,18 @@ fn ensure_parent_dir(path: &Path) {
         && !parent.exists()
     {
         std::fs::create_dir_all(parent).ok();
+    }
+}
+
+#[cfg(test)]
+mod directory_tests {
+    #[test]
+    fn state_directory_is_absolute_and_namespaced() {
+        let path = super::state_dir();
+        assert!(path.is_absolute());
+        assert!(path.ends_with("mitos"));
+        #[cfg(windows)]
+        assert_eq!(path, super::data_dir());
     }
 }
 

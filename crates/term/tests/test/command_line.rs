@@ -222,7 +222,10 @@ async fn custom_macro_runs_after_the_prompt_closes() -> anyhow::Result<()> {
         &mut AppBuilder::new().with_config(config).build()?,
         Some(":insert-greeting<ret>"),
         Some(&|app| {
-            assert_eq!(view::doc!(app.editor).text().to_string(), "hello\n");
+            assert_eq!(
+                view::doc!(app.editor).text().to_string(),
+                format!("hello{}", editor_core::NATIVE_LINE_ENDING.as_str())
+            );
         }),
         false,
     )

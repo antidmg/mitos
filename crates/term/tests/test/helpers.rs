@@ -26,7 +26,7 @@ use termina::event::{Event, KeyEvent};
 /// Specify how to set up the input text with line feeds
 #[derive(Clone, Debug, Default)]
 pub enum LineFeedHandling {
-    /// Replaces all LF chars with the system's appropriate line feed character,
+    /// Normalizes LF and CRLF to the system's appropriate line ending,
     /// and if one doesn't exist already, appends the system's appropriate line
     /// ending to the end of a string.
     #[default]
@@ -46,15 +46,27 @@ impl LineFeedHandling {
         }
         .as_str();
 
-        // we can assume that the source files in this code base will always
-        // be LF, so indoc strings will always insert LF
-        let mut output = text.replace('\n', line_end);
+        // Fixtures may already contain native line endings. Normalize CRLF
+        // first so Windows fixtures do not gain an extra carriage return.
+        let mut output = text.replace("\r\n", "\n").replace('\n', line_end);
 
         if !output.ends_with(line_end) {
             output.push_str(line_end);
         }
 
         output
+    }
+}
+
+#[test]
+fn native_line_endings_preserve_existing_crlf() {
+    let line_end = editor_core::NATIVE_LINE_ENDING.as_str();
+    let expected = format!("first{line_end}second{line_end}");
+    for input in ["first\nsecond", "first\r\nsecond\r\n", "first\nsecond\r\n"] {
+        let normalized = LineFeedHandling::Native.apply(input);
+        assert_eq!(normalized, expected);
+        assert_eq!(LineFeedHandling::Native.apply(&normalized), expected);
+        assert_eq!(LineFeedHandling::AsIs.apply(input), input);
     }
 }
 
