@@ -323,7 +323,7 @@ pub fn file_picker(editor: &Editor, root: PathBuf) -> FilePicker {
 type FileExplorer = Picker<(PathBuf, bool), (PathBuf, Arc<Theme>, bool)>;
 
 pub fn file_explorer(root: PathBuf, editor: &Editor) -> Result<FileExplorer, std::io::Error> {
-    let options = directory_content(&root, editor)?;
+    let options = directory_content(&root, &editor.config().file_explorer)?;
 
     let columns = [PickerColumn::new(
         "path",
@@ -370,7 +370,7 @@ pub fn file_explorer(root: PathBuf, editor: &Editor) -> Result<FileExplorer, std
         move |cx, (path, is_dir): &(PathBuf, bool), action| {
             if *is_dir {
                 let new_root = stdx::path::normalize(path);
-                return match directory_content(&new_root, cx.editor) {
+                return match directory_content(&new_root, &cx.editor.config().file_explorer) {
                     Ok(options) => picker::PickerCallbackResult::Replace {
                         options,
                         editor_data: (
@@ -413,21 +413,22 @@ pub fn file_explorer(root: PathBuf, editor: &Editor) -> Result<FileExplorer, std
     Ok(picker)
 }
 
-fn directory_content(root: &Path, editor: &Editor) -> Result<Vec<(PathBuf, bool)>, std::io::Error> {
+fn directory_content(
+    root: &Path,
+    config: &view::editor::FileExplorerConfig,
+) -> Result<Vec<(PathBuf, bool)>, std::io::Error> {
     use ignore::WalkBuilder;
-
-    let config = editor.config();
 
     let mut walk_builder = WalkBuilder::new(root);
 
     let mut content: Vec<(PathBuf, bool)> = walk_builder
-        .hidden(config.file_explorer.hidden)
-        .parents(config.file_explorer.parents)
-        .ignore(config.file_explorer.ignore)
-        .follow_links(config.file_explorer.follow_symlinks)
-        .git_ignore(config.file_explorer.git_ignore)
-        .git_global(config.file_explorer.git_global)
-        .git_exclude(config.file_explorer.git_exclude)
+        .hidden(config.hidden)
+        .parents(config.parents)
+        .ignore(config.ignore)
+        .follow_links(config.follow_symlinks)
+        .git_ignore(config.git_ignore)
+        .git_global(config.git_global)
+        .git_exclude(config.git_exclude)
         .max_depth(Some(1))
         .add_custom_ignore_filename(loader::config_dir().join("ignore"))
         .add_custom_ignore_filename(".mitos/ignore")
@@ -438,13 +439,7 @@ fn directory_content(root: &Path, editor: &Editor) -> Result<Vec<(PathBuf, bool)
                 .map(|entry| {
                     let path = entry.path();
                     let is_dir = path.is_dir();
-                    let mut path = path.to_path_buf();
-                    if is_dir && path != root && config.file_explorer.flatten_dirs {
-                        while let Some(single_child_directory) = get_child_if_single_dir(&path) {
-                            path = single_child_directory;
-                        }
-                    }
-                    (path, is_dir)
+                    (path.to_path_buf(), is_dir)
                 })
                 .ok()
                 .filter(|entry| entry.0 != root)
@@ -458,17 +453,6 @@ fn directory_content(root: &Path, editor: &Editor) -> Result<Vec<(PathBuf, bool)
     }
 
     Ok(content)
-}
-
-fn get_child_if_single_dir(path: &Path) -> Option<PathBuf> {
-    let mut entries = path.read_dir().ok()?;
-    let entry = entries.next()?.ok()?;
-    let entry_path = entry.path();
-    if entries.next().is_none() && entry_path.is_dir() {
-        Some(entry_path)
-    } else {
-        None
-    }
 }
 
 pub mod completers {
@@ -881,24 +865,31 @@ pub mod completers {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::{create_dir, File};
-
     use super::*;
 
     #[test]
-    fn test_get_child_if_single_dir() {
+    fn directory_content_preserves_each_directory_level() {
         let root = tempfile::tempdir().unwrap();
+        let config = view::editor::FileExplorerConfig::default();
+        for service in ["authland", "portier"] {
+            std::fs::create_dir_all(root.path().join(service).join("fleet").join("eu-west-1"))
+                .unwrap();
+        }
+        std::fs::write(root.path().join("config.yaml"), "").unwrap();
 
-        assert_eq!(get_child_if_single_dir(root.path()), None);
-
-        let dir = root.path().join("dir1");
-        create_dir(&dir).unwrap();
-
-        assert_eq!(get_child_if_single_dir(root.path()), Some(dir));
-
-        let file = root.path().join("file");
-        File::create(file).unwrap();
-
-        assert_eq!(get_child_if_single_dir(root.path()), None);
+        assert_eq!(
+            directory_content(root.path(), &config).unwrap(),
+            vec![
+                (root.path().join(".."), true),
+                (root.path().join("authland"), true),
+                (root.path().join("portier"), true),
+                (root.path().join("config.yaml"), false),
+            ]
+        );
+        let service = root.path().join("authland");
+        assert_eq!(
+            directory_content(&service, &config).unwrap(),
+            vec![(service.join(".."), true), (service.join("fleet"), true)]
+        );
     }
 }

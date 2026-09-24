@@ -289,7 +289,8 @@ impl FilePreview {
                 let preview = std::fs::metadata(&path)
                     .and_then(|metadata| {
                         if metadata.is_dir() {
-                            let files = super::directory_content(&path, editor)?;
+                            let files =
+                                super::directory_content(&path, &editor.config().file_explorer)?;
                             Ok(CachedPreview::Directory(files))
                         } else if metadata.is_file() {
                             if metadata.len() > MAX_FILE_SIZE_FOR_PREVIEW {

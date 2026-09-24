@@ -297,7 +297,6 @@ max-depth = 10
 | `git-ignore` | boolean | `false` | Read `.gitignore` files. |
 | `git-global` | boolean | `false` | Read Git's global excludes file. |
 | `git-exclude` | boolean | `false` | Read `.git/info/exclude`. |
-| `flatten-dirs` | boolean | `true` | Collapse chains of directories with a single child. |
 
 ### `[editor.buffer-picker]`
 

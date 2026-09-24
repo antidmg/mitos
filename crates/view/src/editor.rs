@@ -230,7 +230,7 @@ impl Default for FilePickerConfig {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case", default, deny_unknown_fields)]
 pub struct FileExplorerConfig {
     /// IgnoreOptions
@@ -254,23 +254,6 @@ pub struct FileExplorerConfig {
     /// Enables reading `.git/info/exclude` files.
     /// Whether to hide files listed in .git/info/exclude in file picker and global search results. Defaults to false.
     pub git_exclude: bool,
-    /// Whether to flatten single-child directories in file explorer. Defaults to true.
-    pub flatten_dirs: bool,
-}
-
-impl Default for FileExplorerConfig {
-    fn default() -> Self {
-        Self {
-            hidden: false,
-            follow_symlinks: false,
-            parents: false,
-            ignore: false,
-            git_ignore: false,
-            git_global: false,
-            git_exclude: false,
-            flatten_dirs: true,
-        }
-    }
 }
 
 fn serialize_alphabet<S>(alphabet: &[char], serializer: S) -> Result<S::Ok, S::Error>
