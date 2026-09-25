@@ -17,3 +17,6 @@ To keep navigating a picker's current matched locations after closing it, press 
 ### File explorer
 
 `Space-e` opens an interactive file explorer for browsing and opening files, rooted at the workspace; `Space-.` opens one rooted at the current buffer's directory. Unlike the file picker, the explorer does not ignore most files by default; its ignore behaviour is configured separately in the [`[editor.file-explorer]`](./editor.md#editorfile-explorer-section) section.
+
+Supported images can be displayed in the preview pane. See
+[Image previews](./image-previews.md) for formats and rendering details.

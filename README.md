@@ -7,6 +7,8 @@
 
 </div>
 
+![Mitos editing Rust code with completion suggestions and documentation](./book/src/screenshots/autocomplete.png)
+
 Mitos is a modern, batteries-included, modal text editor written in Rust. It is a fork of [Helix](https://github.com/helix-editor/helix) and continues its selection-first editing model with multi-select, built-in language server support, and tree-sitter-powered syntax awareness.
 
 ## Features

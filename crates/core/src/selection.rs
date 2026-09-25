@@ -179,7 +179,7 @@ impl Range {
     /// [Selection::map] or [ChangeSet::update_positions].
     pub fn map(mut self, changes: &ChangeSet) -> Self {
         use std::cmp::Ordering;
-        if changes.is_empty() {
+        if changes.is_emp() {
             return self;
         }
 

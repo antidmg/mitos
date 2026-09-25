@@ -10,157 +10,187 @@
     "Liberation Mono", monospace;
 }
 
+/* Modus Operandi — runtime/themes/modus_operandi.toml */
 .light,
 html:not(.js) {
   --color-scheme: light;
-  --bg: #fff;
-  --fg: #000;
-  --full-contrast: #000;
-  --title-color: #000;
+  --bg: #ffffff;
+  --fg: #000000;
+  --full-contrast: #000000;
+  --title-color: #000000;
 
-  --border: #c9c9c9;
-  --border-light: #e3e3e3;
-  --border-hover: #a3a3a3;
-  --border-footer: #e9e9e9;
+  --border: #c4c4c4;
+  --border-light: #e0e0e0;
+  --border-hover: #595959;
+  --border-footer: #e0e0e0;
 
   --media-bg: #f2f2f2;
-  --chrome-bg: #f5f5f5;
+  --chrome-bg: #f2f2f2;
   --sidebar-bg: var(--chrome-bg);
-  --sidebar-fg: #303030;
-  --sidebar-non-existant: #8b8b8b;
-  --sidebar-non-existent: #8b8b8b;
-  --sidebar-active: #202020;
-  --sidebar-item-hover-bg: rgb(0 0 0 / 8%);
-  --sidebar-active-bg: rgb(0 0 0 / 12%);
-  --sidebar-spacer: #e3e3e3;
+  --sidebar-fg: #000000;
+  --sidebar-non-existant: #595959;
+  --sidebar-non-existent: #595959;
+  --sidebar-active: #000000;
+  --sidebar-item-hover-bg: #e0e0e0;
+  --sidebar-active-bg: #c0deff;
+  --sidebar-spacer: #e0e0e0;
   --sidebar-mobile-shadow: 0 16px 32px rgb(0 0 0 / 16%);
 
-  --scrollbar: #aaa;
-  --icons: #6d6d6d;
-  --icons-hover: #292929;
-  --icon-btn-bg-hover: rgb(0 0 0 / 7%);
+  --scrollbar: #c4c4c4;
+  --icons: #595959;
+  --icons-hover: #000000;
+  --icon-btn-bg-hover: #e0e0e0;
 
-  --links: #3c3c3c;
-  --link-line-decoration: rgb(60 60 60 / 35%);
-  --link-line-decoration-hover: rgb(60 60 60 / 78%);
-  --inline-code-color: #343434;
-  --code-text: #343434;
-  --code-bg: rgb(0 0 0 / 6%);
-  --keybinding-bg: #ececec;
+  --links: #3548cf;
+  --link-line-decoration: color-mix(in srgb, var(--links) 40%, transparent);
+  --link-line-decoration-hover: color-mix(in srgb, var(--links) 80%, transparent);
+  --inline-code-color: #00663f;
+  --code-text: #000000;
+  --code-bg: #f2f2f2;
+  --keybinding-bg: #e0e0e0;
 
-  --pre-bg: #fff;
-  --pre-border: rgb(0 0 0 / 22%);
+  --pre-bg: #f2f2f2;
+  --pre-border: #c4c4c4;
   --pre-shadow: rgb(0 0 0 / 8%);
 
-  --theme-popup-bg: #fff;
-  --theme-popup-border: #c9c9c9;
-  --theme-hover: #e9e9e9;
-  --popover-bg: #fff;
-  --popover-border: #c9c9c9;
+  --theme-popup-bg: #ffffff;
+  --theme-popup-border: #c4c4c4;
+  --theme-hover: #e0e0e0;
+  --popover-bg: #ffffff;
+  --popover-border: #c4c4c4;
   --popover-shadow: 0 16px 40px rgb(0 0 0 / 16%);
 
-  --quote-bg: rgb(0 0 0 / 3%);
-  --quote-border: rgb(0 0 0 / 20%);
-  --warning-border: #5d5d5d;
+  --quote-bg: #f2f2f2;
+  --quote-border: #595959;
+  --warning-border: #6f5500;
 
-  --table-border-color: rgb(0 0 0 / 16%);
-  --table-header-bg: rgb(0 0 0 / 6%);
-  --table-alternate-bg: rgb(0 0 0 / 3%);
-  --table-border-line: rgb(0 0 0 / 12%);
+  --table-border-color: #c4c4c4;
+  --table-header-bg: #e0e0e0;
+  --table-alternate-bg: #f2f2f2;
+  --table-border-line: #e0e0e0;
 
-  --searchbar-border-color: #a3a3a3;
-  --searchbar-bg: #fff;
-  --searchbar-fg: #202020;
+  --searchbar-border-color: #595959;
+  --searchbar-bg: #ffffff;
+  --searchbar-fg: #000000;
   --searchbar-shadow-color: rgb(0 0 0 / 22%);
-  --searchresults-header-fg: #6d6d6d;
-  --searchresults-border-color: #c9c9c9;
-  --searchresults-li-bg: rgb(0 0 0 / 5%);
-  --search-mark-bg: #ddd;
+  --searchresults-header-fg: #595959;
+  --searchresults-border-color: #c4c4c4;
+  --searchresults-li-bg: #f2f2f2;
+  --search-mark-bg: #fff576;
 
-  --blockquote-note-color: #4d4d4d;
-  --blockquote-tip-color: #3d3d3d;
-  --blockquote-important-color: #292929;
-  --blockquote-warning-color: #5d5d5d;
-  --blockquote-caution-color: #333;
-  --footnote-highlight: #4d4d4d;
+  --blockquote-note-color: #0031a9;
+  --blockquote-tip-color: #006800;
+  --blockquote-important-color: #721045;
+  --blockquote-warning-color: #6f5500;
+  --blockquote-caution-color: #a60000;
+  --footnote-highlight: #721045;
   --overlay-bg: rgb(0 0 0 / 18%);
-  --sidebar-header-border-color: #4d4d4d;
+  --sidebar-header-border-color: #595959;
+  --syntax-comment: #595959;
+  --syntax-keyword: #531ab6;
+  --syntax-meta: #a0132f;
+  --syntax-attribute: #005e8b;
+  --syntax-builtin: #8f0075;
+  --syntax-string: #3548cf;
+  --syntax-regexp: #7c318f;
+  --syntax-constant: #0000b0;
+  --syntax-function: #721045;
+  --syntax-type: #005f5f;
+  --syntax-added: #005000;
+  --syntax-added-bg: #c1f2d1;
+  --syntax-removed: #8f1313;
+  --syntax-removed-bg: #ffd8d5;
 }
 
+/* Modus Vivendi — runtime/themes/modus_vivendi.toml */
 .colibri {
   --color-scheme: dark;
-  --bg: #000;
-  --fg: #fff;
-  --full-contrast: #fff;
-  --title-color: #fff;
+  --bg: #000000;
+  --fg: #ffffff;
+  --full-contrast: #ffffff;
+  --title-color: #ffffff;
 
-  --border: #454545;
-  --border-light: #2b2b2b;
-  --border-hover: #686868;
-  --border-footer: #242424;
+  --border: #535353;
+  --border-light: #303030;
+  --border-hover: #989898;
+  --border-footer: #303030;
 
-  --media-bg: #101010;
-  --chrome-bg: #0d0d0d;
+  --media-bg: #1e1e1e;
+  --chrome-bg: #1e1e1e;
   --sidebar-bg: var(--chrome-bg);
-  --sidebar-fg: #d0d0d0;
-  --sidebar-non-existant: #747474;
-  --sidebar-non-existent: #747474;
-  --sidebar-active: #fff;
-  --sidebar-item-hover-bg: rgb(255 255 255 / 9%);
-  --sidebar-active-bg: rgb(255 255 255 / 14%);
-  --sidebar-spacer: #2b2b2b;
+  --sidebar-fg: #ffffff;
+  --sidebar-non-existant: #989898;
+  --sidebar-non-existent: #989898;
+  --sidebar-active: #ffffff;
+  --sidebar-item-hover-bg: #303030;
+  --sidebar-active-bg: #2f447f;
+  --sidebar-spacer: #303030;
   --sidebar-mobile-shadow: 0 16px 32px rgb(0 0 0 / 55%);
 
-  --scrollbar: #4d4d4d;
-  --icons: #9d9d9d;
-  --icons-hover: #fff;
-  --icon-btn-bg-hover: rgb(255 255 255 / 9%);
+  --scrollbar: #535353;
+  --icons: #989898;
+  --icons-hover: #ffffff;
+  --icon-btn-bg-hover: #303030;
 
-  --links: #dedede;
-  --link-line-decoration: rgb(222 222 222 / 30%);
-  --link-line-decoration-hover: rgb(222 222 222 / 75%);
-  --inline-code-color: #e4e4e4;
-  --code-text: #e4e4e4;
-  --code-bg: rgb(255 255 255 / 9%);
-  --keybinding-bg: #222;
+  --links: #79a8ff;
+  --link-line-decoration: color-mix(in srgb, var(--links) 40%, transparent);
+  --link-line-decoration-hover: color-mix(in srgb, var(--links) 80%, transparent);
+  --inline-code-color: #00c06f;
+  --code-text: #ffffff;
+  --code-bg: #1e1e1e;
+  --keybinding-bg: #303030;
 
-  --pre-bg: #080808;
-  --pre-border: rgb(255 255 255 / 18%);
+  --pre-bg: #1e1e1e;
+  --pre-border: #535353;
   --pre-shadow: rgb(255 255 255 / 7%);
 
-  --theme-popup-bg: #141414;
-  --theme-popup-border: #454545;
-  --theme-hover: #292929;
-  --popover-bg: #141414;
-  --popover-border: #454545;
+  --theme-popup-bg: #000000;
+  --theme-popup-border: #535353;
+  --theme-hover: #303030;
+  --popover-bg: #000000;
+  --popover-border: #535353;
   --popover-shadow: 0 16px 40px rgb(0 0 0 / 55%);
 
-  --quote-bg: rgb(255 255 255 / 4%);
-  --quote-border: rgb(255 255 255 / 17%);
-  --warning-border: #a4a4a4;
+  --quote-bg: #1e1e1e;
+  --quote-border: #989898;
+  --warning-border: #d0bc00;
 
-  --table-border-color: rgb(255 255 255 / 15%);
-  --table-header-bg: rgb(255 255 255 / 7%);
-  --table-alternate-bg: rgb(255 255 255 / 4%);
-  --table-border-line: rgb(255 255 255 / 12%);
+  --table-border-color: #535353;
+  --table-header-bg: #303030;
+  --table-alternate-bg: #1e1e1e;
+  --table-border-line: #303030;
 
-  --searchbar-border-color: #686868;
-  --searchbar-bg: #222;
-  --searchbar-fg: #fff;
+  --searchbar-border-color: #989898;
+  --searchbar-bg: #000000;
+  --searchbar-fg: #ffffff;
   --searchbar-shadow-color: rgb(255 255 255 / 18%);
-  --searchresults-header-fg: #9d9d9d;
-  --searchresults-border-color: #454545;
-  --searchresults-li-bg: rgb(255 255 255 / 8%);
-  --search-mark-bg: #555;
+  --searchresults-header-fg: #989898;
+  --searchresults-border-color: #535353;
+  --searchresults-li-bg: #1e1e1e;
+  --search-mark-bg: #4a4000;
 
-  --blockquote-note-color: #b8b8b8;
-  --blockquote-tip-color: #c8c8c8;
-  --blockquote-important-color: #dedede;
-  --blockquote-warning-color: #a4a4a4;
-  --blockquote-caution-color: #b0b0b0;
-  --footnote-highlight: #dedede;
+  --blockquote-note-color: #2fafff;
+  --blockquote-tip-color: #44bc44;
+  --blockquote-important-color: #feacd0;
+  --blockquote-warning-color: #d0bc00;
+  --blockquote-caution-color: #ff5f59;
+  --footnote-highlight: #feacd0;
   --overlay-bg: rgb(0 0 0 / 42%);
-  --sidebar-header-border-color: #b8b8b8;
+  --sidebar-header-border-color: #989898;
+  --syntax-comment: #989898;
+  --syntax-keyword: #b6a0ff;
+  --syntax-meta: #ff7f86;
+  --syntax-attribute: #00d3d0;
+  --syntax-builtin: #f78fe7;
+  --syntax-string: #79a8ff;
+  --syntax-regexp: #caa6df;
+  --syntax-constant: #00bcff;
+  --syntax-function: #feacd0;
+  --syntax-type: #6ae4b9;
+  --syntax-added: #a0e0a0;
+  --syntax-added-bg: #00381f;
+  --syntax-removed: #ffbfbf;
+  --syntax-removed-bg: #4f1119;
 }
 
 html {
@@ -182,7 +212,7 @@ strong {
 a:focus-visible,
 button:focus-visible,
 input:focus-visible {
-  outline: 3px solid rgb(128 128 128 / 45%);
+  outline: 3px solid var(--links);
   outline-offset: 2px;
 }
 
@@ -519,6 +549,13 @@ input:focus-visible {
   background-color: var(--media-bg);
 }
 
+.content img.editor-screenshot {
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 .toc-container {
   position: sticky;
   top: calc(var(--menu-bar-height) + 32px);
@@ -730,131 +767,83 @@ pre>.buttons button {
   margin-left: auto;
 }
 
-/* Monochrome syntax palette */
-:where(.colibri) .hljs {
-  color: #d6d6d6;
+/* Syntax colors mirror the editor theme scopes. */
+:where(.light, .colibri, html:not(.js)) .hljs {
+  color: var(--fg);
   background: transparent;
 }
 
-:where(.colibri) .hljs-comment,
-:where(.colibri) .hljs-quote {
-  color: #7f7f7f;
+:where(.light, .colibri, html:not(.js)) .hljs-comment,
+:where(.light, .colibri, html:not(.js)) .hljs-quote,
+:where(.light, .colibri, html:not(.js)) .hljs-operator,
+:where(.light, .colibri, html:not(.js)) .hljs-punctuation {
+  color: var(--syntax-comment);
 }
 
-:where(.colibri) .hljs-keyword,
-:where(.colibri) .hljs-name,
-:where(.colibri) .hljs-selector-tag {
-  color: #f0f0f0;
+:where(.light, .colibri, html:not(.js)) .hljs-keyword,
+:where(.light, .colibri, html:not(.js)) .hljs-name,
+:where(.light, .colibri, html:not(.js)) .hljs-selector-tag,
+:where(.light, .colibri, html:not(.js)) .hljs-tag {
+  color: var(--syntax-keyword);
 }
 
-:where(.colibri) .hljs-meta,
-:where(.colibri) .hljs-attribute,
-:where(.colibri) .hljs-attr,
-:where(.colibri) .hljs-operator,
-:where(.colibri) .hljs-tag {
-  color: #bcbcbc;
+:where(.light, .colibri, html:not(.js)) .hljs-meta {
+  color: var(--syntax-meta);
 }
 
-:where(.colibri) .hljs-built_in,
-:where(.colibri) .hljs-symbol,
-:where(.colibri) .hljs-addition {
-  color: #d2d2d2;
+:where(.light, .colibri, html:not(.js)) .hljs-attribute,
+:where(.light, .colibri, html:not(.js)) .hljs-attr,
+:where(.light, .colibri, html:not(.js)) .hljs-property,
+:where(.light, .colibri, html:not(.js)) .hljs-params {
+  color: var(--syntax-attribute);
 }
 
-:where(.colibri) .hljs-string,
-:where(.colibri) .hljs-bullet,
-:where(.colibri) .hljs-link {
-  color: #b5b5b5;
+:where(.light, .colibri, html:not(.js)) .hljs-built_in,
+:where(.light, .colibri, html:not(.js)) .hljs-symbol {
+  color: var(--syntax-builtin);
 }
 
-:where(.colibri) .hljs-regexp,
-:where(.colibri) .hljs-formula {
-  color: #c4c4c4;
+:where(.light, .colibri, html:not(.js)) .hljs-string,
+:where(.light, .colibri, html:not(.js)) .hljs-bullet,
+:where(.light, .colibri, html:not(.js)) .hljs-link {
+  color: var(--syntax-string);
 }
 
-:where(.colibri) .hljs-number,
-:where(.colibri) .hljs-literal,
-:where(.colibri) .hljs-params {
-  color: #a5a5a5;
+:where(.light, .colibri, html:not(.js)) .hljs-regexp,
+:where(.light, .colibri, html:not(.js)) .hljs-formula {
+  color: var(--syntax-regexp);
 }
 
-:where(.colibri) .hljs-title,
-:where(.colibri) .hljs-section,
-:where(.colibri) .hljs-type,
-:where(.colibri) .hljs-class,
-:where(.colibri) .hljs-property,
-:where(.colibri) .hljs-selector-id,
-:where(.colibri) .hljs-selector-class {
-  color: #f8f8f8;
+:where(.light, .colibri, html:not(.js)) .hljs-number,
+:where(.light, .colibri, html:not(.js)) .hljs-literal {
+  color: var(--syntax-constant);
 }
 
-:where(.colibri) .hljs-variable,
-:where(.colibri) .hljs-template-variable {
-  color: #d8d8d8;
+:where(.light, .colibri, html:not(.js)) .hljs-title,
+:where(.light, .colibri, html:not(.js)) .hljs-section {
+  color: var(--syntax-function);
 }
 
-:where(.colibri) .hljs-deletion {
-  color: #929292;
+:where(.light, .colibri, html:not(.js)) .hljs-type,
+:where(.light, .colibri, html:not(.js)) .hljs-class,
+:where(.light, .colibri, html:not(.js)) .hljs-selector-id,
+:where(.light, .colibri, html:not(.js)) .hljs-selector-class {
+  color: var(--syntax-type);
 }
 
-:where(.light) .hljs {
-  color: #383838;
-  background: transparent;
+:where(.light, .colibri, html:not(.js)) .hljs-variable,
+:where(.light, .colibri, html:not(.js)) .hljs-template-variable {
+  color: var(--code-text);
 }
 
-:where(.light) .hljs-comment,
-:where(.light) .hljs-quote {
-  color: #858585;
+:where(.light, .colibri, html:not(.js)) .hljs-addition {
+  color: var(--syntax-added);
+  background: var(--syntax-added-bg);
 }
 
-:where(.light) .hljs-keyword,
-:where(.light) .hljs-name,
-:where(.light) .hljs-selector-tag {
-  color: #242424;
-}
-
-:where(.light) .hljs-meta,
-:where(.light) .hljs-attribute,
-:where(.light) .hljs-attr,
-:where(.light) .hljs-operator,
-:where(.light) .hljs-tag,
-:where(.light) .hljs-variable,
-:where(.light) .hljs-template-variable {
-  color: #555555;
-}
-
-:where(.light) .hljs-built_in,
-:where(.light) .hljs-symbol,
-:where(.light) .hljs-addition {
-  color: #464646;
-}
-
-:where(.light) .hljs-string,
-:where(.light) .hljs-bullet,
-:where(.light) .hljs-link {
-  color: #666666;
-}
-
-:where(.light) .hljs-regexp,
-:where(.light) .hljs-formula,
-:where(.light) .hljs-number,
-:where(.light) .hljs-literal,
-:where(.light) .hljs-params {
-  color: #707070;
-}
-
-:where(.light) .hljs-title,
-:where(.light) .hljs-section,
-:where(.light) .hljs-type,
-:where(.light) .hljs-class,
-:where(.light) .hljs-property,
-:where(.light) .hljs-selector-id,
-:where(.light) .hljs-selector-class {
-  color: #1d1d1d;
-}
-
-:where(.light) .hljs-deletion {
-  color: #595959;
+:where(.light, .colibri, html:not(.js)) .hljs-deletion {
+  color: var(--syntax-removed);
+  background: var(--syntax-removed-bg);
 }
 
 .hljs-emphasis {

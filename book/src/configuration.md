@@ -40,7 +40,7 @@ fail visibly instead of being silently ignored.
 
 | Key | Type | Default | Description |
 | --- | --- | --- | --- |
-| `theme` | string or table | `"default"` | Theme name, or `{ light = "...", dark = "...", fallback = "..." }`. `fallback` is optional and defaults to `dark`. See [Themes](./themes.md). |
+| `theme` | string or table | `{ light = "modus_operandi", dark = "modus_vivendi" }` | Theme name, or `{ light = "...", dark = "...", fallback = "..." }`. `fallback` is optional and defaults to `dark`. See [Themes](./themes.md). |
 | `editor` | table | See below | Editor behavior and UI settings. |
 | `keys` | table | Built-in keymap | Per-mode key bindings under `[keys.normal]`, `[keys.insert]`, and `[keys.select]`. Entries are merged with the built-in keymap. See [Key remapping](./remapping.md). |
 | `commands` | table | `{}` | User-defined command-mode commands. See [Custom commands](./custom-commands.md). |
@@ -530,6 +530,8 @@ routing, formatters, and complete examples.
 | `rainbow-brackets` | boolean; inherits editor | Language override for rainbow brackets. |
 
 ### `[language.debugger]`
+
+See [Debugging (DAP)](./debugging.md) for setup, launch templates, and debugging commands.
 
 | Key | Type / default | Description |
 | --- | --- | --- |

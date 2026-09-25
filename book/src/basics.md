@@ -18,6 +18,11 @@ ms .
 
 Mitos starts in **normal mode**. Press `Esc` whenever you want to return to it.
 
+### Image previews
+
+Open an image file the same way as a text file, for example `ms screenshot.png`.
+See [Image previews](./image-previews.md) for supported formats and terminal rendering.
+
 ## Move around
 
 Use the arrow keys or the home-row movement keys:

@@ -17,6 +17,7 @@
 - [Textobjects](./textobjects.md)
 - [Syntax-aware motions](./syntax-aware-motions.md)
 - [Pickers](./pickers.md)
+- [Image previews](./image-previews.md)
 - [Quicklist](./quicklist.md)
 - [Jumplist](./jumplist.md)
 
@@ -26,6 +27,7 @@
 - [Command line](./command-line.md)
 - [Commands](./commands.md)
 - [Language servers](./lsp.md)
+- [Debugging (DAP)](./debugging.md)
 - [Spell checking](./spell-checking.md)
 - [Language support](./lang-support.md)
 - [Workspace trust](./workspace-trust.md)

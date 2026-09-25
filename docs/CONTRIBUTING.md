@@ -41,6 +41,21 @@ mdbook serve book
 
 and visit [http://localhost:3000](http://localhost:3000).
 
+## Screenshots
+
+Take screenshots in a terminal sized **180 columns × 64 rows**, using the
+`modus_operandi` theme (`:theme modus_operandi`). Keep the font and font size
+consistent across captures.
+
+Save PNG files in `book/src/screenshots/` with descriptive, lowercase,
+hyphen-separated names. The landing page uses `autocomplete.png` for its main
+preview and `selections.png`, `lsp.png`, `tree-sitter.png`, `debugging.png`,
+`image-previews.png`, and `file-navigation.png` for the feature rows.
+When replacing an image, update its alt text and pixel dimensions in
+`book/homepage/index.html` if needed.
+
+Run `./book/build-site.sh` to rebuild the site and check the screenshots.
+
 # Testing
 
 ## Unit tests/Documentation tests

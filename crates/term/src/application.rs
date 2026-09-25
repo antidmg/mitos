@@ -515,30 +515,26 @@ impl Application {
         let true_color = terminal.backend().supports_true_color()
             || config.editor.true_color
             || crate::true_color();
-        let theme = config
-            .theme
-            .as_ref()
-            .and_then(|theme_config| {
-                let theme = theme_config.choose(mode);
-                editor
-                    .theme_loader
-                    .load(theme)
-                    .map_err(|e| {
-                        log::warn!("failed to load theme `{}` - {}", theme, e);
-                        e
-                    })
-                    .ok()
-                    .filter(|theme| {
-                        let colors_ok = true_color || theme.is_16_color();
-                        if !colors_ok {
-                            log::warn!(
-                                "loaded theme `{}` but cannot use it because true color \
-                                support is not enabled",
-                                theme.name()
-                            );
-                        }
-                        colors_ok
-                    })
+        let theme_config = config.theme.clone().unwrap_or_default();
+        let name = theme_config.choose(mode);
+        let theme = editor
+            .theme_loader
+            .load(name)
+            .map_err(|e| {
+                log::warn!("failed to load theme `{}` - {}", name, e);
+                e
+            })
+            .ok()
+            .filter(|theme| {
+                let colors_ok = true_color || theme.is_16_color();
+                if !colors_ok {
+                    log::warn!(
+                        "loaded theme `{}` but cannot use it because true color \
+                        support is not enabled",
+                        theme.name()
+                    );
+                }
+                colors_ok
             })
             .unwrap_or_else(|| editor.theme_loader.default_theme());
         let _ = editor.set_theme(theme);
@@ -777,7 +773,7 @@ impl Application {
                     && config
                         .theme
                         .as_ref()
-                        .is_some_and(|theme| theme.is_adaptive())
+                        .is_none_or(|theme| theme.is_adaptive())
                 {
                     self.theme_mode = Some(mode);
                     Self::load_configured_theme(

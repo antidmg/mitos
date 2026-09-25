@@ -11,7 +11,7 @@ selections, tree-sitter syntax awareness, and built-in language-server support.
 ms --tutor
 ```
 
-![Mitos editing Rust code with inline documentation](./editor-screenshot.png)
+<img class="editor-screenshot" src="./screenshots/autocomplete.png" alt="Mitos editing Rust code with completion suggestions and documentation" width="3126" height="2282">
 
 ## At a glance
 

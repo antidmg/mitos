@@ -145,38 +145,6 @@ h1 {
   color: var(--accent-foreground);
 }
 
-.editor-preview {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 0.7rem;
-  background: #000;
-  box-shadow: 0 2rem 5rem rgb(0 0 0 / 20%);
-}
-
-.window-bar {
-  display: flex;
-  gap: 0.45rem;
-  align-items: center;
-  min-height: 2.5rem;
-  padding-inline: 0.9rem;
-  border-bottom: 1px solid #292929;
-  color: #999;
-  font-size: 0.75rem;
-}
-
-.window-bar span {
-  width: 0.65rem;
-  height: 0.65rem;
-  border-radius: 50%;
-  background: #444;
-}
-
-.window-bar strong {
-  margin-inline: auto;
-  padding-right: 3.3rem;
-  font-weight: 500;
-}
-
 .editor-preview img {
   display: block;
   width: 100%;
@@ -185,38 +153,50 @@ h1 {
 
 .features {
   display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.5fr);
-  gap: clamp(2rem, 7vw, 6rem);
+  gap: clamp(2.5rem, 5vw, 4rem);
   padding-block: clamp(5rem, 10vw, 8rem);
 }
 
 .features h2 {
   margin: 0;
-  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-size: 1.75rem;
   font-weight: 580;
-  letter-spacing: -0.05em;
-  line-height: 1.05;
+  letter-spacing: -0.02em;
 }
 
-.feature-grid {
+.feature-row {
+  text-decoration: none;
+  border-radius: 0.45rem;
   display: grid;
-  gap: 0;
+  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 4rem);
 }
 
-.feature-grid article {
-  padding-block: 1.5rem;
-  border-top: 1px solid var(--border);
+.feature-row:hover h3,
+.feature-row:focus-visible h3 {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
-.feature-grid h3 {
+.feature-screenshot {
+  display: block;
+  width: 100%;
+  max-width: 22rem;
+  height: auto;
+}
+
+.feature-description h3 {
   margin: 0 0 0.6rem;
-  font-size: 1.05rem;
+  font-size: 1.25rem;
+  font-weight: 580;
 }
 
-.feature-grid p {
+.feature-description p {
   margin: 0;
   color: var(--muted);
   line-height: 1.65;
+  text-wrap: pretty;
 }
 
 footer {
@@ -239,15 +219,13 @@ a:focus-visible {
 }
 
 @media (max-width: 700px) {
-  .features {
+  .feature-row {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 
   .site-header nav a:first-child {
     display: none;
   }
 
-  .window-bar strong {
-    padding-right: 0;
-  }
 }

@@ -2,19 +2,21 @@
 
 To use a theme add `theme = "<name>"` to the top of your [`config.toml`](./configuration.md) file, or select it during runtime using `:theme <name>`.
 
-Without a configured theme, Mitos uses the built-in `default` theme. It uses
-the terminal's ANSI color palette, so its colors follow the terminal's own
-theme and light or dark appearance.
+Without a configured theme, Mitos uses `modus_operandi` for light mode and
+`modus_vivendi` for dark mode. If the terminal does not report a preference,
+Mitos uses `modus_vivendi`. Terminals without true-color support use the
+built-in ANSI `default` theme instead. To always use the terminal's ANSI
+palette, set `theme = "default"`.
 
 Separate themes can be configured for light and dark modes. On terminals supporting [mode 2031 dark/light detection](https://github.com/contour-terminal/contour/blob/master/docs/vt-extensions/color-palette-update-notifications.md), the theme mode is detected from the terminal and updates when the terminal follows a system appearance change. On other terminals, Mitos uses the configured `fallback` theme, or the dark theme when no fallback is specified.
 
 ```toml
 [theme]
-dark = "warm-burnout-dark"
-light = "warm-burnout-light"
+dark = "modus_vivendi"
+light = "modus_operandi"
 ## Optional. Used if the terminal doesn't declare a preference.
 ## Defaults to the theme set for `dark` if not specified.
-# fallback = "warm-burnout-dark"
+# fallback = "modus_vivendi"
 ```
 
 ## Creating a theme
@@ -52,7 +54,7 @@ Color values must be either a [CSS hex RGB string](https://developer.mozilla.org
 
 > 💡 Note that Mitos doesn't support transparency (alpha channel).
 
-For inspiration, you can find the default `base16_terminal.toml`
+For inspiration, you can find the built-in ANSI theme `base16_terminal.toml`
 [here](https://github.com/mitos-editor/mitos/blob/main/runtime/themes/base16_terminal.toml) and
 user-submitted themes
 [here](https://github.com/mitos-editor/mitos/blob/main/runtime/themes).

@@ -81,6 +81,16 @@ pub enum Config {
     },
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self::Adaptive {
+            light: "modus_operandi".into(),
+            dark: "modus_vivendi".into(),
+            fallback: None,
+        }
+    }
+}
+
 impl Config {
     pub fn choose(&self, preference: Option<Mode>) -> &str {
         match self {
@@ -680,6 +690,15 @@ impl TryFrom<Value> for ThemePalette {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn default_theme_follows_terminal_mode() {
+        let config = Config::default();
+        assert!(config.is_adaptive());
+        assert_eq!(config.choose(Some(Mode::Light)), "modus_operandi");
+        assert_eq!(config.choose(Some(Mode::Dark)), "modus_vivendi");
+        assert_eq!(config.choose(None), "modus_vivendi");
+    }
 
     #[test]
     fn test_parse_style_string() {
