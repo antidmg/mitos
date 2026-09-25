@@ -24,11 +24,18 @@
       });
     gitRev = self.rev or self.dirtyRev or null;
   in {
-    packages = eachSystem (system: {
-      inherit (pkgsFor.${system}) mitos;
+    packages = eachSystem (system: let
+      pkgs = pkgsFor.${system};
+      toolchain = pkgs.pkgsBuildHost.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+      rustPlatform = pkgs.makeRustPlatform {
+        cargo = toolchain;
+        rustc = toolchain;
+      };
+    in rec {
+      mitos = pkgs.mitos.override {inherit rustPlatform;};
       /*
-      The default Mitos build. Uses the latest stable Rust toolchain, and unstable
-      nixpkgs.
+      The default Mitos build. Uses the toolchain declared in rust-toolchain.toml
+      and unstable nixpkgs.
 
       The build inputs can be overridden with the following:
 
@@ -38,20 +45,11 @@
 
       packages.${system}.default.overrideAttrs { buildType = "debug"; };
       */
-      default = self.packages.${system}.mitos;
+      default = mitos;
     });
     checks =
-      lib.mapAttrs (system: pkgs: let
-        # Get Mitos's MSRV toolchain to build with by default.
-        msrvToolchain = pkgs.pkgsBuildHost.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
-        msrvPlatform = pkgs.makeRustPlatform {
-          cargo = msrvToolchain;
-          rustc = msrvToolchain;
-        };
-      in {
-        mitos = self.packages.${system}.mitos.override {
-          rustPlatform = msrvPlatform;
-        };
+      lib.mapAttrs (system: _: {
+        mitos = self.packages.${system}.mitos;
       })
       pkgsFor;
 

@@ -17,7 +17,6 @@
     ./screenshot.png
     ./book
     ./docs
-    ./runtime
     ./flake.lock
     (fs.fileFilter (file: lib.strings.hasInfix ".git" file.name) ./.)
     (fs.fileFilter (file: file.hasExt "svg") ./.)
