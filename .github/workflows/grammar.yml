@@ -1,0 +1,78 @@
+name: Grammar
+on:
+  pull_request:
+    paths:
+      - 'crates/**'
+      - 'xtask/**'
+      - 'runtime/**'
+      - 'tests/**'
+      - '.cargo/**'
+      - '.github/**'
+      - 'book/src/generated/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - 'languages.toml'
+      - 'base16_theme.toml'
+  push:
+    branches:
+      - main
+  merge_group:
+  schedule:
+    - cron: "00 01 * * *"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  MSRV: "1.97.1"
+  # This key can be changed to bust the cache of tree-sitter grammars.
+  GRAMMAR_CACHE_VERSION: ""
+
+jobs:
+  docs:
+    name: Grammar Lint
+    runs-on: ubuntu-latest
+    if: github.repository == 'mitos-editor/mitos' || github.event_name != 'schedule'
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: ./.github/actions/rust-setup
+        with:
+          toolchain: ${{ env.MSRV }}
+          cache-key: build
+          cache-grammars: 'true'
+          grammar-cache-version: ${{ env.GRAMMAR_CACHE_VERSION }}
+
+      - name: Validate queries
+        if: always()
+        run: cargo xtask query-check
+
+      - name: Validate indents
+        if: always()
+        run: cargo xtask indent-check
+
+      - name: Validate highlights
+        if: always()
+        run: cargo xtask highlight-check
+
+      - name: Validate themes
+        if: always()
+        run: cargo xtask theme-check
+
+      - name: Generate docs
+        if: always()
+        run: cargo xtask docgen
+
+      - name: Check uncommitted documentation changes
+        if: always()
+        run: |
+          git diff
+          git diff-files --quiet \
+            || (echo "Run 'cargo xtask docgen', commit the changes and push again" \
+            && exit 1)
