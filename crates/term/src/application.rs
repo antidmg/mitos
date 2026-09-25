@@ -274,7 +274,13 @@ impl Application {
             .start_sync()
             .expect("Cannot start synchronized rendering");
         if self.compositor.full_redraw {
-            self.terminal.clear().expect("Cannot clear the terminal");
+            // Fullscreen resize also clears the screen and invalidates the back buffer.
+            // Unlike clear(), it does not query the cursor position: that query can
+            // block behind the event reader, which filters out cursor reports.
+            let area = Rect::from(self.terminal.size().expect("Cannot read terminal size"));
+            self.terminal
+                .resize(area)
+                .expect("Cannot clear the terminal");
             self.compositor.full_redraw = false;
         }
 
@@ -593,7 +599,7 @@ impl Application {
                 // redraw the terminal
                 let area = Rect::from(self.terminal.size().expect("failed to read terminal size"));
                 self.compositor.resize(area);
-                self.terminal.clear().expect("couldn't clear terminal");
+                self.compositor.need_full_redraw();
 
                 self.render().await;
             }
