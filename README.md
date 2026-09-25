@@ -2,7 +2,7 @@
 
 # Mitos
 
-[![Build status](https://github.com/matoous/mitos/actions/workflows/build.yml/badge.svg)](https://github.com/matoous/mitos/actions)
+[![Build status](https://github.com/mitos-editor/mitos/actions/workflows/build.yml/badge.svg)](https://github.com/mitos-editor/mitos/actions/workflows/build.yml)
 [![License](https://img.shields.io/github/license/mitos-editor/mitos)](./LICENSE)
 
 </div>
