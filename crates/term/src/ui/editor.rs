@@ -163,7 +163,7 @@ impl EditorView {
             Line::default(),
             Line::from(vec![
                 Span::styled("project: ", dim),
-                Span::styled("github.com/matoous/mitos", accent),
+                Span::styled("github.com/mitos-editor/mitos", accent),
             ]),
         ];
         let command_width = commands

@@ -24,7 +24,7 @@ Mitos is a modern, batteries-included, modal text editor written in Rust. It is 
 Mitos requires Rust 1.97.1 or newer.
 
 ```sh
-git clone https://github.com/matoous/mitos
+git clone https://github.com/mitos-editor/mitos
 cd mitos
 cargo build --release
 ./target/release/ms --health

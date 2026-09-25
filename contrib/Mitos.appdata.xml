@@ -31,9 +31,9 @@
 
   <launchable type="desktop-id">Mitos.desktop</launchable>
 
-  <url type="homepage">https://github.com/matoous/mitos</url>
-  <url type="vcs-browser">https://github.com/matoous/mitos</url>
-  <url type="bugtracker">https://github.com/matoous/mitos/issues</url>
+  <url type="homepage">https://github.com/mitos-editor/mitos</url>
+  <url type="vcs-browser">https://github.com/mitos-editor/mitos</url>
+  <url type="bugtracker">https://github.com/mitos-editor/mitos/issues</url>
 
   <content_rating type="oars-1.1" />
 
